@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+.env.local
+coverage
+*.log
+uploads/
+.git
+.gitignore
+README.md
+DEPLOYMENT.md

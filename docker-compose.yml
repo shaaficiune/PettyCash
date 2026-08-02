@@ -1,0 +1,104 @@
+version: '3.9'
+
+services:
+  # ─── PostgreSQL Database ──────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: petty_cash_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Somtel@PL}
+      POSTGRES_DB: ${POSTGRES_DB:-petty_cash_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - petty_cash_net
+
+  # ─── MinIO Object Storage ─────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: petty_cash_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # MinIO Console
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - petty_cash_net
+
+  # ─── NestJS Backend API ───────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: petty_cash_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Somtel%40PL}@postgres:5432/${POSTGRES_DB:-petty_cash_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-somtel_bluekom_petty_cash_secret_key_2026_jwt}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-somtel_bluekom_petty_cash_refresh_secret_key_2026_jwt}
+      JWT_ACCESS_EXPIRES: ${JWT_ACCESS_EXPIRES:-15m}
+      JWT_REFRESH_EXPIRES: ${JWT_REFRESH_EXPIRES:-7d}
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      UPLOAD_DEST: ./uploads
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-petty-cash-attachments}
+    volumes:
+      - backend_uploads:/app/uploads
+    ports:
+      - "3000:3000"
+    networks:
+      - petty_cash_net
+
+  # ─── React Frontend (Nginx) ───────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: petty_cash_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - petty_cash_net
+
+# ─── Named Volumes ────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  minio_data:
+  backend_uploads:
+
+# ─── Networks ─────────────────────────────────────────────────────────────
+networks:
+  petty_cash_net:
+    driver: bridge

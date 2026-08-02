@@ -1,0 +1,280 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PETTY CASH ENTERPRISE — DESIGN SYSTEM TOKENS
+   Based on: Stripe, Linear, Notion inspired minimalist financial UI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+
+  /* ── Light Mode ──────────────────────────────────────────────────────────── */
+  :root {
+    /* Surfaces */
+    --background:          210 40% 98%;      /* #F8FAFC  — Page canvas        */
+    --foreground:          222 47% 11%;      /* #0F172A  — Primary text        */
+
+    /* Cards & Popovers */
+    --card:                0 0% 100%;        /* #FFFFFF  — Card surfaces       */
+    --card-foreground:     222 47% 11%;
+
+    --popover:             0 0% 100%;
+    --popover-foreground:  222 47% 11%;
+
+    /* ── Brand Tokens ──────────────────────────────────────────────────────── */
+    /* Bluekom — Royal/Electric Blue */
+    --brand-bluekom:       217 91% 42%;      /* #1D4ED8 — Deep blue           */
+    --brand-bluekom-soft:  221 83% 53%;      /* #2563EB — Primary blue        */
+
+    /* Somtel — Burnt Orange */
+    --brand-somtel:        21 90% 48%;       /* #EA580C — Deep orange         */
+    --brand-somtel-soft:   24 95% 53%;       /* #F97316 — Primary orange      */
+
+    /* Brand Primary — defaults to Bluekom */
+    --primary:             221.2 83.2% 53.3%; /* #2563EB                      */
+    --primary-foreground:  210 40% 98%;
+
+    /* Secondary */
+    --secondary:           210 40% 96.1%;    /* #F1F5F9  — Slate-100          */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    /* Muted / Subtle text */
+    --muted:               210 40% 96.1%;
+    --muted-foreground:    215.4 16.3% 46.9%; /* #64748B — Slate-500          */
+
+    /* Accents */
+    --accent:              210 40% 96.1%;
+    --accent-foreground:   222.2 47.4% 11.2%;
+
+    /* Destructive — Rose */
+    --destructive:         0 84.2% 60.2%;   /* #F43F5E                        */
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders & Inputs */
+    --border:              214.3 31.8% 91.4%; /* #E2E8F0 — Slate-200          */
+    --input:               214.3 31.8% 91.4%;
+    --ring:                221.2 83.2% 53.3%;
+
+    /* Radius */
+    --radius:              0.75rem;           /* 12px                          */
+  }
+
+  /* ── Company Context: Somtel workspace ──────────────────────────────────── */
+  /* When data-company="somtel" is set on <html>, all primary tokens → orange */
+  [data-company="somtel"] {
+    --primary:             var(--brand-somtel-soft);  /* #F97316              */
+    --primary-foreground:  0 0% 100%;
+    --ring:                var(--brand-somtel-soft);
+  }
+
+  /* ── Dark Mode ───────────────────────────────────────────────────────────── */
+  .dark {
+    /* Surfaces */
+    --background:          222.2 84% 4.9%;   /* #020617  — Near-black canvas  */
+    --foreground:          210 40% 98%;      /* #F8FAFC  — Light text          */
+
+    /* Cards */
+    --card:                222.2 84% 6.5%;   /* #080D1A  — Elevated dark card  */
+    --card-foreground:     210 40% 98%;
+
+    --popover:             222.2 84% 6.5%;
+    --popover-foreground:  210 40% 98%;
+
+    /* Primary — Brighter blue for dark bg contrast */
+    --primary:             217.2 91.2% 59.8%; /* #4A90F9 — Electric blue      */
+    --primary-foreground:  222.2 47.4% 11.2%;
+
+    /* Secondary */
+    --secondary:           217.2 32.6% 17.5%; /* #1E293B — Slate-800          */
+    --secondary-foreground: 210 40% 98%;
+
+    /* Muted */
+    --muted:               217.2 32.6% 17.5%;
+    --muted-foreground:    215 20.2% 65.1%;  /* #94A3B8 — Slate-400           */
+
+    --accent:              217.2 32.6% 17.5%;
+    --accent-foreground:   210 40% 98%;
+
+    --destructive:         0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders */
+    --border:              217.2 32.6% 17.5%; /* #1E293B — Subtle dark border  */
+    --input:               217.2 32.6% 17.5%;
+    --ring:                224.3 76.3% 48%;
+  }
+}
+
+/* ── Global Base Styles ────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    /* Smooth scrolling everywhere */
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* OpenType features: cv02=alt a, cv03=alt g, cv04=alt i, cv11=single-storey a, tnum=tabular nums */
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+  }
+
+  /* Tabular numbers for all financial/numeric contexts */
+  table,
+  .font-mono,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* Focus visible only for keyboard nav */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+/* ── Glassmorphism ─────────────────────────────────────────────────────────── */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  .dark .glass {
+    background: rgba(8, 13, 26, 0.55);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  /* Subtle card glow on hover for interactive cards */
+  .card-interactive {
+    @apply transition-all duration-200;
+  }
+  .card-interactive:hover {
+    @apply shadow-card-md border-primary/30;
+    transform: translateY(-1px);
+  }
+
+  /* Enterprise badge pattern */
+  .badge {
+    @apply inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full;
+  }
+
+  /* Gradient text utility */
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-primary to-indigo-400 bg-clip-text text-transparent;
+  }
+  .text-gradient-bluekom {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-somtel {
+    background: linear-gradient(135deg, #f97316, #c2410c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* ── Custom Scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-600;
+}
+
+/* ── Page Transition Animation ─────────────────────────────────────────────── */
+@layer utilities {
+  .animate-page-in {
+    animation: fade-in 0.22s ease-out both;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+/* ── Sidebar / Layout ──────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Active nav item left-border accent */
+  .nav-active {
+    @apply relative;
+  }
+  .nav-active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-primary;
+  }
+}
+
+/* ── Financial Table Utilities ─────────────────────────────────────────────── */
+@layer utilities {
+  .financial-table th {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 py-3 px-4;
+  }
+  .financial-table td {
+    @apply text-xs py-3 px-4 border-b border-slate-100 dark:border-slate-800/60;
+  }
+  .financial-table tbody tr {
+    @apply transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/20;
+  }
+  /* Credit (positive) number */
+  .num-credit  { @apply text-emerald-600 dark:text-emerald-400 font-mono font-semibold; }
+  /* Debit (negative) number */
+  .num-debit   { @apply text-rose-600 dark:text-rose-400 font-mono font-semibold; }
+  /* Balance number */
+  .num-balance { @apply text-primary font-mono font-bold; }
+  /* Neutral number */
+  .num-neutral { @apply text-slate-800 dark:text-slate-200 font-mono font-semibold; }
+}
