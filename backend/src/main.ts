@@ -49,8 +49,9 @@ async function bootstrap() {
   SwaggerModule.setup('swagger', app, document);
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`[NestJS Server] Backend application is running on: http://localhost:${port}/api`);
-  console.log(`[NestJS Server] Swagger API Documentation: http://localhost:${port}/swagger`);
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`[NestJS Server] Backend application is running on: http://10.35.70.251:${port}/api (${host})`);
+  console.log(`[NestJS Server] Swagger API Documentation: http://10.35.70.251:${port}/swagger`);
 }
 bootstrap();

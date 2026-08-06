@@ -62,7 +62,6 @@ function parseMetaInfo(details: string): string {
 
 export const ReportsPage: React.FC = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState<any>(null);
   const [breakdown, setBreakdown] = useState<any>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,12 +74,10 @@ export const ReportsPage: React.FC = () => {
       const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
       const companyQuery = companyFilter !== 'ALL' ? `?companyId=${companyFilter}` : '';
 
-      const [statsRes, breakdownRes] = await Promise.all([
-        api.get(`/reports/dashboard-stats${companyQuery}`),
+      const [breakdownRes] = await Promise.all([
         api.get(`/reports/breakdowns${companyQuery}`)
       ]);
 
-      setStats(statsRes.data);
       setBreakdown(breakdownRes.data);
 
       if (user?.role === 'SUPER_ADMIN') {
@@ -207,7 +204,7 @@ export const ReportsPage: React.FC = () => {
                           paddingAngle={5}
                           dataKey="value"
                         >
-                          {breakdown.company.map((entry: any, index: number) => (
+                          {breakdown.company.map((_entry: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
