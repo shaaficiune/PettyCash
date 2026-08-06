@@ -1,0 +1,11 @@
+{
+  "name": "petty-cash-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Petty Cash Management System Root Package",
+  "scripts": {
+    "postinstall": "cd backend && npm install",
+    "build": "cd backend && npm run build",
+    "start": "cd backend && npm run start:prod"
+  }
+}

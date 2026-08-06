@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: petty-cash-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+
+  - type: web
+    name: petty-cash-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./frontend/dist
