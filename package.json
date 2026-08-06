@@ -2,10 +2,15 @@
   "name": "petty-cash-app",
   "private": true,
   "version": "1.0.0",
-  "description": "Petty Cash Management System Root Package",
+  "description": "Petty Cash Management System - Ubuntu PM2 Deployment",
   "scripts": {
     "postinstall": "cd backend && npm install && npm run build",
-    "build": "cd backend && npm run build",
-    "start": "cd backend && npm run start:prod"
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "start": "pm2 start ecosystem.config.js",
+    "restart": "pm2 restart ecosystem.config.js",
+    "stop": "pm2 stop ecosystem.config.js",
+    "logs": "pm2 logs petty-cash-backend"
   }
 }
