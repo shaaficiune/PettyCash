@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 888cDRHrCpRD9QrW2RehnHZaB7N995bJ09S3DfnVDwDShA9aaTOVobRrxctblfm
+\restrict plT55B1d4WMM6oxw6tZLpClEhrnGgWu8Nd2RZbcvl9jZWSNBajBqaGFtkA7kIOO
 
 -- Dumped from database version 18.4
 -- Dumped by pg_dump version 18.4
@@ -19,103 +19,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-ALTER TABLE IF EXISTS ONLY public."User" DROP CONSTRAINT IF EXISTS "User_roleId_fkey";
-ALTER TABLE IF EXISTS ONLY public."User" DROP CONSTRAINT IF EXISTS "User_regionId_fkey";
-ALTER TABLE IF EXISTS ONLY public."User" DROP CONSTRAINT IF EXISTS "User_departmentId_fkey";
-ALTER TABLE IF EXISTS ONLY public."User" DROP CONSTRAINT IF EXISTS "User_companyId_fkey";
-ALTER TABLE IF EXISTS ONLY public."RolePermission" DROP CONSTRAINT IF EXISTS "RolePermission_roleId_fkey";
-ALTER TABLE IF EXISTS ONLY public."RolePermission" DROP CONSTRAINT IF EXISTS "RolePermission_permissionId_fkey";
-ALTER TABLE IF EXISTS ONLY public."Region" DROP CONSTRAINT IF EXISTS "Region_companyId_fkey";
-ALTER TABLE IF EXISTS ONLY public."RefreshToken" DROP CONSTRAINT IF EXISTS "RefreshToken_userId_fkey";
-ALTER TABLE IF EXISTS ONLY public."Project" DROP CONSTRAINT IF EXISTS "Project_companyId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashRequest" DROP CONSTRAINT IF EXISTS "PettyCashRequest_userId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashRequest" DROP CONSTRAINT IF EXISTS "PettyCashRequest_regionId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashRequest" DROP CONSTRAINT IF EXISTS "PettyCashRequest_projectId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashRequest" DROP CONSTRAINT IF EXISTS "PettyCashRequest_departmentId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashRequest" DROP CONSTRAINT IF EXISTS "PettyCashRequest_companyId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashRequest" DROP CONSTRAINT IF EXISTS "PettyCashRequest_budgetHeadId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashLedger" DROP CONSTRAINT IF EXISTS "PettyCashLedger_requestId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashLedger" DROP CONSTRAINT IF EXISTS "PettyCashLedger_fundId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashLedger" DROP CONSTRAINT IF EXISTS "PettyCashLedger_employeeId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashLedger" DROP CONSTRAINT IF EXISTS "PettyCashLedger_companyId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashFund" DROP CONSTRAINT IF EXISTS "PettyCashFund_companyId_fkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashAttachment" DROP CONSTRAINT IF EXISTS "PettyCashAttachment_requestId_fkey";
-ALTER TABLE IF EXISTS ONLY public."Payment" DROP CONSTRAINT IF EXISTS "Payment_requestId_fkey";
-ALTER TABLE IF EXISTS ONLY public."Payment" DROP CONSTRAINT IF EXISTS "Payment_paidById_fkey";
-ALTER TABLE IF EXISTS ONLY public."Payment" DROP CONSTRAINT IF EXISTS "Payment_companyId_fkey";
-ALTER TABLE IF EXISTS ONLY public."Notification" DROP CONSTRAINT IF EXISTS "Notification_userId_fkey";
-ALTER TABLE IF EXISTS ONLY public."ExpenseSettlement" DROP CONSTRAINT IF EXISTS "ExpenseSettlement_requestId_fkey";
-ALTER TABLE IF EXISTS ONLY public."ExpenseSettlement" DROP CONSTRAINT IF EXISTS "ExpenseSettlement_companyId_fkey";
-ALTER TABLE IF EXISTS ONLY public."ExpenseSettlement" DROP CONSTRAINT IF EXISTS "ExpenseSettlement_approvedById_fkey";
-ALTER TABLE IF EXISTS ONLY public."Department" DROP CONSTRAINT IF EXISTS "Department_companyId_fkey";
-ALTER TABLE IF EXISTS ONLY public."BudgetHead" DROP CONSTRAINT IF EXISTS "BudgetHead_companyId_fkey";
-ALTER TABLE IF EXISTS ONLY public."AuditLog" DROP CONSTRAINT IF EXISTS "AuditLog_userId_fkey";
-DROP INDEX IF EXISTS public."User_username_key";
-DROP INDEX IF EXISTS public."User_employeeNumber_key";
-DROP INDEX IF EXISTS public."SystemSetting_key_key";
-DROP INDEX IF EXISTS public."Role_name_key";
-DROP INDEX IF EXISTS public."Region_name_companyId_key";
-DROP INDEX IF EXISTS public."RefreshToken_token_key";
-DROP INDEX IF EXISTS public."Project_name_companyId_key";
-DROP INDEX IF EXISTS public."PettyCashRequest_requestNumber_key";
-DROP INDEX IF EXISTS public."PettyCashFund_companyId_month_year_key";
-DROP INDEX IF EXISTS public."Payment_requestId_idx";
-DROP INDEX IF EXISTS public."Payment_paidById_idx";
-DROP INDEX IF EXISTS public."Payment_companyId_idx";
-DROP INDEX IF EXISTS public."ExpenseSettlement_status_idx";
-DROP INDEX IF EXISTS public."ExpenseSettlement_requestId_idx";
-DROP INDEX IF EXISTS public."ExpenseSettlement_companyId_idx";
-DROP INDEX IF EXISTS public."Department_name_companyId_key";
-DROP INDEX IF EXISTS public."Company_name_key";
-DROP INDEX IF EXISTS public."BudgetHead_name_companyId_key";
-DROP INDEX IF EXISTS public."BudgetHead_code_companyId_key";
-ALTER TABLE IF EXISTS ONLY public._prisma_migrations DROP CONSTRAINT IF EXISTS _prisma_migrations_pkey;
-ALTER TABLE IF EXISTS ONLY public."User" DROP CONSTRAINT IF EXISTS "User_pkey";
-ALTER TABLE IF EXISTS ONLY public."SystemSetting" DROP CONSTRAINT IF EXISTS "SystemSetting_pkey";
-ALTER TABLE IF EXISTS ONLY public."Role" DROP CONSTRAINT IF EXISTS "Role_pkey";
-ALTER TABLE IF EXISTS ONLY public."RolePermission" DROP CONSTRAINT IF EXISTS "RolePermission_pkey";
-ALTER TABLE IF EXISTS ONLY public."Region" DROP CONSTRAINT IF EXISTS "Region_pkey";
-ALTER TABLE IF EXISTS ONLY public."RefreshToken" DROP CONSTRAINT IF EXISTS "RefreshToken_pkey";
-ALTER TABLE IF EXISTS ONLY public."Project" DROP CONSTRAINT IF EXISTS "Project_pkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashRequest" DROP CONSTRAINT IF EXISTS "PettyCashRequest_pkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashLedger" DROP CONSTRAINT IF EXISTS "PettyCashLedger_pkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashFund" DROP CONSTRAINT IF EXISTS "PettyCashFund_pkey";
-ALTER TABLE IF EXISTS ONLY public."PettyCashAttachment" DROP CONSTRAINT IF EXISTS "PettyCashAttachment_pkey";
-ALTER TABLE IF EXISTS ONLY public."Permission" DROP CONSTRAINT IF EXISTS "Permission_pkey";
-ALTER TABLE IF EXISTS ONLY public."Payment" DROP CONSTRAINT IF EXISTS "Payment_pkey";
-ALTER TABLE IF EXISTS ONLY public."Notification" DROP CONSTRAINT IF EXISTS "Notification_pkey";
-ALTER TABLE IF EXISTS ONLY public."ExpenseSettlement" DROP CONSTRAINT IF EXISTS "ExpenseSettlement_pkey";
-ALTER TABLE IF EXISTS ONLY public."Department" DROP CONSTRAINT IF EXISTS "Department_pkey";
-ALTER TABLE IF EXISTS ONLY public."Company" DROP CONSTRAINT IF EXISTS "Company_pkey";
-ALTER TABLE IF EXISTS ONLY public."BudgetHead" DROP CONSTRAINT IF EXISTS "BudgetHead_pkey";
-ALTER TABLE IF EXISTS ONLY public."AuditLog" DROP CONSTRAINT IF EXISTS "AuditLog_pkey";
-DROP TABLE IF EXISTS public._prisma_migrations;
-DROP TABLE IF EXISTS public."User";
-DROP TABLE IF EXISTS public."SystemSetting";
-DROP TABLE IF EXISTS public."RolePermission";
-DROP TABLE IF EXISTS public."Role";
-DROP TABLE IF EXISTS public."Region";
-DROP TABLE IF EXISTS public."RefreshToken";
-DROP TABLE IF EXISTS public."Project";
-DROP TABLE IF EXISTS public."PettyCashRequest";
-DROP TABLE IF EXISTS public."PettyCashLedger";
-DROP TABLE IF EXISTS public."PettyCashFund";
-DROP TABLE IF EXISTS public."PettyCashAttachment";
-DROP TABLE IF EXISTS public."Permission";
-DROP TABLE IF EXISTS public."Payment";
-DROP TABLE IF EXISTS public."Notification";
-DROP TABLE IF EXISTS public."ExpenseSettlement";
-DROP TABLE IF EXISTS public."Department";
-DROP TABLE IF EXISTS public."Company";
-DROP TABLE IF EXISTS public."BudgetHead";
-DROP TABLE IF EXISTS public."AuditLog";
-DROP TYPE IF EXISTS public."SettlementStatus";
-DROP TYPE IF EXISTS public."RoleName";
-DROP TYPE IF EXISTS public."RequestType";
-DROP TYPE IF EXISTS public."RequestStatus";
-DROP TYPE IF EXISTS public."Priority";
-DROP TYPE IF EXISTS public."PaymentMethod";
--- *not* dropping schema, since initdb creates it
 --
 -- Name: public; Type: SCHEMA; Schema: -; Owner: postgres
 --
@@ -575,7 +478,6 @@ CREATE TABLE public."User" (
     "passwordHash" text NOT NULL,
     email text,
     phone text,
-    "employeeNumber" text NOT NULL,
     "companyId" text NOT NULL,
     "departmentId" text NOT NULL,
     "regionId" text,
@@ -583,7 +485,8 @@ CREATE TABLE public."User" (
     status text DEFAULT 'ACTIVE'::text NOT NULL,
     "resetPasswordRequired" boolean DEFAULT true NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "jobTitle" text
 );
 
 
@@ -629,30 +532,22 @@ d087e6b1-6ad7-4cfe-9363-7ed1a797a4c0	8c727565-7321-4dc8-9667-5820fc2f1a19	DISABL
 1e79e3ad-74c0-4026-be84-b2d383689727	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_USER	{"url":"/api/users","method":"POST","body":{"fullName":"Shaafici Diiriye","username":"shaafici","email":"shaaficidiiriye6@gmail.com","phone":"660000548","employeeNumber":"BLKM-001","companyId":"4911f01d-6c14-43f3-902d-c9e8f063f1b6","departmentId":"51ea7d31-d79e-4487-ad91-a0189ec9c141","regionId":"6600517b-6a8e-4245-9371-aacbb8ab73de","role":"EMPLOYEE"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:18:36.296
 3cc809af-b03c-4816-bbff-9501d61ba65f	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU2ODc0NzQsImV4cCI6MTc4NjI5MjI3NH0.5d13s_gJvebYbyPDjO9HDcASPowO-KZhzulDgJ6ts_A"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:18:53.812
 4f7dca08-f8c4-4236-ab64-e9bfc3289e45	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"shaafici","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:19:03.784
-06c32ec9-4815-491c-bc13-3ddf3ea84978	703c4a81-d279-4de7-9d19-15ef005211dc	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2ODc1NTAsImV4cCI6MTc4NjI5MjM1MH0.KM9KoiKKyoOh81bY5E9Avbf3w-os_I8_EUqTNO0O8W4"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:21:05.686
 b7903544-39d7-49ac-a569-7cea7e8161e5	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:21:10.187
 fd8c6e27-fc30-4fb9-b240-dbf8ad2b4d9a	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU2ODc2NzAsImV4cCI6MTc4NjI5MjQ3MH0.z51iwMembW41NZad-A3dZPFPN131QVlmfPiNv2yziIc"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:24:01.082
 490f7a35-343f-4eef-8f08-ec9b8c27a520	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"shaafici","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:24:06.938
-07e1658f-589b-4106-8d5b-f95b33c5bde8	703c4a81-d279-4de7-9d19-15ef005211dc	CREATE_REQUEST	{"url":"/api/requests","method":"POST","body":{"projectId":"959d6eed-c5c9-45d7-97c7-780ee60bc7ce","regionId":"6600517b-6a8e-4245-9371-aacbb8ab73de","budgetHeadId":"8c61786e-bcaa-4565-baa8-d98fb727cd65","purpose":"Item iib","description":"dkdkkjfdjdjjdfjd","requestedAmount":20,"currency":"USD","priority":"NORMAL","requiredDate":"2026-08-02","attachments":[],"status":"PENDING_APPROVAL"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:24:46.148
-d01430f4-3cf5-4694-8ffa-f607e255241e	703c4a81-d279-4de7-9d19-15ef005211dc	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2ODc4NDYsImV4cCI6MTc4NjI5MjY0Nn0.2A3l3Of_uyc3EO9NvfMklIjlfT4-5ReGXHwHY2VZlbw"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:25:04.32
 bdd0f560-4aa3-4092-ac29-4479db5cb9fb	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:25:06.932
 e48e01b9-aca8-44ba-bae1-9efe44735bce	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_REQUEST	{"url":"/api/requests/c052ac59-0a29-4e62-ae9d-31fc52f1b9ed/review","method":"POST","body":{"status":"APPROVED","comments":"","approvedAmount":20},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:25:13.242
 09345e98-2366-4ab0-b4e4-238206349f8a	8c727565-7321-4dc8-9667-5820fc2f1a19	RECORD_PAYMENT	{"url":"/api/payments","method":"POST","body":{"requestId":"c052ac59-0a29-4e62-ae9d-31fc52f1b9ed","amountPaid":20,"paymentMethod":"EDAHAB","notes":""},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:31:12.709
 a5ebce68-d37f-487a-bb5b-94b71ef77045	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU2ODk3MzQsImV4cCI6MTc4NjI5NDUzNH0.qKhPRH1B4GSA24j2dli0-bnrKqos2gI1ZzD2c-VFqzo"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:58:37.065
 a5e77c01-516e-4064-aa79-6642edab873c	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"shaafici","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:58:45.522
-5db4fa70-b9e9-41e9-8030-630a468feb5d	703c4a81-d279-4de7-9d19-15ef005211dc	CREATE_REQUEST	{"url":"/api/requests","method":"POST","body":{"regionId":"6600517b-6a8e-4245-9371-aacbb8ab73de","budgetHeadId":"607c77ba-53dd-4306-874c-0a1ff41cd902","purpose":"test","description":"done","requestedAmount":20,"currency":"USD","priority":"NORMAL","requiredDate":"2026-08-02","attachments":[],"status":"PENDING_APPROVAL"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:59:09.562
-71978282-69ce-4f3d-b505-8bad982759cf	703c4a81-d279-4de7-9d19-15ef005211dc	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2ODk5MjUsImV4cCI6MTc4NjI5NDcyNX0.oN7QoJ1XVJSly7EXpf6_NQ4MyrmcBcQhdrIvMRe90Uo"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:59:13.48
 e0d10dd2-0058-4624-9362-d1a47668bd5c	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:59:15.634
 804af297-f5f4-47d8-ae4e-04fb5727b7fd	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_REQUEST	{"url":"/api/requests/0bf06374-ac9a-49a9-9df8-d1863c02adfe/review","method":"POST","body":{"status":"APPROVED","comments":"","approvedAmount":20},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:59:19.915
 d60d5dee-b02a-471f-80f2-16e8e8cd5a25	8c727565-7321-4dc8-9667-5820fc2f1a19	RECORD_PAYMENT	{"url":"/api/payments","method":"POST","body":{"requestId":"0bf06374-ac9a-49a9-9df8-d1863c02adfe","amountPaid":20,"paymentMethod":"EDAHAB","notes":""},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:59:29.293
 3ed617dd-42c0-4edc-a043-7f767602aaea	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU2ODk5NTUsImV4cCI6MTc4NjI5NDc1NX0.AhrpjIcVDGZcyjnfR0vubrLid7EkZEchx-UMGFme-pU"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:12:11.905
 17bcbfe3-d61b-4b18-85a2-c5c175fefa36	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"shaafici","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:12:17.496
-e9e99f07-c131-4b37-8a8a-4afcdcadf62e	703c4a81-d279-4de7-9d19-15ef005211dc	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2OTA3MzcsImV4cCI6MTc4NjI5NTUzN30.hL-6Qg0ppN-rH4oRMvfZ353TP43LUPHjNZd0s5j4NIU"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:16:28.335
 f0379846-988d-44ee-ae01-240a908a5c34	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:16:30.375
 dca28ac7-7e72-429e-bb7f-e11f8c361ea3	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU2OTE4OTMsImV4cCI6MTc4NjI5NjY5M30.YFiGLlxCZkBvtVr4LfMLiz8qjEalDeOpMfiEESsHh3Y"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:46:20.712
 93e4b45a-1ff9-4a91-a483-1c81bc3a33cf	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"shaafici","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:46:25.265
-475d473f-2149-49cf-ba0c-c4d12490eb06	703c4a81-d279-4de7-9d19-15ef005211dc	CREATE_REQUEST	{"url":"/api/requests","method":"POST","body":{"regionId":"6600517b-6a8e-4245-9371-aacbb8ab73de","budgetHeadId":"ec67bfb1-05ba-4a5d-8f7c-7169f00a4261","purpose":"laptop","description":"dlkdkdfkf","requestedAmount":200,"currency":"USD","priority":"URGENT","requiredDate":"2026-08-02","attachments":[],"status":"PENDING_APPROVAL"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:46:43.656
-b4f10f0c-ce32-4ac6-9cf0-59a1ca79e091	703c4a81-d279-4de7-9d19-15ef005211dc	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2OTI3ODUsImV4cCI6MTc4NjI5NzU4NX0.ugB0BkmDQplwx345wq5N-ZAGKe6Yvi-B-hE1npNgZvI"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:46:48.096
 6f118fdb-9feb-43d3-aea6-40de20ee9a64	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:46:50.515
 1b6d9b91-e748-4a4b-92f5-d5cd916d4455	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_REQUEST	{"url":"/api/requests/83901e6b-9266-4ee1-b3f4-b1231a0abd56/review","method":"POST","body":{"status":"APPROVED","comments":"","approvedAmount":200},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:46:57.013
 853fd637-2fe8-4c7e-80fb-e281d590cf7b	8c727565-7321-4dc8-9667-5820fc2f1a19	RECORD_PAYMENT	{"url":"/api/payments","method":"POST","body":{"requestId":"83901e6b-9266-4ee1-b3f4-b1231a0abd56","amountPaid":200,"paymentMethod":"EDAHAB","notes":""},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:47:00.15
@@ -660,12 +555,82 @@ f29dcbba-56ef-43c5-9ba2-5ae73f3f6769	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT
 e3f97850-bc87-44ef-a5f6-9e7b9848553f	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:47:07.843
 faf0eeea-d38e-4355-ad94-873432741fb8	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU2OTI4MjcsImV4cCI6MTc4NjI5NzYyN30.mHWvnWXe4ehsh_InwGzhwjgz8Xr3hVZ3oxgFClpLSok"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:47:10.669
 52cd941b-a59b-4aec-aeb8-b44b432221d1	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"shaafici","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:47:14.314
-89a329b5-07d9-485e-b66c-07b40b3f2e4f	703c4a81-d279-4de7-9d19-15ef005211dc	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2OTI4MzQsImV4cCI6MTc4NjI5NzYzNH0.H7TkeQCr6zbywgf40JvJFu-WfGy_Py5YDpB2lTsaZK8"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:47:24.112
 c1880c9c-5620-45a8-85ed-c530eb991919	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:47:25.882
 bb0a2984-93d1-4352-bfd1-1b413f322eb7	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU2OTI4NDUsImV4cCI6MTc4NjI5NzY0NX0.xtGs74tB9n6wCGSPfBGBnY8CJylimHvHuadOgvN_buw"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:47:48.898
 2fc53608-2728-432e-9b20-a94e834a8eee	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"shaafici","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:47:52.627
-89752520-cd6c-4a03-b1e9-3779aef00ec4	703c4a81-d279-4de7-9d19-15ef005211dc	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2OTI4NzIsImV4cCI6MTc4NjI5NzY3Mn0.8DLNw8q_kBEUmONdep5_W8ZG66mc9LTVuKqSFA-gxxg"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:49:10.701
 ecb11f87-c512-4eb6-87b4-3e90707d8bdf	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:49:18.195
+c9e3be35-34ae-4d39-b5df-0b4a290c8e29	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:28:49.728
+fc0971ae-b85e-485d-a404-8b8fda124b20	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU3NDIxMjksImV4cCI6MTc4NjM0NjkyOX0.iR2kpNb6qm0k3gQpv-i56RshYYV1VTXrBpIqlAo3PWk"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:32:18.039
+0d7a58e2-25f2-4e45-bdbb-5f7e9f86cfc9	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"shaafici","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:32:25.916
+c539312f-5a5e-4d77-b7be-6b5ba087ee5a	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_REQUEST	{"url":"/api/requests/858d11df-0c20-41c1-a3e3-d64a94d9e795/review","method":"POST","body":{"status":"APPROVED","comments":"","approvedAmount":18},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:40:56.459
+ecc97fab-79d6-4b60-8eff-a84918a9e644	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:33:57.969
+aea023f9-d15c-4128-ae9f-645f431881fa	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU3NDI0MzcsImV4cCI6MTc4NjM0NzIzN30.FSWhriFCXZYzcnZGmNwYoQgSefUtajIqZ-0wntvVIRc"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:35:27.911
+5141622c-3f46-47b5-96f9-a836371915f4	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:35:31.435
+b968306c-2fe4-4e18-8df2-c762a6506240	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_USER	{"url":"/api/users","method":"POST","body":{"fullName":"Bashir Abdikarim","username":"bashiir","employeeNumber":"somtle001","companyId":"1d625f68-7207-4e5f-af81-c6d708fba6e8","departmentId":"7bd04125-854a-4d67-bc6a-0c31f9dc1f79","regionId":"524e00bb-793d-4ea7-9fcb-53ff443438cb","role":"EMPLOYEE"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:36:14.158
+b6510d4f-b99b-4532-bf8c-859feeeaba07	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU3NDI1MzEsImV4cCI6MTc4NjM0NzMzMX0.4baaKV76vK24uhLnNOExBlwVqnAABGvKI9h7ajurEvg"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:36:19.223
+ab5b381e-95b9-465e-a4f1-d2bbde1fa738	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"bashiir","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:36:36.886
+e64c5073-1971-4842-9d62-8ac9f83627a8	30ed88b5-bd12-4d55-9c23-975b8c9e0244	CREATE_REQUEST	{"url":"/api/requests","method":"POST","body":{"regionId":"524e00bb-793d-4ea7-9fcb-53ff443438cb","budgetHeadId":"18e70a8f-2beb-4ffb-8491-663039a1e326","purpose":"Laptop Battery","description":"laptop battery bashir IT","requestedAmount":25,"currency":"USD","priority":"URGENT","requiredDate":"2026-08-03","attachments":[],"status":"PENDING_APPROVAL"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:38:15.477
+24adde1b-cdec-442c-a64d-dd7e0c95e3d8	30ed88b5-bd12-4d55-9c23-975b8c9e0244	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMGVkODhiNS1iZDEyLTRkNTUtOWMyMy05NzViOGM5ZTAyNDQiLCJpYXQiOjE3ODU3NDI2MDcsImV4cCI6MTc4NjM0NzQwN30.Z7Ui2C05Opy7Rin-CANzsaGYuZ9oIaes20LhLNA4ZRc"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:38:20.458
+a87ac44b-94fe-45b4-82dd-a79531053288	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:38:22.673
+884b60ff-5322-4c52-b93b-2fc9443cc7a3	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_REQUEST	{"url":"/api/requests/6cd66702-da77-459f-a89d-d21e4ab25c97/review","method":"POST","body":{"status":"REJECTED","comments":""},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:39:22.675
+3b543371-3a41-47f0-b8ac-c52ecebb5864	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU3NDI3MDIsImV4cCI6MTc4NjM0NzUwMn0.igBZm6YEQ1oqlwgBkYwN8J3PYNOJPT34zQE0rn5ZU2g"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:39:28.808
+8fd7e0f0-b861-443f-a51a-1b18d8a96740	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:39:31.083
+474eaa35-bdaa-43a6-ba8d-36e4e4fba462	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU3NDI3NzEsImV4cCI6MTc4NjM0NzU3MX0.YCKoidUA0D2LN79G6HXlqON5KFpaj8TCCSceEfNXWwI"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:39:32.74
+e46c5ddf-657b-4b00-bb45-869e72260975	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"bashiir","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:39:36.388
+f2972803-2de9-4247-9314-cc94b859e934	30ed88b5-bd12-4d55-9c23-975b8c9e0244	CREATE_REQUEST	{"url":"/api/requests","method":"POST","body":{"regionId":"524e00bb-793d-4ea7-9fcb-53ff443438cb","budgetHeadId":"18e70a8f-2beb-4ffb-8491-663039a1e326","purpose":"RJ-MAKER","description":"CLIMBER TOOL FOR CAT 6 CABLE","requestedAmount":18,"currency":"USD","priority":"HIGH","requiredDate":"2026-08-03","attachments":[],"status":"PENDING_APPROVAL"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:40:23.926
+3ab8b781-bc67-4edc-bcd3-8fcbb60920c3	30ed88b5-bd12-4d55-9c23-975b8c9e0244	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMGVkODhiNS1iZDEyLTRkNTUtOWMyMy05NzViOGM5ZTAyNDQiLCJpYXQiOjE3ODU3NDI3NzYsImV4cCI6MTc4NjM0NzU3Nn0.j1bz9hmYTym7OCM6GBCfubxM8JHgFKfg50xGIEAaUQk"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:40:26.05
+67992048-c1ac-4c41-862f-9cd4e8d312fa	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:40:27.946
+c7d12878-b952-490b-891e-ad775efbb363	8c727565-7321-4dc8-9667-5820fc2f1a19	RECORD_PAYMENT	{"url":"/api/payments","method":"POST","body":{"requestId":"858d11df-0c20-41c1-a3e3-d64a94d9e795","amountPaid":18,"paymentMethod":"EDAHAB","notes":""},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:41:58.358
+63c0dd28-27da-48e6-b036-5564392c6def	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU3NDI4MjcsImV4cCI6MTc4NjM0NzYyN30.y1qUW3ITsadBqaN3gKOc0itkFb2LcmoWtv-04vWUIcw"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:42:17.324
+33ad569a-9701-47fd-9ecd-59812ad0c94c	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"bashiir","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:42:23.767
+db711d8b-b19c-4932-a416-8a109a610741	30ed88b5-bd12-4d55-9c23-975b8c9e0244	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMGVkODhiNS1iZDEyLTRkNTUtOWMyMy05NzViOGM5ZTAyNDQiLCJpYXQiOjE3ODU3NDI5NDMsImV4cCI6MTc4NjM0Nzc0M30.KkVHWDkbhE2yJ_JD4UmGnQa3zzrFIJjCBMcwD2-6Jhg"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:44:15.168
+ad2e7b61-222b-42df-a7b9-d1fa597e2f8e	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:44:17.64
+44e61fc0-bf40-4b19-a8e0-bacfcc450759	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 15:42:57.083
+b0c6efe0-ae0a-45d0-8645-fb261222ea68	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAyNjQ1NzcsImV4cCI6MTc5MDg2OTM3N30.fh5E5NhKEWUkDyDfCf2f_xlI5TWS_ol7nmzDk5u_Jq8"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 15:43:14.639
+ee1c5528-2e70-45e1-9872-6841fecaaa50	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 15:44:38.085
+139e2498-12ce-4e8a-9e48-0ff0bc116a9a	8c727565-7321-4dc8-9667-5820fc2f1a19	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAyNjQ2NzgsImV4cCI6MTc5MDg2OTQ3OH0.ZhG2hjP1h7NzK3zLAH0gWeY9Xzs6i1VXGY5ta0SLULY"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 15:44:41.107
+dfbdf854-bf75-469b-9e7c-bb221de95e08	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 16:03:09.041
+e50dbfdf-a671-4d94-bc1b-ceb3cd8bf0ff	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 16:04:29.667
+35aeb851-78ae-424a-9bc3-25201a8ac8fd	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 16:41:48.746
+bd2a4417-9af6-413c-9f3f-b2b6da6acb01	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 17:58:48.455
+09e29367-ef5e-40a5-a95a-3d74dc5e0165	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 18:09:00.571
+d89146e1-16ce-4b41-825a-d67b08a702f6	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 18:14:47.943
+f316f70f-8f77-45c3-b3ec-0d413368282d	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 18:15:03.599
+65f3c785-6389-4df1-bcd5-8080c4387d8c	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_USER	{"url":"/api/users/30ed88b5-bd12-4d55-9c23-975b8c9e0244/reset-password","method":"POST","body":null,"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 18:23:03.599
+2853c877-13df-42f8-9dc8-aa1d96e15516	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"bashiir","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 18:23:16.569
+b9082f25-7d64-46ce-8615-b2b9902ea04c	30ed88b5-bd12-4d55-9c23-975b8c9e0244	CREATE_REQUEST	{"url":"/api/requests","method":"POST","body":{"regionId":"524e00bb-793d-4ea7-9fcb-53ff443438cb","budgetHeadId":"161b30d9-b075-4012-94d8-51135b8ca1f9","purpose":"CAT6","description":"ALAABTAAS DEGDEG HANALOOGU DALBO","requestedAmount":20,"currency":"USD","priority":"NORMAL","requiredDate":"2026-09-24","attachments":[],"status":"PENDING_APPROVAL"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 18:24:13.039
+0c60b051-ba8f-44d3-8e94-1c93b2dac476	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 18:24:30.172
+4f07ab3f-9268-4761-a24d-69cd65dad61f	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_REQUEST	{"url":"/api/requests/3b039e16-ec7f-4c39-96fc-daa3ad93899a/review","method":"POST","body":{"status":"APPROVED","comments":"","approvedAmount":20},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 18:24:41.299
+ce2ca0dd-3ccc-4820-9c13-49f243464da8	8c727565-7321-4dc8-9667-5820fc2f1a19	RECORD_PAYMENT	{"url":"/api/payments","method":"POST","body":{"requestId":"3b039e16-ec7f-4c39-96fc-daa3ad93899a","amountPaid":20,"paymentMethod":"EDAHAB","notes":""},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-24 18:24:50.924
+99bf066f-faa1-4592-aed9-cfe870093337	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 06:47:45.643
+a267d8f4-7705-4291-a219-4b1240a81232	8c727565-7321-4dc8-9667-5820fc2f1a19	UPDATE_USER	{"url":"/api/users/703c4a81-d279-4de7-9d19-15ef005211dc","method":"PUT","body":{"status":"DISABLED"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 09:21:30.038
+c2ee76df-c163-4401-986e-56406e433d45	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"bashiir","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 09:21:52.56
+6837301e-6d7e-4d5d-b79f-a31f3fa719e1	30ed88b5-bd12-4d55-9c23-975b8c9e0244	CREATE_REQUEST	{"url":"/api/requests","method":"POST","body":{"regionId":"524e00bb-793d-4ea7-9fcb-53ff443438cb","budgetHeadId":"161b30d9-b075-4012-94d8-51135b8ca1f9","purpose":"Laptop Battery","description":"Hp laptop battery for Bashir Abdikarim","requestedAmount":40,"currency":"USD","priority":"NORMAL","requiredDate":"2026-09-25","attachments":[],"status":"DRAFT"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 09:24:30.403
+0016ddda-70fe-4d9b-a260-8153b381ae48	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 13:41:18.767
+747ff7e8-5c26-427d-8111-626d0b027524	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_USER	{"url":"/api/users","method":"POST","body":{"fullName":"Shafi Abdirahman Dirie","username":"shaaficiune","email":"shafici.abdirahman@somtelnetwork.net","phone":"660000557","jobTitle":"Accountant","companyId":"4911f01d-6c14-43f3-902d-c9e8f063f1b6","departmentId":"51ea7d31-d79e-4487-ad91-a0189ec9c141","role":"SUPER_ADMIN"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 13:43:01.882
+714f327d-41ab-4f31-a6bb-cc4797868173	8c727565-7321-4dc8-9667-5820fc2f1a19	UPDATE_USER	{"url":"/api/users/703c4a81-d279-4de7-9d19-15ef005211dc","method":"PUT","body":{"status":"ACTIVE"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 13:43:16.035
+64324c4a-4296-4e56-abb0-315f3c614cb0	8c727565-7321-4dc8-9667-5820fc2f1a19	UPDATE_USER	{"url":"/api/users/703c4a81-d279-4de7-9d19-15ef005211dc","method":"PUT","body":{"status":"DISABLED"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 13:43:17.11
+657191c1-c902-45f9-800a-8ec372294da5	8c727565-7321-4dc8-9667-5820fc2f1a19	UPDATE_USER	{"url":"/api/users/30ed88b5-bd12-4d55-9c23-975b8c9e0244","method":"PUT","body":{"status":"DISABLED"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 13:43:20.142
+628aa06b-f23a-46ad-b201-95a17ed9fa15	8c727565-7321-4dc8-9667-5820fc2f1a19	UPDATE_USER	{"url":"/api/users/f86d9ba0-c6f1-4c30-97fc-ceaabca602a0","method":"PUT","body":{"status":"DISABLED"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 13:43:21.164
+0f3efe4f-3749-489f-835d-ec4785948996	8c727565-7321-4dc8-9667-5820fc2f1a19	DISABLE_USER	{"url":"/api/users/f86d9ba0-c6f1-4c30-97fc-ceaabca602a0","method":"DELETE","body":null,"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 13:43:23.371
+06c32ec9-4815-491c-bc13-3ddf3ea84978	\N	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2ODc1NTAsImV4cCI6MTc4NjI5MjM1MH0.KM9KoiKKyoOh81bY5E9Avbf3w-os_I8_EUqTNO0O8W4"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:21:05.686
+07e1658f-589b-4106-8d5b-f95b33c5bde8	\N	CREATE_REQUEST	{"url":"/api/requests","method":"POST","body":{"projectId":"959d6eed-c5c9-45d7-97c7-780ee60bc7ce","regionId":"6600517b-6a8e-4245-9371-aacbb8ab73de","budgetHeadId":"8c61786e-bcaa-4565-baa8-d98fb727cd65","purpose":"Item iib","description":"dkdkkjfdjdjjdfjd","requestedAmount":20,"currency":"USD","priority":"NORMAL","requiredDate":"2026-08-02","attachments":[],"status":"PENDING_APPROVAL"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:24:46.148
+d01430f4-3cf5-4694-8ffa-f607e255241e	\N	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2ODc4NDYsImV4cCI6MTc4NjI5MjY0Nn0.2A3l3Of_uyc3EO9NvfMklIjlfT4-5ReGXHwHY2VZlbw"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:25:04.32
+5db4fa70-b9e9-41e9-8030-630a468feb5d	\N	CREATE_REQUEST	{"url":"/api/requests","method":"POST","body":{"regionId":"6600517b-6a8e-4245-9371-aacbb8ab73de","budgetHeadId":"607c77ba-53dd-4306-874c-0a1ff41cd902","purpose":"test","description":"done","requestedAmount":20,"currency":"USD","priority":"NORMAL","requiredDate":"2026-08-02","attachments":[],"status":"PENDING_APPROVAL"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:59:09.562
+71978282-69ce-4f3d-b505-8bad982759cf	\N	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2ODk5MjUsImV4cCI6MTc4NjI5NDcyNX0.oN7QoJ1XVJSly7EXpf6_NQ4MyrmcBcQhdrIvMRe90Uo"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 16:59:13.48
+e9e99f07-c131-4b37-8a8a-4afcdcadf62e	\N	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2OTA3MzcsImV4cCI6MTc4NjI5NTUzN30.hL-6Qg0ppN-rH4oRMvfZ353TP43LUPHjNZd0s5j4NIU"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:16:28.335
+475d473f-2149-49cf-ba0c-c4d12490eb06	\N	CREATE_REQUEST	{"url":"/api/requests","method":"POST","body":{"regionId":"6600517b-6a8e-4245-9371-aacbb8ab73de","budgetHeadId":"ec67bfb1-05ba-4a5d-8f7c-7169f00a4261","purpose":"laptop","description":"dlkdkdfkf","requestedAmount":200,"currency":"USD","priority":"URGENT","requiredDate":"2026-08-02","attachments":[],"status":"PENDING_APPROVAL"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:46:43.656
+b4f10f0c-ce32-4ac6-9cf0-59a1ca79e091	\N	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2OTI3ODUsImV4cCI6MTc4NjI5NzU4NX0.ugB0BkmDQplwx345wq5N-ZAGKe6Yvi-B-hE1npNgZvI"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:46:48.096
+89a329b5-07d9-485e-b66c-07b40b3f2e4f	\N	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2OTI4MzQsImV4cCI6MTc4NjI5NzYzNH0.H7TkeQCr6zbywgf40JvJFu-WfGy_Py5YDpB2lTsaZK8"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:47:24.112
+89752520-cd6c-4a03-b1e9-3779aef00ec4	\N	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2OTI4NzIsImV4cCI6MTc4NjI5NzY3Mn0.8DLNw8q_kBEUmONdep5_W8ZG66mc9LTVuKqSFA-gxxg"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-02 17:49:10.701
+fae09bcc-aa2b-4ddc-80be-3929f16aac1a	\N	LOGOUT	{"url":"/api/auth/logout","method":"POST","body":{"refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU3NDIzNDUsImV4cCI6MTc4NjM0NzE0NX0.eGZfpmHt0G4ccWvKGoy3CnDV2KD3puvWaC0CQqge3Yo"},"responseStatus":"SUCCESS"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	2026-08-03 07:33:55.841
+53e34011-6036-43f4-9586-080e6e52a6a3	8c727565-7321-4dc8-9667-5820fc2f1a19	DISABLE_USER	{"url":"/api/users/703c4a81-d279-4de7-9d19-15ef005211dc","method":"DELETE","body":null,"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 13:43:32.416
+7ce45b49-cedb-4509-8b47-df251cb85c9f	8c727565-7321-4dc8-9667-5820fc2f1a19	UPDATE_USER	{"url":"/api/users/8c727565-7321-4dc8-9667-5820fc2f1a19","method":"PUT","body":{"status":"DISABLED"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 13:49:40.387
+a2bc30b3-249f-423f-8f1a-a1909432a0c6	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"admin","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 14:12:34.683
+ee1eb05e-9254-42b7-9c3d-a76990f59b5d	8c727565-7321-4dc8-9667-5820fc2f1a19	UPDATE_USER	{"url":"/api/users/8c727565-7321-4dc8-9667-5820fc2f1a19","method":"PUT","body":{"fullName":"System Administrator","email":"admin@somtel.com","phone":"+252660000548","role":"SUPER_ADMIN"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 14:14:59.613
+72fd3d64-bf96-4453-9f14-a07ac2d92c40	8c727565-7321-4dc8-9667-5820fc2f1a19	CREATE_USER	{"url":"/api/users","method":"POST","body":{"fullName":"Mustafe Abdi Shir","username":"mustafe","email":"mustafe@gmail.com","phone":"66005959","companyId":"4911f01d-6c14-43f3-902d-c9e8f063f1b6","role":"EMPLOYEE"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 14:17:34.442
+994f68a3-1bd7-43ea-be12-37cbf795b2f0	8c727565-7321-4dc8-9667-5820fc2f1a19	UPDATE_USER	{"url":"/api/users/c82c1850-e604-4361-908b-162dbbc862d0","method":"PUT","body":{"fullName":"Mustafe Abdi Shir","email":"mustafe@gmail.com","phone":"66005959","role":"ACCOUNTANT"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 14:17:40.937
+f12a013e-97b7-4425-b697-811416e9edf9	\N	LOGIN	{"url":"/api/auth/login","method":"POST","body":{"username":"mustafe","password":"********"},"responseStatus":"SUCCESS"}	127.0.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-25 14:17:56.415
 \.
 
 
@@ -726,12 +691,6 @@ COPY public."ExpenseSettlement" (id, "requestId", "companyId", "actualExpenseAmo
 --
 
 COPY public."Notification" (id, "userId", title, message, "isRead", "createdAt") FROM stdin;
-589a315b-52c5-4bf7-8043-705318c903dc	703c4a81-d279-4de7-9d19-15ef005211dc	Request Approved: PC-20260802-0001	Your petty cash request PC-20260802-0001 has been approved for USD 20.	f	2026-08-02 16:25:13.235
-d5e7070d-10af-4a86-bbf4-c57d0689c090	703c4a81-d279-4de7-9d19-15ef005211dc	Payment Disbursed: PC-20260802-0001	A payment of USD 20 has been disbursed for request PC-20260802-0001 via EDAHAB.	f	2026-08-02 16:31:12.706
-42f13e59-26e6-49ad-b604-d37893d5e8a6	703c4a81-d279-4de7-9d19-15ef005211dc	Request Approved: PC-20260802-0002	Your petty cash request PC-20260802-0002 has been approved for USD 20.	f	2026-08-02 16:59:19.906
-41c37f5b-1c95-4e08-96f2-b42482e8be25	703c4a81-d279-4de7-9d19-15ef005211dc	Payment Disbursed: PC-20260802-0002	A payment of USD 20 has been disbursed for request PC-20260802-0002 via EDAHAB.	f	2026-08-02 16:59:29.29
-983d8029-a42e-4bd7-975c-fc0077cf847b	703c4a81-d279-4de7-9d19-15ef005211dc	Request Approved: PC-20260802-0003	Your petty cash request PC-20260802-0003 has been approved for USD 200.	f	2026-08-02 17:46:57.003
-ca8bd928-7edb-4e78-8156-e7f9b1f4b012	703c4a81-d279-4de7-9d19-15ef005211dc	Payment Disbursed: PC-20260802-0003	A payment of USD 200 has been disbursed for request PC-20260802-0003 via EDAHAB.	f	2026-08-02 17:47:00.147
 \.
 
 
@@ -740,9 +699,6 @@ ca8bd928-7edb-4e78-8156-e7f9b1f4b012	703c4a81-d279-4de7-9d19-15ef005211dc	Paymen
 --
 
 COPY public."Payment" (id, "requestId", "companyId", "paymentDate", "amountPaid", "paymentMethod", "transactionId", "referenceNumber", "paidById", notes, "createdAt") FROM stdin;
-503b0d35-5fb2-4320-8591-c3a97659e5a7	c052ac59-0a29-4e62-ae9d-31fc52f1b9ed	4911f01d-6c14-43f3-902d-c9e8f063f1b6	2026-08-02 16:31:12.665	20.00	EDAHAB	\N	\N	8c727565-7321-4dc8-9667-5820fc2f1a19		2026-08-02 16:31:12.667
-7e4c0cd3-d665-4740-8637-34c399ea516a	0bf06374-ac9a-49a9-9df8-d1863c02adfe	4911f01d-6c14-43f3-902d-c9e8f063f1b6	2026-08-02 16:59:29.267	20.00	EDAHAB	\N	\N	8c727565-7321-4dc8-9667-5820fc2f1a19		2026-08-02 16:59:29.268
-3fc3d1e0-98a7-48cc-9914-14ce56b6e877	83901e6b-9266-4ee1-b3f4-b1231a0abd56	4911f01d-6c14-43f3-902d-c9e8f063f1b6	2026-08-02 17:47:00.117	200.00	EDAHAB	\N	\N	8c727565-7321-4dc8-9667-5820fc2f1a19		2026-08-02 17:47:00.119
 \.
 
 
@@ -776,8 +732,6 @@ COPY public."PettyCashAttachment" (id, "requestId", "fileName", "fileUrl", "file
 --
 
 COPY public."PettyCashFund" (id, "companyId", month, year, "openingBalance", "additionalFunding", "totalAvailable", "approvedAmount", "paidAmount", "remainingBalance", "closingBalance", status, "createdAt", "updatedAt") FROM stdin;
-9b5963c2-4868-4fb6-95bc-7756f37ac5b9	1d625f68-7207-4e5f-af81-c6d708fba6e8	8	2026	900.00	90.00	990.00	0.00	0.00	990.00	990.00	OPEN	2026-08-02 16:21:43.189	2026-08-02 17:24:40.706
-c2521714-72eb-454e-b47a-0674e6abb988	4911f01d-6c14-43f3-902d-c9e8f063f1b6	8	2026	800.00	0.00	800.00	240.00	240.00	560.00	560.00	OPEN	2026-08-02 16:21:50.905	2026-08-02 17:47:00.134
 \.
 
 
@@ -786,12 +740,6 @@ c2521714-72eb-454e-b47a-0674e6abb988	4911f01d-6c14-43f3-902d-c9e8f063f1b6	8	2026
 --
 
 COPY public."PettyCashLedger" (id, "fundId", "companyId", date, "referenceNumber", "transactionType", "employeeId", "requestId", description, debit, credit, "balanceAfter", remarks, "createdAt", "updatedAt") FROM stdin;
-39ac4db4-fb3a-4ed3-8daf-83587c2e78b2	9b5963c2-4868-4fb6-95bc-7756f37ac5b9	1d625f68-7207-4e5f-af81-c6d708fba6e8	2026-08-02 16:21:43.204	\N	ALLOCATION	\N	\N	Initial petty cash fund allocation for 8/2026	\N	900.00	900.00	Initial Allocation: $900	2026-08-02 16:21:43.204	2026-08-02 16:21:43.204
-0b2c27c1-54b6-4bd3-ad59-cbfa990c4f61	c2521714-72eb-454e-b47a-0674e6abb988	4911f01d-6c14-43f3-902d-c9e8f063f1b6	2026-08-02 16:21:50.911	\N	ALLOCATION	\N	\N	Initial petty cash fund allocation for 8/2026	\N	800.00	800.00	Initial Allocation: $800	2026-08-02 16:21:50.911	2026-08-02 16:21:50.911
-83bfd2df-31bb-4a9d-8cf4-988418730134	c2521714-72eb-454e-b47a-0674e6abb988	4911f01d-6c14-43f3-902d-c9e8f063f1b6	2026-08-02 16:31:12.699	\N	PAYMENT	8c727565-7321-4dc8-9667-5820fc2f1a19	c052ac59-0a29-4e62-ae9d-31fc52f1b9ed	Payment for PC-20260802-0001 - Item iib	20.00	\N	780.00	\N	2026-08-02 16:31:12.699	2026-08-02 16:31:12.699
-3dba590d-a065-4bcc-8004-2c5b7cba89de	c2521714-72eb-454e-b47a-0674e6abb988	4911f01d-6c14-43f3-902d-c9e8f063f1b6	2026-08-02 16:59:29.283	\N	PAYMENT	8c727565-7321-4dc8-9667-5820fc2f1a19	0bf06374-ac9a-49a9-9df8-d1863c02adfe	test	20.00	\N	760.00	\N	2026-08-02 16:59:29.283	2026-08-02 16:59:29.283
-521a5120-56a0-43aa-ba47-70cf07868cac	9b5963c2-4868-4fb6-95bc-7756f37ac5b9	1d625f68-7207-4e5f-af81-c6d708fba6e8	2026-08-02 17:24:40.734	\N	ALLOCATION	\N	\N	Petty cash fund top-up / injection	\N	90.00	990.00	Fund top-up: +$90	2026-08-02 17:24:40.734	2026-08-02 17:24:40.734
-7b8e2272-0bef-457f-ab9d-39410827b7bc	c2521714-72eb-454e-b47a-0674e6abb988	4911f01d-6c14-43f3-902d-c9e8f063f1b6	2026-08-02 17:47:00.139	\N	PAYMENT	8c727565-7321-4dc8-9667-5820fc2f1a19	83901e6b-9266-4ee1-b3f4-b1231a0abd56	laptop	200.00	\N	560.00	\N	2026-08-02 17:47:00.139	2026-08-02 17:47:00.139
 \.
 
 
@@ -800,9 +748,7 @@ COPY public."PettyCashLedger" (id, "fundId", "companyId", date, "referenceNumber
 --
 
 COPY public."PettyCashRequest" (id, "requestNumber", "requestDate", "userId", "companyId", "departmentId", "projectId", "regionId", "budgetHeadId", "costCenter", "requestType", "vendorName", "invoiceNumber", "invoiceDate", remarks, purpose, description, "requestedAmount", "approvedAmount", currency, priority, status, "requiredDate", "correctionNotes", "createdAt", "updatedAt") FROM stdin;
-c052ac59-0a29-4e62-ae9d-31fc52f1b9ed	PC-20260802-0001	2026-08-02 16:24:46.129	703c4a81-d279-4de7-9d19-15ef005211dc	4911f01d-6c14-43f3-902d-c9e8f063f1b6	51ea7d31-d79e-4487-ad91-a0189ec9c141	959d6eed-c5c9-45d7-97c7-780ee60bc7ce	6600517b-6a8e-4245-9371-aacbb8ab73de	8c61786e-bcaa-4565-baa8-d98fb727cd65	\N	OTHER	\N	\N	\N	\N	Item iib	dkdkkjfdjdjjdfjd	20.00	20.00	USD	NORMAL	PAID	2026-08-02 00:00:00	\N	2026-08-02 16:24:46.129	2026-08-02 16:31:12.703
-0bf06374-ac9a-49a9-9df8-d1863c02adfe	PC-20260802-0002	2026-08-02 16:59:09.515	703c4a81-d279-4de7-9d19-15ef005211dc	4911f01d-6c14-43f3-902d-c9e8f063f1b6	51ea7d31-d79e-4487-ad91-a0189ec9c141	\N	6600517b-6a8e-4245-9371-aacbb8ab73de	607c77ba-53dd-4306-874c-0a1ff41cd902	\N	OTHER	\N	\N	\N	\N	test	done	20.00	20.00	USD	NORMAL	PAID	2026-08-02 00:00:00	\N	2026-08-02 16:59:09.515	2026-08-02 16:59:29.287
-83901e6b-9266-4ee1-b3f4-b1231a0abd56	PC-20260802-0003	2026-08-02 17:46:43.629	703c4a81-d279-4de7-9d19-15ef005211dc	4911f01d-6c14-43f3-902d-c9e8f063f1b6	51ea7d31-d79e-4487-ad91-a0189ec9c141	\N	6600517b-6a8e-4245-9371-aacbb8ab73de	ec67bfb1-05ba-4a5d-8f7c-7169f00a4261	\N	OTHER	\N	\N	\N	\N	laptop	dlkdkdfkf	200.00	200.00	USD	URGENT	PAID	2026-08-02 00:00:00	\N	2026-08-02 17:46:43.629	2026-08-02 17:47:00.144
+6c2e4d67-f26d-45fb-b081-225f83df5141	PC-20260925-0001	2026-09-25 09:24:30.325	30ed88b5-bd12-4d55-9c23-975b8c9e0244	1d625f68-7207-4e5f-af81-c6d708fba6e8	7bd04125-854a-4d67-bc6a-0c31f9dc1f79	\N	524e00bb-793d-4ea7-9fcb-53ff443438cb	161b30d9-b075-4012-94d8-51135b8ca1f9	\N	OTHER	\N	\N	\N	\N	Laptop Battery	Hp laptop battery for Bashir Abdikarim	40.00	\N	USD	NORMAL	DRAFT	2026-09-25 00:00:00	\N	2026-09-25 09:24:30.325	2026-09-25 09:24:30.325
 \.
 
 
@@ -823,8 +769,23 @@ COPY public."Project" (id, name, description, "companyId", status, "createdAt", 
 COPY public."RefreshToken" (id, token, "userId", "expiresAt", "createdAt") FROM stdin;
 f3d61b19-edfb-4199-8b3a-b4f0e6e4885f	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU2ODYyNzksImV4cCI6MTc4NjI5MTA3OX0.u_4VGEL9i-ReBpRC0VTdT2nagcc13JXcfNfH-g7nZzM	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-08-09 15:57:59.975	2026-08-02 15:57:59.979
 43bd46c6-3bf8-4f85-8394-cee006633f08	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU2ODc0NzEsImV4cCI6MTc4NjI5MjI3MX0.5xqfZtAboX5uLViS2RzQ3MS3dpk4mT5FKFgK7Ld4ukY	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-08-09 16:17:51.678	2026-08-02 16:17:51.679
-72c0783d-2a54-4f30-a288-a361d6d70477	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MDNjNGE4MS1kMjc5LTRkZTctOWQxOS0xNWVmMDA1MjExZGMiLCJpYXQiOjE3ODU2ODc1NDMsImV4cCI6MTc4NjI5MjM0M30.sGnxC6o1dUBoPKUgHkwi87-FlQzUKwRjT93tT5ebyJg	703c4a81-d279-4de7-9d19-15ef005211dc	2026-08-09 16:19:03.778	2026-08-02 16:19:03.78
-b6c1dc91-b874-4d7c-9a76-f855397665ac	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU2OTM4NTgsImV4cCI6MTc4NjI5ODY1OH0.bYynTlQnwRk1823jFiy9azglJitQdoXa8pc_cqo-MeA	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-08-09 18:04:18.337	2026-08-02 18:04:18.34
+077f8691-221b-41c3-931f-6dca71c52db3	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMGVkODhiNS1iZDEyLTRkNTUtOWMyMy05NzViOGM5ZTAyNDQiLCJpYXQiOjE3OTAzMjk5NjEsImV4cCI6MTc5MDkzNDc2MX0.PMHrnVjoaBLb9HIetA6BKgRz3Kd1FDDCWUaMGeNGNBs	30ed88b5-bd12-4d55-9c23-975b8c9e0244	2026-10-02 09:52:41.622	2026-09-25 09:52:41.624
+088a5e1f-ea1c-4657-8179-4b1b7a02751f	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAzNDQxOTAsImV4cCI6MTc5MDk0ODk5MH0.1mVTY5-KHwAxRMJMQ1jT66QJn21NKTRDXXK1emf-v1Q	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-02 13:49:50.459	2026-09-25 13:49:50.46
+ec9fbec5-2409-49e4-9717-2ab03b3798be	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAzNDU1NTQsImV4cCI6MTc5MDk1MDM1NH0.wkRBbQd3kUKGyNyO_p0CR-lPV4VWcxnAhyzAiXcgyaU	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-02 14:12:34.665	2026-09-25 14:12:34.667
+bb606d7c-e6db-48a7-9948-4105e4d4535d	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjODJjMTg1MC1lNjA0LTQzNjEtOTA4Yi0xNjJkYmJjODYyZDAiLCJpYXQiOjE3OTAzNDU4NzYsImV4cCI6MTc5MDk1MDY3Nn0.jGzH8PbdNBEpLV9R9eNLmJt_4QJOlOBbj6WcPZywqLg	c82c1850-e604-4361-908b-162dbbc862d0	2026-10-02 14:17:56.409	2026-09-25 14:17:56.41
+3b17df70-f750-41d9-a4ee-b3d2c1019e67	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjODJjMTg1MC1lNjA0LTQzNjEtOTA4Yi0xNjJkYmJjODYyZDAiLCJpYXQiOjE3OTAzNDU4ODksImV4cCI6MTc5MDk1MDY4OX0.WA6rX7a8Z-b5b5PATB2bF5TuBsXTTG-4DTV_DGSDZ7k	c82c1850-e604-4361-908b-162dbbc862d0	2026-10-02 14:18:09.177	2026-09-25 14:18:09.178
+585c8fee-51e7-4afc-8ed1-204d5ef7a08a	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3ODU3NDIxMjYsImV4cCI6MTc4NjM0NjkyNn0.GHB5uRZRY62f-s7uHcvrlJkPCfBaKJJslBmSWyrv9jU	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-08-10 07:28:46.684	2026-08-03 07:28:46.686
+5c97c235-a333-4ad9-8db7-c3a9c91c2175	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAyNjU3ODksImV4cCI6MTc5MDg3MDU4OX0.HTec8Y9t6yBcH2MJUjLl5iY4JuXK_UfVQQ2GdprRmxc	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-01 16:03:09.018	2026-09-24 16:03:09.02
+97a8c735-b6b4-48b0-a7bb-a994cc08e396	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAyNjY4MTgsImV4cCI6MTc5MDg3MTYxOH0.-6jWo1U32CZS_pURhughWcRJw7B4fUw13V6oTQcpThQ	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-01 16:20:18.226	2026-09-24 16:20:18.228
+be8c51ca-7b9a-4aeb-8c58-b8b71f48e3c7	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAyNzI3MTIsImV4cCI6MTc5MDg3NzUxMn0.ymYANO5vqH5v-J3SQMCCMn5Op-SSfK4S4JRzkN2MW3s	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-01 17:58:32.122	2026-09-24 17:58:32.126
+a2121fc3-85ac-4cd7-8da6-57d80a2c8d0c	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAyNzI3MjgsImV4cCI6MTc5MDg3NzUyOH0.ZbKjbJcjR5Lyocc5g8ZoNVFYGhQZBUyqc9Y40kYRgp8	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-01 17:58:48.442	2026-09-24 17:58:48.443
+9c37069b-eccc-48ed-96fa-f15c55dbe23f	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAyNzMzNDAsImV4cCI6MTc5MDg3ODE0MH0.MG1NfooyoPU0qL6WyxZoCqIPR6XXJyil6JNuX9I1LRA	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-01 18:09:00.547	2026-09-24 18:09:00.549
+5995fba4-86c6-463c-8494-f50fa50d913e	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAyNzM2ODcsImV4cCI6MTc5MDg3ODQ4N30.lrcNm1WoebMmsYyFbuJYEfYTDY2INNwRlnCaLVDyGb8	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-01 18:14:47.919	2026-09-24 18:14:47.921
+e25150f1-82ea-497b-b3cd-d0a0f25a0e89	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAyNzM3MDMsImV4cCI6MTc5MDg3ODUwM30.6NMTrSdyNb8I6Tzk0NiqXZo__Fge5oWGbTfJ8fnVLMU	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-01 18:15:03.586	2026-09-24 18:15:03.587
+560138f4-8fb9-40d2-9e6a-a7cf6dfea44a	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMGVkODhiNS1iZDEyLTRkNTUtOWMyMy05NzViOGM5ZTAyNDQiLCJpYXQiOjE3OTAyNzQxOTYsImV4cCI6MTc5MDg3ODk5Nn0.TrQ3sPuU9xYBwoM6STYTjWCfX_SGfl3XbDGPMA_iDQc	30ed88b5-bd12-4d55-9c23-975b8c9e0244	2026-10-01 18:23:16.563	2026-09-24 18:23:16.565
+106369b1-ce43-426e-8a5e-fcc8469410b7	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMGVkODhiNS1iZDEyLTRkNTUtOWMyMy05NzViOGM5ZTAyNDQiLCJpYXQiOjE3OTAyNzQyMDQsImV4cCI6MTc5MDg3OTAwNH0.sN92kCj9L3ciGgV7jk5IyZ9nizITkbfKZOcFfkLGOYs	30ed88b5-bd12-4d55-9c23-975b8c9e0244	2026-10-01 18:23:24.975	2026-09-24 18:23:24.978
+87b6f354-ab94-41c3-91dc-738c4c1d4ecd	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAyNzQyNzAsImV4cCI6MTc5MDg3OTA3MH0.LYA50PqrlKljuYm2bs_0d9ufGF6zimm3iN22wHfJJD4	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-01 18:24:30.161	2026-09-24 18:24:30.162
+1ced648b-fc3f-4742-8b8a-9918bece98e3	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YzcyNzU2NS03MzIxLTRkYzgtOTY2Ny01ODIwZmMyZjFhMTkiLCJpYXQiOjE3OTAzMjc5MjYsImV4cCI6MTc5MDkzMjcyNn0.jbx4tXg6YYCJ_VIvZuh9ICf34bC_Abu_nVn6sEHQG5g	8c727565-7321-4dc8-9667-5820fc2f1a19	2026-10-02 09:18:46.551	2026-09-25 09:18:46.552
 \.
 
 
@@ -898,9 +859,10 @@ d375367e-87fc-4430-8ea9-c83eadedf676	CURRENCY_OPTIONS	USD,SOS,SLS	Comma-separate
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, "fullName", username, "passwordHash", email, phone, "employeeNumber", "companyId", "departmentId", "regionId", "roleId", status, "resetPasswordRequired", "createdAt", "updatedAt") FROM stdin;
-8c727565-7321-4dc8-9667-5820fc2f1a19	System Administrator	admin	$2a$10$dNcxwVUtZPoxDxJre/iG2.Ya0jUVfRi2oPMxYqFXaO5AWRSXVQLpK	admin@somtel.com	+252610000001	EMP-001	1d625f68-7207-4e5f-af81-c6d708fba6e8	bcb54c84-0251-4702-aa22-d2a411a56434	\N	d33ac25f-f1a9-4b22-8b3f-b05b288f5677	ACTIVE	f	2026-08-02 15:56:26.061	2026-08-02 15:59:51.065
-703c4a81-d279-4de7-9d19-15ef005211dc	Shaafici Diiriye	shaafici	$2a$10$qBU7oQw/QSb4XERkS3rg..f6wdD2QfbGVObVJumvpLzZzYjv7Ft8O	shaaficidiiriye6@gmail.com	660000548	BLKM-001	4911f01d-6c14-43f3-902d-c9e8f063f1b6	51ea7d31-d79e-4487-ad91-a0189ec9c141	6600517b-6a8e-4245-9371-aacbb8ab73de	d47a1a39-84c7-4e05-9471-a0797d9971d6	ACTIVE	f	2026-08-02 16:18:36.284	2026-08-02 16:19:10.857
+COPY public."User" (id, "fullName", username, "passwordHash", email, phone, "companyId", "departmentId", "regionId", "roleId", status, "resetPasswordRequired", "createdAt", "updatedAt", "jobTitle") FROM stdin;
+30ed88b5-bd12-4d55-9c23-975b8c9e0244	Bashir Abdikarim	bashiir	$2a$10$viYFgpS6jEDHoZbLnKjSBeQNNp.ZUeDq8SfXrOuwwF.CyLgFFA8kS	\N	\N	1d625f68-7207-4e5f-af81-c6d708fba6e8	7bd04125-854a-4d67-bc6a-0c31f9dc1f79	524e00bb-793d-4ea7-9fcb-53ff443438cb	d47a1a39-84c7-4e05-9471-a0797d9971d6	ACTIVE	f	2026-08-03 07:36:14.147	2026-09-25 13:43:20.136	\N
+8c727565-7321-4dc8-9667-5820fc2f1a19	System Administrator	admin	$2a$10$dNcxwVUtZPoxDxJre/iG2.Ya0jUVfRi2oPMxYqFXaO5AWRSXVQLpK	admin@somtel.com	+252660000548	1d625f68-7207-4e5f-af81-c6d708fba6e8	bcb54c84-0251-4702-aa22-d2a411a56434	\N	d33ac25f-f1a9-4b22-8b3f-b05b288f5677	ACTIVE	f	2026-08-02 15:56:26.061	2026-09-25 14:14:59.601	\N
+c82c1850-e604-4361-908b-162dbbc862d0	Mustafe Abdi Shir	mustafe	$2a$10$b7bgaaQ1Mud8f6i3ti3j6OrZzgRho4bp1nmtmNTVtdXf3PKptaKGW	mustafe@gmail.com	66005959	4911f01d-6c14-43f3-902d-c9e8f063f1b6	81a50da1-faec-41cb-bcef-82c72ebd11a2	\N	b4f4e747-d480-4cf8-ba13-207fd5414690	ACTIVE	f	2026-09-25 14:17:34.432	2026-09-25 14:18:09.172	\N
 \.
 
 
@@ -1192,10 +1154,10 @@ CREATE UNIQUE INDEX "SystemSetting_key_key" ON public."SystemSetting" USING btre
 
 
 --
--- Name: User_employeeNumber_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: User_phone_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX "User_employeeNumber_key" ON public."User" USING btree ("employeeNumber");
+CREATE UNIQUE INDEX "User_phone_key" ON public."User" USING btree (phone);
 
 
 --
@@ -1464,5 +1426,5 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 888cDRHrCpRD9QrW2RehnHZaB7N995bJ09S3DfnVDwDShA9aaTOVobRrxctblfm
+\unrestrict plT55B1d4WMM6oxw6tZLpClEhrnGgWu8Nd2RZbcvl9jZWSNBajBqaGFtkA7kIOO
 
