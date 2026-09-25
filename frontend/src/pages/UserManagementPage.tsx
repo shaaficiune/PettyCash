@@ -28,6 +28,7 @@ export const UserManagementPage: React.FC = () => {
   const [userRegionId, setUserRegionId] = useState('');
   const [companyRegions, setCompanyRegions] = useState<any[]>([]);
   const [role, setRole] = useState('EMPLOYEE');
+  const [jobTitle, setJobTitle] = useState('');
 
   // Region & Department Budget Editing state
   const [editingBudgets, setEditingBudgets] = useState<{ [key: string]: string }>({});
@@ -259,7 +260,7 @@ export const UserManagementPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !username || !companyId || !departmentId || !role) {
+    if (!fullName || !username || !phone || !companyId || !departmentId || !role) {
       setError('Please fill in all mandatory fields');
       return;
     }
@@ -270,7 +271,8 @@ export const UserManagementPage: React.FC = () => {
         fullName,
         username,
         email: email || undefined,
-        phone: phone || undefined,
+        phone,
+        jobTitle: jobTitle || undefined,
         companyId,
         departmentId,
         regionId: userRegionId || undefined,
@@ -282,6 +284,7 @@ export const UserManagementPage: React.FC = () => {
       setUsername('');
       setEmail('');
       setPhone('');
+      setJobTitle('');
       setCompanyId('');
       setDepartmentId('');
       setUserRegionId('');
@@ -493,18 +496,96 @@ export const UserManagementPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Phone Number (Optional)</label>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Phone Number *</label>
                   <input
                     type="text"
                     placeholder="e.g. +25266..."
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
+                    required
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Job Title (Optional)</label>
+                  <select
+                    value={jobTitle}
+                    onChange={(e) => setJobTitle(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
+                  >
+                    <option value="">— Select Job Title —</option>
+                    <optgroup label="Management & Administration">
+                      <option>General Manager</option>
+                      <option>Regional Manager</option>
+                      <option>Operations Manager</option>
+                      <option>Finance Manager</option>
+                      <option>HR Manager</option>
+                      <option>IT Manager</option>
+                      <option>Sales Manager</option>
+                      <option>Project Manager</option>
+                      <option>Department Head</option>
+                      <option>Executive Secretary</option>
+                      <option>Administrative Officer</option>
+                      <option>Legal Officer</option>
+                      <option>Compliance Officer</option>
+                    </optgroup>
+                    <optgroup label="Finance & Accounting">
+                      <option>Chief Accountant</option>
+                      <option>Senior Accountant</option>
+                      <option>Accountant</option>
+                      <option>Finance Officer</option>
+                      <option>Financial Analyst</option>
+                      <option>Accounts Payable Officer</option>
+                      <option>Treasury Officer</option>
+                      <option>Internal Auditor</option>
+                      <option>Procurement Officer</option>
+                    </optgroup>
+                    <optgroup label="Engineering & Technical">
+                      <option>Network Engineer</option>
+                      <option>Wireless Field Engineer</option>
+                      <option>Transmission Field Engineer</option>
+                      <option>ISP Field Engineer</option>
+                      <option>RF Engineer</option>
+                      <option>NOC Engineer</option>
+                      <option>Systems Administrator</option>
+                      <option>IT Technician</option>
+                      <option>Network Technician</option>
+                      <option>Field Technician</option>
+                      <option>Civil Engineer</option>
+                      <option>Power Engineer</option>
+                      <option>Mechanical Engineer</option>
+                      <option>Software Developer</option>
+                    </optgroup>
+                    <optgroup label="Operations & Fleet">
+                      <option>Operations Officer</option>
+                      <option>Fleet Manager</option>
+                      <option>Fleet Officer</option>
+                      <option>Logistics Officer</option>
+                      <option>Warehouse Officer</option>
+                      <option>Driver</option>
+                      <option>Office Messenger</option>
+                    </optgroup>
+                    <optgroup label="Sales & Commercial">
+                      <option>Sales Supervisor</option>
+                      <option>Sales Representative</option>
+                      <option>Account Manager</option>
+                      <option>Business Development Officer</option>
+                      <option>Marketing Officer</option>
+                      <option>Customer Service Representative</option>
+                      <option>Retail Officer</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                      <option>Receptionist</option>
+                      <option>Data Entry Clerk</option>
+                      <option>Security Officer</option>
+                      <option>Cleaner</option>
+                    </optgroup>
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Company *</label>
                   <select
@@ -516,19 +597,6 @@ export const UserManagementPage: React.FC = () => {
                     {companies.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Role *</label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                  >
-                    <option value="EMPLOYEE">Employee</option>
-                    <option value="ACCOUNTANT">Accountant</option>
-                    <option value="SUPER_ADMIN">Super Admin</option>
                   </select>
                 </div>
               </div>
@@ -679,7 +747,6 @@ export const UserManagementPage: React.FC = () => {
                                   <p className="font-semibold text-slate-800 dark:text-slate-200">{u.fullName}</p>
                                   <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
                                     <span>@{u.username}</span>
-                                    {u.employeeNumber && <span>• #{u.employeeNumber}</span>}
                                   </div>
                                 </div>
                               </td>

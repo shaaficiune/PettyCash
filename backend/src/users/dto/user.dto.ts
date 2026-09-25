@@ -14,13 +14,13 @@ export class CreateUserDto {
   @IsEmail()
   email?: string;
 
-  @IsOptional()
-  @IsString()
-  phone?: string;
-
   @IsNotEmpty()
   @IsString()
-  employeeNumber: string;
+  phone: string;
+
+  @IsOptional()
+  @IsString()
+  jobTitle?: string;
 
   @IsNotEmpty()
   @IsString()
@@ -54,6 +54,10 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
+  jobTitle?: string;
+
+  @IsOptional()
+  @IsString()
   departmentId?: string;
 
   @IsOptional()
@@ -72,5 +76,5 @@ export class UpdateUserDto {
 export class AdminResetPasswordDto {
   @IsNotEmpty()
   @IsString()
-  newPasswordHash: string; // Wait, actually the admin will supply the plain text temporary password, which we hash
+  newPasswordHash: string;
 }

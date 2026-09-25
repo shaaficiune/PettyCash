@@ -181,8 +181,8 @@ model User {
   username              String        @unique
   passwordHash          String
   email                 String?
-  phone                 String?
-  employeeNumber        String        @unique
+  phone                 String?       @unique
+  jobTitle              String?
   companyId             String
   departmentId          String
   regionId              String?

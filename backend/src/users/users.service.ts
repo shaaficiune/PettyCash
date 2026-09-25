@@ -16,12 +16,12 @@ export class UsersService {
       throw new BadRequestException('Username is already taken');
     }
 
-    // Check if employee number already exists
-    const existingEmpNumber = await this.prisma.user.findUnique({
-      where: { employeeNumber: dto.employeeNumber },
+    // Check if phone already exists
+    const existingPhone = await this.prisma.user.findUnique({
+      where: { phone: dto.phone },
     });
-    if (existingEmpNumber) {
-      throw new BadRequestException('Employee number is already registered');
+    if (existingPhone) {
+      throw new BadRequestException('Phone number is already registered to another user');
     }
 
     // Find the Role ID
@@ -42,7 +42,7 @@ export class UsersService {
         username: dto.username,
         email: dto.email,
         phone: dto.phone,
-        employeeNumber: dto.employeeNumber,
+        jobTitle: dto.jobTitle,
         companyId: dto.companyId,
         departmentId: dto.departmentId,
         regionId: dto.regionId || undefined,
@@ -57,7 +57,7 @@ export class UsersService {
         username: true,
         email: true,
         phone: true,
-        employeeNumber: true,
+        jobTitle: true,
         company: { select: { id: true, name: true } },
         department: { select: { id: true, name: true } },
         region: { select: { id: true, name: true } },
@@ -77,7 +77,7 @@ export class UsersService {
         username: true,
         email: true,
         phone: true,
-        employeeNumber: true,
+        jobTitle: true,
         company: { select: { id: true, name: true } },
         department: { select: { id: true, name: true } },
         region: { select: { id: true, name: true } },
@@ -98,7 +98,7 @@ export class UsersService {
         username: true,
         email: true,
         phone: true,
-        employeeNumber: true,
+        jobTitle: true,
         company: { select: { id: true, name: true } },
         department: { select: { id: true, name: true } },
         region: { select: { id: true, name: true } },
@@ -123,6 +123,7 @@ export class UsersService {
     if (dto.fullName) data.fullName = dto.fullName;
     if (dto.email !== undefined) data.email = dto.email;
     if (dto.phone !== undefined) data.phone = dto.phone;
+    if (dto.jobTitle !== undefined) data.jobTitle = dto.jobTitle;
     if (dto.departmentId) data.departmentId = dto.departmentId;
     if (dto.regionId !== undefined) data.regionId = dto.regionId || null;
     if (dto.status) data.status = dto.status;
@@ -146,7 +147,6 @@ export class UsersService {
         username: true,
         email: true,
         phone: true,
-        employeeNumber: true,
         role: { select: { name: true } },
         status: true,
       },
