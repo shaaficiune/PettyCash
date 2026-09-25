@@ -147,28 +147,48 @@ async function main() {
   console.log('Permissions seeded.');
 
   // 4. Create Departments
+  // Somtel: Finance, Operations, Technical, Fleet
   const somtelFinance = await prisma.department.upsert({
     where: { name_companyId: { name: 'Finance', companyId: somtel.id } },
     update: {},
     create: { name: 'Finance', companyId: somtel.id },
   });
 
-  const somtelNetwork = await prisma.department.upsert({
-    where: { name_companyId: { name: 'Network Operations', companyId: somtel.id } },
+  await prisma.department.upsert({
+    where: { name_companyId: { name: 'Operations', companyId: somtel.id } },
     update: {},
-    create: { name: 'Network Operations', companyId: somtel.id },
+    create: { name: 'Operations', companyId: somtel.id },
   });
 
-  const bluekomFinance = await prisma.department.upsert({
-    where: { name_companyId: { name: 'Finance', companyId: bluekom.id } },
+  const somtelTechnical = await prisma.department.upsert({
+    where: { name_companyId: { name: 'Technical', companyId: somtel.id } },
     update: {},
-    create: { name: 'Finance', companyId: bluekom.id },
+    create: { name: 'Technical', companyId: somtel.id },
   });
 
-  const bluekomEngineering = await prisma.department.upsert({
-    where: { name_companyId: { name: 'Engineering', companyId: bluekom.id } },
+  await prisma.department.upsert({
+    where: { name_companyId: { name: 'Fleet', companyId: somtel.id } },
     update: {},
-    create: { name: 'Engineering', companyId: bluekom.id },
+    create: { name: 'Fleet', companyId: somtel.id },
+  });
+
+  // Bluekom: Commercial, Billing, Technical
+  const bluekomCommercial = await prisma.department.upsert({
+    where: { name_companyId: { name: 'Commercial', companyId: bluekom.id } },
+    update: {},
+    create: { name: 'Commercial', companyId: bluekom.id },
+  });
+
+  await prisma.department.upsert({
+    where: { name_companyId: { name: 'Billing', companyId: bluekom.id } },
+    update: {},
+    create: { name: 'Billing', companyId: bluekom.id },
+  });
+
+  const bluekomTechnical = await prisma.department.upsert({
+    where: { name_companyId: { name: 'Technical', companyId: bluekom.id } },
+    update: {},
+    create: { name: 'Technical', companyId: bluekom.id },
   });
 
   console.log('Departments seeded.');
@@ -270,6 +290,7 @@ async function main() {
     },
   });
 
+
   // Accountant: accountant (belongs to Somtel Finance, manages cross-company approvals)
   await prisma.user.upsert({
     where: { username: 'accountant' },
@@ -302,7 +323,7 @@ async function main() {
       phone: '+252610000003',
       employeeNumber: 'EMP-003',
       companyId: somtel.id,
-      departmentId: somtelNetwork.id,
+      departmentId: somtelTechnical.id,
       regionId: bdrRegion?.id,
       roleId: employeeRole.id,
       status: 'ACTIVE',
@@ -322,7 +343,7 @@ async function main() {
       phone: '+252610000004',
       employeeNumber: 'EMP-004',
       companyId: bluekom.id,
-      departmentId: bluekomEngineering.id,
+      departmentId: bluekomTechnical.id,
       regionId: hqRegion?.id,
       roleId: employeeRole.id,
       status: 'ACTIVE',

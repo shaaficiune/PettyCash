@@ -259,7 +259,7 @@ export const UserManagementPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !username || !employeeNumber || !companyId || !departmentId || !role) {
+    if (!fullName || !username || !companyId || !departmentId || !role) {
       setError('Please fill in all mandatory fields');
       return;
     }
@@ -271,7 +271,6 @@ export const UserManagementPage: React.FC = () => {
         username,
         email: email || undefined,
         phone: phone || undefined,
-        employeeNumber,
         companyId,
         departmentId,
         regionId: userRegionId || undefined,
@@ -283,7 +282,6 @@ export const UserManagementPage: React.FC = () => {
       setUsername('');
       setEmail('');
       setPhone('');
-      setEmployeeNumber('');
       setCompanyId('');
       setDepartmentId('');
       setUserRegionId('');
@@ -508,17 +506,6 @@ export const UserManagementPage: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Employee Number *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. EMP-9988"
-                    value={employeeNumber}
-                    onChange={(e) => setEmployeeNumber(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
-                  />
-                </div>
-
-                <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Company *</label>
                   <select
                     value={companyId}
@@ -531,9 +518,22 @@ export const UserManagementPage: React.FC = () => {
                     ))}
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Role *</label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
+                  >
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="ACCOUNTANT">Accountant</option>
+                    <option value="SUPER_ADMIN">Super Admin</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Department *</label>
                   <select
@@ -561,19 +561,6 @@ export const UserManagementPage: React.FC = () => {
                     {companyRegions.map(r => (
                       <option key={r.id} value={r.id}>{r.name} {r.code ? `(${r.code})` : ''}</option>
                     ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Role *</label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                  >
-                    <option value="EMPLOYEE">Employee</option>
-                    <option value="ACCOUNTANT">Accountant</option>
-                    <option value="SUPER_ADMIN">Super Admin</option>
                   </select>
                 </div>
               </div>
