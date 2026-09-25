@@ -14,7 +14,9 @@ import {
   Building2, 
   FileCheck,
   Coins,
-  Wallet
+  Wallet,
+  Menu,
+  X
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -26,6 +28,11 @@ export const DashboardLayout: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [companyContext, setCompanyContext] = useState<string>('ALL'); // ALL, Somtel, Bluekom
   const [companies, setCompanies] = useState<any[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // Toggle Theme
   const toggleTheme = () => {
@@ -124,17 +131,44 @@ export const DashboardLayout: React.FC = () => {
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       
+      {/* Mobile Backdrop */}
+      {mobileMenuOpen && (
+        <div 
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/60 z-40 backdrop-blur-xs md:hidden transition-opacity"
+        />
+      )}
+
       {/* SIDEBAR */}
-      <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-colors duration-300 h-screen sticky top-0">
+      <aside className={`w-64 border-r border-[#072424] dark:border-slate-800 bg-[#0a2e2e] dark:bg-slate-950 flex flex-col transition-colors duration-300 h-screen fixed inset-y-0 left-0 z-50 md:sticky md:top-0 md:translate-x-0 ${
+        mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
+      }`}>
         {/* Logo Header */}
-        <div className="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-          <span className="text-2xl font-bold bg-gradient-to-r from-bluekom-600 via-purple-600 to-somtel-600 bg-clip-text text-transparent font-sans tracking-wide">
-            CashDesk
-          </span>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 dark:border-slate-800 flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white">
+              <Wallet className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-base font-bold text-white tracking-tight leading-none">
+                CashDesk
+              </span>
+              <span className="text-[10px] font-semibold text-white/60 uppercase tracking-widest leading-none mt-1">
+                Petty Cash
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="md:hidden p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 cursor-pointer"
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Navigation Links — scrolls independently */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1.5">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {navItems
             .filter(item => item.roles.includes(user.role))
             .map((item) => {
@@ -144,13 +178,13 @@ export const DashboardLayout: React.FC = () => {
                 <Link
                   key={item.label}
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     isActive 
-                      ? 'bg-primary text-white shadow-md shadow-primary/20 dark:shadow-none' 
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-white/15 dark:bg-white/10 text-white font-semibold' 
+                      : 'text-white/65 dark:text-slate-300 hover:bg-white/10 dark:hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className={`h-4.5 w-4.5 ${isActive ? 'text-white' : 'text-white/55'}`} />
                   {item.label}
                 </Link>
               );
@@ -158,39 +192,38 @@ export const DashboardLayout: React.FC = () => {
         </nav>
 
         {/* User profile footer — always pinned at bottom */}
-        <div className="flex-shrink-0 p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-10 w-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary font-bold flex-shrink-0">
+        <div className="flex-shrink-0 p-4 border-t border-white/10 dark:border-slate-800 bg-[#0a2e2e] dark:bg-slate-900/90">
+          <div className="flex items-center gap-3 mb-3.5">
+            <div className="h-9 w-9 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
               {user.fullName.split(' ').map(n => n[0]).join('')}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate text-slate-800 dark:text-slate-100">{user.fullName}</p>
+              <p className="text-xs font-bold truncate text-white">{user.fullName}</p>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded">
+                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 bg-white/15 text-white/80 rounded border border-white/20">
                   {user.role.replace('_', ' ')}
                 </span>
                 {user.role === 'SUPER_ADMIN' || user.role === 'ACCOUNTANT' ? (
-                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40">
+                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-white/10 text-white/70 border border-white/15">
                     All Companies
                   </span>
                 ) : (
-                  <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                  <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border ${
                     user.company?.name === 'Somtel' 
-                      ? 'bg-somtel-100 dark:bg-somtel-900/40 text-somtel-600 dark:text-somtel-400' 
-                      : 'bg-bluekom-100 dark:bg-bluekom-900/40 text-bluekom-600 dark:text-bluekom-400'
+                      ? 'bg-orange-400/20 text-orange-200 border-orange-400/30' 
+                      : 'bg-blue-400/20 text-blue-200 border-blue-400/30'
                   }`}>
                     {user.company?.name}
                   </span>
                 )}
-
               </div>
             </div>
           </div>
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30 rounded-lg text-sm font-semibold transition-all cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-white/80 hover:text-white border border-white/15 dark:border-slate-700 rounded-lg text-xs font-semibold transition-all cursor-pointer"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3.5 w-3.5" />
             Logout
           </button>
         </div>
@@ -200,9 +233,16 @@ export const DashboardLayout: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0">
         
         {/* HEADER NAVBAR */}
-        <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md flex items-center justify-between px-8 z-10 transition-colors duration-300">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white capitalize">
+        <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md flex items-center justify-between px-4 sm:px-8 z-10 transition-colors duration-300">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden p-2 -ml-1 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer shrink-0"
+              aria-label="Open sidebar"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white capitalize truncate">
               {location.pathname === '/' 
                 ? 'Executive Dashboard' 
                 : location.pathname.substring(1).replace('/', ' / ')}
@@ -210,9 +250,9 @@ export const DashboardLayout: React.FC = () => {
 
             {/* Accountant / Admin Company Context Switcher */}
             {(user.role === 'ACCOUNTANT' || user.role === 'SUPER_ADMIN') && (
-              <div className="flex items-center gap-2 ml-4">
-                <Building2 className="h-4 w-4 text-slate-400" />
-                <span className="text-xs text-slate-500 font-medium">Company View:</span>
+              <div className="hidden sm:flex items-center gap-2 ml-4">
+                <Building2 className="h-4 w-4 text-slate-400 shrink-0" />
+                <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Company View:</span>
                 <select
                   value={companyContext}
                   onChange={(e) => handleCompanyContextChange(e.target.value)}
@@ -227,7 +267,23 @@ export const DashboardLayout: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            {/* Mobile Company Switcher */}
+            {(user.role === 'ACCOUNTANT' || user.role === 'SUPER_ADMIN') && (
+              <div className="sm:hidden flex items-center">
+                <select
+                  value={companyContext}
+                  onChange={(e) => handleCompanyContextChange(e.target.value)}
+                  className="text-xs font-semibold bg-slate-100 dark:bg-slate-800 border-none outline-none rounded-md px-2 py-1 text-slate-700 dark:text-slate-300 cursor-pointer max-w-[100px]"
+                >
+                  <option value="ALL">All</option>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -252,7 +308,7 @@ export const DashboardLayout: React.FC = () => {
 
               {/* Notification Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 py-2">
+                <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 py-2">
                   <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Notifications ({unreadCount} new)</span>
                     {unreadCount > 0 && (
@@ -293,7 +349,7 @@ export const DashboardLayout: React.FC = () => {
         </header>
 
         {/* DYNAMIC SCROLLABLE BODY PAGE */}
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-5 min-w-0">
           {/* Outlet injects nested pages */}
           <Outlet />
         </main>

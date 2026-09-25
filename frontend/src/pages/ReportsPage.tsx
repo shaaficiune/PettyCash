@@ -6,19 +6,19 @@ import { FileSpreadsheet, Search, LogIn, LogOut, UserPlus, UserCog, UserX, FileT
 
 // Map action codes → human labels, icons, colors
 const ACTION_CONFIG: Record<string, { label: string; icon: React.ReactNode; bg: string; text: string }> = {
-  LOGIN:           { label: 'Login',            icon: <LogIn className="h-3 w-3" />,       bg: 'bg-emerald-100 dark:bg-emerald-950/50',  text: 'text-emerald-700 dark:text-emerald-300' },
-  LOGOUT:          { label: 'Logout',           icon: <LogOut className="h-3 w-3" />,      bg: 'bg-slate-100 dark:bg-slate-800',         text: 'text-slate-600 dark:text-slate-400' },
-  CREATE_USER:     { label: 'User Created',     icon: <UserPlus className="h-3 w-3" />,    bg: 'bg-indigo-100 dark:bg-indigo-950/50',    text: 'text-indigo-700 dark:text-indigo-300' },
-  UPDATE_USER:     { label: 'User Updated',     icon: <UserCog className="h-3 w-3" />,     bg: 'bg-amber-100 dark:bg-amber-950/50',      text: 'text-amber-700 dark:text-amber-300' },
-  DISABLE_USER:    { label: 'User Deleted',     icon: <UserX className="h-3 w-3" />,       bg: 'bg-rose-100 dark:bg-rose-950/50',        text: 'text-rose-700 dark:text-rose-300' },
-  DELETE_USER:     { label: 'User Deleted',     icon: <UserX className="h-3 w-3" />,       bg: 'bg-rose-100 dark:bg-rose-950/50',        text: 'text-rose-700 dark:text-rose-300' },
-  CREATE_REQUEST:  { label: 'Request Created',  icon: <FileText className="h-3 w-3" />,    bg: 'bg-blue-100 dark:bg-blue-950/50',        text: 'text-blue-700 dark:text-blue-300' },
-  UPDATE_REQUEST:  { label: 'Request Updated',  icon: <FileText className="h-3 w-3" />,    bg: 'bg-sky-100 dark:bg-sky-950/50',          text: 'text-sky-700 dark:text-sky-300' },
-  DELETE_REQUEST:  { label: 'Request Deleted',  icon: <Trash2 className="h-3 w-3" />,      bg: 'bg-rose-100 dark:bg-rose-950/50',        text: 'text-rose-700 dark:text-rose-300' },
-  APPROVE_REQUEST: { label: 'Request Approved', icon: <CheckCircle className="h-3 w-3" />, bg: 'bg-emerald-100 dark:bg-emerald-950/50',  text: 'text-emerald-700 dark:text-emerald-300' },
-  REJECT_REQUEST:  { label: 'Request Rejected', icon: <XCircle className="h-3 w-3" />,     bg: 'bg-rose-100 dark:bg-rose-950/50',        text: 'text-rose-700 dark:text-rose-300' },
-  RECORD_PAYMENT:  { label: 'Payment Recorded', icon: <Banknote className="h-3 w-3" />,    bg: 'bg-violet-100 dark:bg-violet-950/50',    text: 'text-violet-700 dark:text-violet-300' },
-  RESET_PASSWORD:  { label: 'Password Reset',   icon: <RefreshCw className="h-3 w-3" />,   bg: 'bg-orange-100 dark:bg-orange-950/50',    text: 'text-orange-700 dark:text-orange-300' },
+  LOGIN:           { label: 'Login',            icon: <LogIn className="h-3 w-3" />,       bg: 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40',  text: 'text-emerald-700 dark:text-emerald-300' },
+  LOGOUT:          { label: 'Logout',           icon: <LogOut className="h-3 w-3" />,      bg: 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700',                  text: 'text-slate-600 dark:text-slate-400' },
+  CREATE_USER:     { label: 'User Created',     icon: <UserPlus className="h-3 w-3" />,    bg: 'bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/40',                  text: 'text-sky-700 dark:text-sky-300' },
+  UPDATE_USER:     { label: 'User Updated',     icon: <UserCog className="h-3 w-3" />,     bg: 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40',          text: 'text-amber-700 dark:text-amber-300' },
+  DISABLE_USER:    { label: 'User Deleted',     icon: <UserX className="h-3 w-3" />,       bg: 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/40',              text: 'text-rose-700 dark:text-rose-300' },
+  DELETE_USER:     { label: 'User Deleted',     icon: <UserX className="h-3 w-3" />,       bg: 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/40',              text: 'text-rose-700 dark:text-rose-300' },
+  CREATE_REQUEST:  { label: 'Request Created',  icon: <FileText className="h-3 w-3" />,    bg: 'bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40',              text: 'text-blue-700 dark:text-blue-300' },
+  UPDATE_REQUEST:  { label: 'Request Updated',  icon: <FileText className="h-3 w-3" />,    bg: 'bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/40',                  text: 'text-sky-700 dark:text-sky-300' },
+  DELETE_REQUEST:  { label: 'Request Deleted',  icon: <Trash2 className="h-3 w-3" />,      bg: 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/40',              text: 'text-rose-700 dark:text-rose-300' },
+  APPROVE_REQUEST: { label: 'Request Approved', icon: <CheckCircle className="h-3 w-3" />, bg: 'bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/40',              text: 'text-teal-700 dark:text-teal-300' },
+  REJECT_REQUEST:  { label: 'Request Rejected', icon: <XCircle className="h-3 w-3" />,     bg: 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/40',              text: 'text-rose-700 dark:text-rose-300' },
+  RECORD_PAYMENT:  { label: 'Payment Recorded', icon: <Banknote className="h-3 w-3" />,    bg: 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40',  text: 'text-emerald-700 dark:text-emerald-300' },
+  RESET_PASSWORD:  { label: 'Password Reset',   icon: <RefreshCw className="h-3 w-3" />,   bg: 'bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-800/40',      text: 'text-orange-700 dark:text-orange-300' },
 };
 
 function getActionConfig(action: string) {
@@ -112,14 +112,14 @@ export const ReportsPage: React.FC = () => {
     return matchSearch;
   });
 
-  const COLORS = ['#3b82f6', '#ea580c', '#8b5cf6', '#ec4899', '#10b981'];
+  const COLORS = ['#0a2e2e', '#E8A020', '#0d9488', '#ea580c', '#059669'];
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">Reporting &amp; Audits</h2>
-          <p className="text-xs text-slate-500">View real-time financial stats, exports, and security trails</p>
+          <p className="text-xs text-slate-500">Financial statistics, exports, and audit history</p>
         </div>
 
         <button
@@ -277,7 +277,7 @@ export const ReportsPage: React.FC = () => {
                   const meta = parseMetaInfo(log.details);
                   const time = new Date(log.createdAt);
                   return (
-                    <div key={log.id} className="flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                    <div key={log.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-4 sm:px-6 py-3.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                       {/* Action badge */}
                       <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold text-[10px] whitespace-nowrap shrink-0 ${cfg.bg} ${cfg.text}`}>
                         {cfg.icon}

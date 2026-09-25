@@ -32,7 +32,7 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been disabled. Please contact the administrator.');
     }
 
-    const isPasswordValid = bcrypt.compareSync(password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid username or password');
     }
@@ -94,12 +94,12 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
-    const isPasswordValid = bcrypt.compareSync(oldPassword, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.passwordHash);
     if (!isPasswordValid) {
       throw new BadRequestException('Incorrect old password');
     }
 
-    const newPasswordHash = bcrypt.hashSync(newPassword, 10);
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
 
     await this.prisma.user.update({
       where: { id: userId },
@@ -132,7 +132,7 @@ export class AuthService {
       throw new BadRequestException('Password reset is not required');
     }
 
-    const newPasswordHash = bcrypt.hashSync(newPassword, 10);
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
 
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
@@ -160,8 +160,20 @@ export class AuthService {
       resetPasswordRequired: user.resetPasswordRequired,
     };
 
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret && process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is not defined in production!');
+    }
+    const secret = jwtSecret || 'somtel_bluekom_petty_cash_secret_key_2026_jwt';
+
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
+    if (!jwtRefreshSecret && process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL SECURITY ERROR: JWT_REFRESH_SECRET environment variable is not defined in production!');
+    }
+    const refreshSecret = jwtRefreshSecret || 'somtel_bluekom_petty_cash_refresh_secret_key_2026_jwt';
+
     const accessToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET || 'somtel_bluekom_petty_cash_secret_key_2026_jwt',
+      secret,
       // cast to any to satisfy type definitions for flexible env formats (e.g., '15m')
       expiresIn: process.env.JWT_ACCESS_EXPIRES as any || '15m',
     });
@@ -169,7 +181,7 @@ export class AuthService {
     const refreshTokenString = this.jwtService.sign(
       { sub: user.id },
       {
-        secret: process.env.JWT_REFRESH_SECRET || 'somtel_bluekom_petty_cash_refresh_secret_key_2026_jwt',
+        secret: refreshSecret,
         expiresIn: process.env.JWT_REFRESH_EXPIRES as any || '7d',
       },
     );

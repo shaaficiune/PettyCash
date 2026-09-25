@@ -3,6 +3,8 @@ set -e
 
 echo "🚀 Starting Ubuntu PM2 + Nginx Deployment for Petty Cash App..."
 
+mkdir -p logs
+
 # 1. Pull latest changes if using git
 if [ -d ".git" ]; then
   echo "📥 Pulling latest git commits..."
@@ -13,8 +15,8 @@ fi
 echo "📦 Setting up Backend..."
 cd backend
 npm install
-npx prisma db push --accept-data-loss
 npx prisma generate
+npx prisma db push
 npm run build
 cd ..
 
@@ -40,5 +42,6 @@ if systemctl is-active --quiet nginx; then
   sudo systemctl reload nginx
 fi
 
-echo "✅ Deployment completed successfully!"
-echo "📍 Access system at: http://10.35.70.251"
+echo "✅ Production Deployment completed successfully!"
+echo "📍 Access locally at: http://localhost"
+echo "🌐 Or via your Cloudflare Tunnel Domain!"

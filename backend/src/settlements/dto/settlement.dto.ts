@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsNumber, IsEnum, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsNumber, IsEnum, Min, Max } from 'class-validator';
 import { SettlementStatus } from '@prisma/client';
 
 export class SubmitSettlementDto {
@@ -9,6 +9,7 @@ export class SubmitSettlementDto {
   @IsNotEmpty()
   @IsNumber()
   @Min(0)
+  @Max(50, { message: 'Expense settlement cannot exceed the maximum petty cash limit of $50' })
   actualExpenseAmount: number;
 
   @IsNotEmpty()

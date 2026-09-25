@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { UserPlus, UserCheck, ShieldAlert, KeyRound, Save, PlusCircle, Trash2, Users, MapPin, BookOpen, Pencil, X } from 'lucide-react';
+import { UserPlus, UserCheck, ShieldAlert, KeyRound, Save, PlusCircle, Trash2, Users, MapPin, BookOpen, Pencil, X, Search, Filter } from 'lucide-react';
 
 export const UserManagementPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'budgets' | 'regions' | 'budget-heads'>('users');
@@ -10,6 +10,12 @@ export const UserManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // User Filter state
+  const [searchUser, setSearchUser] = useState('');
+  const [userCompanyFilter, setUserCompanyFilter] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('');
+  const [userStatusFilter, setUserStatusFilter] = useState('');
 
   // Form Fields
   const [fullName, setFullName] = useState('');
@@ -345,17 +351,38 @@ export const UserManagementPage: React.FC = () => {
     }
   };
 
+  const filteredUsers = users.filter((u) => {
+    if (searchUser) {
+      const q = searchUser.toLowerCase();
+      const match =
+        (u.fullName && u.fullName.toLowerCase().includes(q)) ||
+        (u.username && u.username.toLowerCase().includes(q)) ||
+        (u.employeeNumber && u.employeeNumber.toLowerCase().includes(q)) ||
+        (u.department?.name && u.department.name.toLowerCase().includes(q));
+      if (!match) return false;
+    }
+    if (userCompanyFilter && u.company?.id !== userCompanyFilter && u.companyId !== userCompanyFilter) {
+      return false;
+    }
+    if (userRoleFilter && (u.role?.name || u.role) !== userRoleFilter) {
+      return false;
+    }
+    if (userStatusFilter && u.status !== userStatusFilter) {
+      return false;
+    }
+    return true;
+  });
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-4 font-sans">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">Directory & Management</h2>
-          <p className="text-xs text-slate-500">Manage employee accounts, regions, monthly budgets, and petty cash limits</p>
+          <p className="text-xs text-slate-500">Employee accounts, regional assignments, and spending limits</p>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex gap-1 border border-slate-200/60 dark:border-slate-700 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto justify-between sm:justify-end">
+          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex gap-1 border border-slate-200/60 dark:border-slate-700 overflow-x-auto max-w-full">
             <button
               onClick={() => { setActiveTab('users'); setFormOpen(false); }}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
@@ -393,7 +420,7 @@ export const UserManagementPage: React.FC = () => {
           {activeTab === 'users' ? (
             <button
               onClick={() => setFormOpen(!formOpen)}
-              className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-md shadow-primary/10 cursor-pointer"
+              className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <UserPlus className="h-4.5 w-4.5" />
               {formOpen ? 'View Directory' : 'Register New User'}
@@ -401,7 +428,7 @@ export const UserManagementPage: React.FC = () => {
           ) : activeTab === 'regions' ? (
             <button
               onClick={() => setRegionFormOpen(!regionFormOpen)}
-              className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-md shadow-primary/10 cursor-pointer"
+              className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <PlusCircle className="h-4.5 w-4.5" />
               {regionFormOpen ? 'View Regions' : 'Add New Region'}
@@ -409,7 +436,7 @@ export const UserManagementPage: React.FC = () => {
           ) : activeTab === 'budget-heads' ? (
             <button
               onClick={() => setBhFormOpen(!bhFormOpen)}
-              className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-md shadow-primary/10 cursor-pointer"
+              className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <PlusCircle className="h-4.5 w-4.5" />
               {bhFormOpen ? 'View Budget Heads' : 'Add New Budget Head'}
@@ -557,124 +584,202 @@ export const UserManagementPage: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit"
-                  className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-lg cursor-pointer shadow-md shadow-primary/10">
+                  className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg cursor-pointer shadow-sm transition-all">
                   Register Employee
                 </button>
               </div>
             </form>
           </div>
         ) : (
-          /* USERS TABLE */
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
-            <div className="p-5 border-b border-slate-200/60 dark:border-slate-800 flex justify-between items-center">
-              <div>
-                <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  Employee Directory
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">All registered employees across all companies</p>
+          /* USERS DIRECTORY VIEW */
+          <div className="space-y-3">
+            {/* FILTER HUB */}
+            <div className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm flex flex-col md:flex-row gap-2 items-center transition-colors">
+              <div className="relative flex-1 w-full">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                  <Search className="h-4 w-4" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search by employee, username, or emp #..."
+                  value={searchUser}
+                  onChange={(e) => setSearchUser(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
+                <div className="flex items-center gap-1.5 flex-1 md:flex-initial">
+                  <Filter className="h-3.5 w-3.5 text-slate-400" />
+                  <select
+                    value={userCompanyFilter}
+                    onChange={(e) => setUserCompanyFilter(e.target.value)}
+                    className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
+                  >
+                    <option value="">All Companies</option>
+                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+
+                <select
+                  value={userRoleFilter}
+                  onChange={(e) => setUserRoleFilter(e.target.value)}
+                  className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer w-full md:w-32"
+                >
+                  <option value="">All Roles</option>
+                  <option value="EMPLOYEE">Employee</option>
+                  <option value="ACCOUNTANT">Accountant</option>
+                  <option value="SUPER_ADMIN">Super Admin</option>
+                </select>
+
+                <select
+                  value={userStatusFilter}
+                  onChange={(e) => setUserStatusFilter(e.target.value)}
+                  className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer w-full md:w-28"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="DISABLED">Disabled</option>
+                </select>
               </div>
             </div>
-            {loading ? (
-              <div className="flex h-32 items-center justify-center">
-                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs sm:text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold text-xs bg-slate-50/50 dark:bg-slate-900/50">
-                      <th className="py-3.5 px-6">Full Name</th>
-                      <th className="py-3.5 px-4">Username</th>
-                      <th className="py-3.5 px-4">Emp Number</th>
-                      <th className="py-3.5 px-4">Company</th>
-                      <th className="py-3.5 px-4">Department</th>
-                      <th className="py-3.5 px-4">Region</th>
-                      <th className="py-3.5 px-4">Role</th>
-                      <th className="py-3.5 px-4">Status</th>
-                      <th className="py-3.5 px-6 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u) => (
-                      <tr
-                        key={u.id}
-                        className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50/30 dark:hover:bg-slate-800/10 transition-colors"
-                      >
-                        <td className="py-3.5 px-6 font-semibold text-slate-800 dark:text-slate-200">{u.fullName}</td>
-                        <td className="py-3.5 px-4 text-slate-500">{u.username}</td>
-                        <td className="py-3.5 px-4 text-slate-500 font-medium">{u.employeeNumber}</td>
-                        <td className="py-3.5 px-4">
-                          <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded ${
-                            u.company?.name === 'Somtel' ? 'bg-somtel-100 text-somtel-600' : 'bg-bluekom-100 text-bluekom-600'
-                          }`}>
-                            {u.company?.name || 'N/A'}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-500">{u.department?.name || 'N/A'}</td>
-                        <td className="py-3.5 px-4 text-slate-500">
-                          {u.region?.name ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
-                              {u.region.name}
-                            </span>
-                          ) : '—'}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded">
-                            {u.role?.name || u.role}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                            u.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            {u.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-6 text-center space-x-1.5 whitespace-nowrap">
-                          <button
-                            onClick={() => handleOpenEdit(u)}
-                            title="Edit User"
-                            className="inline-flex p-1.5 hover:bg-primary/10 text-primary rounded transition-all cursor-pointer"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleResetPassword(u.id)}
-                            title="Reset Password to default"
-                            className="inline-flex p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded transition-all cursor-pointer"
-                          >
-                            <KeyRound className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleToggleStatus(u)}
-                            title={u.status === 'ACTIVE' ? 'Disable Account' : 'Activate Account'}
-                            className={`inline-flex p-1.5 rounded transition-all cursor-pointer ${
-                              u.status === 'ACTIVE' 
-                                ? 'hover:bg-rose-50 text-rose-600' 
-                                : 'hover:bg-emerald-50 text-emerald-600'
-                            }`}
-                          >
-                            {u.status === 'ACTIVE' ? <ShieldAlert className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(u)}
-                            title={
-                              u.status === 'DISABLED'
-                                ? 'Delete User Account'
-                                : 'Account must be DISABLED before it can be deleted'
-                            }
-                            className="inline-flex p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-all cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </td>
+
+            {/* USERS TABLE */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
+              {loading ? (
+                <div className="p-12 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+                  <span className="text-xs text-slate-400">Loading user directory...</span>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
+                        <th className="py-3.5 px-6">Employee</th>
+                        <th className="py-3.5 px-4">Company</th>
+                        <th className="py-3.5 px-4 hidden md:table-cell">Department</th>
+                        <th className="py-3.5 px-4 hidden lg:table-cell">Region</th>
+                        <th className="py-3.5 px-4">Role</th>
+                        <th className="py-3.5 px-4">Status</th>
+                        <th className="py-3.5 px-6 text-center">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody>
+                      {filteredUsers.length === 0 ? (
+                        <tr className="border-l-4 border-l-transparent">
+                          <td colSpan={7} className="text-center py-12 text-sm text-slate-400">
+                            No employees found matching your filters
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredUsers.map((u) => {
+                          const isSomtel = u.company?.name === 'Somtel';
+                          const isBluekom = u.company?.name === 'Bluekom';
+                          const rowClass = isSomtel
+                            ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
+                            : isBluekom
+                            ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
+                            : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
+
+                          return (
+                            <tr
+                              key={u.id}
+                              className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}
+                            >
+                              <td className="py-4 px-6">
+                                <div>
+                                  <p className="font-semibold text-slate-800 dark:text-slate-200">{u.fullName}</p>
+                                  <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
+                                    <span>@{u.username}</span>
+                                    {u.employeeNumber && <span>• #{u.employeeNumber}</span>}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                                  isSomtel
+                                    ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
+                                    : isBluekom
+                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                }`}>
+                                  {u.company?.name || 'N/A'}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4 text-slate-500 dark:text-slate-400 hidden md:table-cell">
+                                {u.department?.name || '—'}
+                              </td>
+                              <td className="py-4 px-4 hidden lg:table-cell">
+                                {u.region?.name ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/60">
+                                    {u.region.name}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-400 text-xs">—</span>
+                                )}
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="text-xs font-bold uppercase px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded border border-slate-200/60 dark:border-slate-700">
+                                  {u.role?.name || u.role}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                                  u.status === 'ACTIVE'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40'
+                                    : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                                }`}>
+                                  {u.status}
+                                </span>
+                              </td>
+                              <td className="py-4 px-6 text-center space-x-1.5 whitespace-nowrap">
+                                <button
+                                  onClick={() => handleOpenEdit(u)}
+                                  title="Edit User"
+                                  className="inline-flex p-1.5 hover:bg-primary/10 text-primary rounded transition-all cursor-pointer"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleResetPassword(u.id)}
+                                  title="Reset Password to default"
+                                  className="inline-flex p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded transition-all cursor-pointer"
+                                >
+                                  <KeyRound className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleToggleStatus(u)}
+                                  title={u.status === 'ACTIVE' ? 'Disable Account' : 'Activate Account'}
+                                  className={`inline-flex p-1.5 rounded transition-all cursor-pointer ${
+                                    u.status === 'ACTIVE' 
+                                      ? 'hover:bg-rose-50 text-rose-600' 
+                                      : 'hover:bg-emerald-50 text-emerald-600'
+                                  }`}
+                                >
+                                  {u.status === 'ACTIVE' ? <ShieldAlert className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteUser(u)}
+                                  title={
+                                    u.status === 'DISABLED'
+                                      ? 'Delete User Account'
+                                      : 'Account must be DISABLED before it can be deleted'
+                                  }
+                                  className="inline-flex p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-all cursor-pointer"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )
       )}
@@ -782,7 +887,7 @@ export const UserManagementPage: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" disabled={savingUser}
-                  className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-lg cursor-pointer shadow-md shadow-primary/10 disabled:opacity-60 flex items-center gap-1.5">
+                  className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg cursor-pointer shadow-sm transition-all disabled:opacity-60 flex items-center gap-1.5">
                   <Save className="h-3.5 w-3.5" />
                   {savingUser ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -797,49 +902,62 @@ export const UserManagementPage: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
           <div className="p-5 border-b border-slate-200/60 dark:border-slate-800">
             <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-violet-500" />
+              <MapPin className="h-4 w-4 text-primary" />
               Region Monthly Budgets
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Configure the monthly petty cash spending limit for each region. Requests from regional managers will be tracked against these limits.</p>
+            <p className="text-xs text-slate-500 mt-0.5">Monthly spending limits by operating region</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm">
+            <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold text-xs bg-slate-50/50 dark:bg-slate-900/50">
+                <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
                   <th className="py-3.5 px-6">Region Name</th>
                   <th className="py-3.5 px-4">Company</th>
-                  <th className="py-3.5 px-4">Assigned Users</th>
-                  <th className="py-3.5 px-4">Requests (Total)</th>
+                  <th className="py-3.5 px-4 hidden sm:table-cell">Assigned Users</th>
+                  <th className="py-3.5 px-4 hidden md:table-cell">Requests (Total)</th>
                   <th className="py-3.5 px-4">Monthly Budget Limit ($)</th>
                   <th className="py-3.5 px-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {regions.map((region) => (
-                  <tr key={region.id} className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50/30 dark:hover:bg-slate-800/10 transition-colors">
-                    <td className="py-3.5 px-6 font-semibold text-slate-800 dark:text-slate-200">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block w-2 h-2 rounded-full bg-violet-400"></span>
-                        {region.name}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded ${
-                        region.company?.name === 'Somtel' ? 'bg-somtel-100 text-somtel-600' : 'bg-bluekom-100 text-bluekom-600'
-                      }`}>{region.company?.name || 'N/A'}</span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
-                        <Users className="h-3 w-3 text-slate-400" />
-                        {region._count?.users || 0} users
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800/60 px-2 py-1 rounded-md">
-                        {region._count?.requests || 0} requests
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
+                {regions.map((region) => {
+                  const isSomtel = region.company?.name === 'Somtel';
+                  const isBluekom = region.company?.name === 'Bluekom';
+                  const rowClass = isSomtel
+                    ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
+                    : isBluekom
+                    ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
+                    : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
+
+                  return (
+                    <tr key={region.id} className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}>
+                      <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-200">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block w-2 h-2 rounded-full bg-primary"></span>
+                          {region.name}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                          isSomtel
+                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
+                            : isBluekom
+                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        }`}>{region.company?.name || 'N/A'}</span>
+                      </td>
+                      <td className="py-4 px-4 hidden sm:table-cell">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">
+                          <Users className="h-3 w-3 text-slate-400" />
+                          {region._count?.users || 0} users
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 hidden md:table-cell">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1 rounded-md">
+                          {region._count?.requests || 0} requests
+                        </span>
+                      </td>
+                    <td className="py-4 px-4">
                       <div className="flex items-center gap-1.5 max-w-[180px]">
                         <span className="text-slate-400 font-semibold">$</span>
                         <input
@@ -852,7 +970,7 @@ export const UserManagementPage: React.FC = () => {
                         />
                       </div>
                     </td>
-                    <td className="py-3.5 px-6 text-right">
+                    <td className="py-4 px-6 text-right">
                       <button
                         onClick={() => handleSaveRegionBudget(region.id)}
                         disabled={savingBudgetId === region.id}
@@ -863,7 +981,8 @@ export const UserManagementPage: React.FC = () => {
                       </button>
                     </td>
                   </tr>
-                ))}
+                );
+              })}
                 {regions.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-10 text-center text-xs text-slate-400">
@@ -882,7 +1001,7 @@ export const UserManagementPage: React.FC = () => {
         regionFormOpen ? (
           <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md transition-colors max-w-xl mx-auto">
             <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-violet-500" />
+              <MapPin className="h-5 w-5 text-primary" />
               Add New Region
             </h3>
             {regionError && (<div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded text-xs text-rose-600 dark:text-rose-400">{regionError}</div>)}
@@ -904,7 +1023,7 @@ export const UserManagementPage: React.FC = () => {
                 <button type="button" onClick={() => setRegionFormOpen(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-lg cursor-pointer hover:bg-slate-200">Cancel</button>
                 <button type="submit" disabled={creatingRegion}
-                  className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50">
+                  className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50 transition-all shadow-sm">
                   {creatingRegion ? 'Creating...' : 'Create Region'}
                 </button>
               </div>
@@ -914,15 +1033,15 @@ export const UserManagementPage: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
             <div className="p-5 border-b border-slate-200/60 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-violet-500" />
+                <MapPin className="h-4 w-4 text-primary" />
                 Regions Management
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Manage geographic regions assigned to petty cash requests</p>
+              <p className="text-xs text-slate-500 mt-0.5">Operational regions for petty cash requests</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold text-xs bg-slate-50/50 dark:bg-slate-900/50">
+                  <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
                     <th className="py-3.5 px-6">Region Name</th>
                     <th className="py-3.5 px-4">Company</th>
                     <th className="py-3.5 px-4">Requests</th>
@@ -930,26 +1049,39 @@ export const UserManagementPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {regions.map((r) => (
-                    <tr key={r.id} className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50/30 dark:hover:bg-slate-800/10 transition-colors">
-                      <td className="py-3.5 px-6">
-                        {editingRegionId === r.id ? (
-                          <input value={editingRegionName} onChange={(e) => setEditingRegionName(e.target.value)}
-                            className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary w-full max-w-[200px]" />
-                        ) : (
-                          <span className="font-semibold text-slate-800 dark:text-slate-200">{r.name}</span>
-                        )}
-                      </td>
+                  {regions.map((r) => {
+                    const isSomtel = r.company?.name === 'Somtel';
+                    const isBluekom = r.company?.name === 'Bluekom';
+                    const rowClass = isSomtel
+                      ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
+                      : isBluekom
+                      ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
+                      : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
 
-                      <td className="py-3.5 px-4">
-                        <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded ${
-                          r.company?.name === 'Somtel' ? 'bg-somtel-100 text-somtel-600' : 'bg-bluekom-100 text-bluekom-600'
-                        }`}>{r.company?.name || 'N/A'}</span>
+                    return (
+                      <tr key={r.id} className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}>
+                        <td className="py-4 px-6">
+                          {editingRegionId === r.id ? (
+                            <input value={editingRegionName} onChange={(e) => setEditingRegionName(e.target.value)}
+                              className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary w-full max-w-[200px]" />
+                          ) : (
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{r.name}</span>
+                          )}
+                        </td>
+
+                        <td className="py-4 px-4">
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                            isSomtel
+                              ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
+                              : isBluekom
+                              ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+                              : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                          }`}>{r.company?.name || 'N/A'}</span>
+                        </td>
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">{r._count?.requests || 0} requests</span>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">{r._count?.requests || 0} requests</span>
-                      </td>
-                      <td className="py-3.5 px-6 text-right whitespace-nowrap">
+                      <td className="py-4 px-6 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           {editingRegionId === r.id ? (
                             <>
@@ -968,7 +1100,8 @@ export const UserManagementPage: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
                   {regions.length === 0 && (
                     <tr><td colSpan={5} className="py-10 text-center text-xs text-slate-400">No regions found. Add one above.</td></tr>
                   )}
@@ -1018,7 +1151,7 @@ export const UserManagementPage: React.FC = () => {
                 <button type="button" onClick={() => setBhFormOpen(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-lg cursor-pointer hover:bg-slate-200">Cancel</button>
                 <button type="submit" disabled={creatingBh}
-                  className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50">
+                  className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50 transition-all shadow-sm">
                   {creatingBh ? 'Creating...' : 'Create Budget Head'}
                 </button>
               </div>
@@ -1031,32 +1164,41 @@ export const UserManagementPage: React.FC = () => {
                 <BookOpen className="h-4 w-4 text-sky-500" />
                 Budget Heads Management
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Define expenditure categories to classify petty cash requests by budget head</p>
+              <p className="text-xs text-slate-500 mt-0.5">Expenditure categories and classification codes</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold text-xs bg-slate-50/50 dark:bg-slate-900/50">
+                  <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
                     <th className="py-3.5 px-6">Code</th>
                     <th className="py-3.5 px-4">Name</th>
-                    <th className="py-3.5 px-4">Description</th>
+                    <th className="py-3.5 px-4 hidden md:table-cell">Description</th>
                     <th className="py-3.5 px-4">Company</th>
-                    <th className="py-3.5 px-4">Requests</th>
+                    <th className="py-3.5 px-4 hidden sm:table-cell">Requests</th>
                     <th className="py-3.5 px-6 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {budgetHeads.map((bh) => (
-                    <tr key={bh.id} className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50/30 dark:hover:bg-slate-800/10 transition-colors">
-                      <td className="py-3.5 px-6">
+                  {budgetHeads.map((bh) => {
+                    const isSomtel = bh.company?.name === 'Somtel';
+                    const isBluekom = bh.company?.name === 'Bluekom';
+                    const rowClass = isSomtel
+                      ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
+                      : isBluekom
+                      ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
+                      : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
+
+                    return (
+                      <tr key={bh.id} className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}>
+                        <td className="py-4 px-6">
                         {editingBhId === bh.id ? (
                           <input value={editingBhCode} onChange={(e) => setEditingBhCode(e.target.value)}
                             className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary w-24" />
                         ) : (
-                          <span className="font-mono font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/30 px-2 py-0.5 rounded">{bh.code}</span>
+                          <span className="font-mono font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/30 px-2.5 py-1 rounded">{bh.code}</span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-4 px-4">
                         {editingBhId === bh.id ? (
                           <input value={editingBhName} onChange={(e) => setEditingBhName(e.target.value)}
                             className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary w-full max-w-[200px]" />
@@ -1064,7 +1206,7 @@ export const UserManagementPage: React.FC = () => {
                           <span className="font-semibold text-slate-800 dark:text-slate-200">{bh.name}</span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-500 max-w-[200px]">
+                      <td className="py-3.5 px-4 text-slate-500 max-w-[200px] hidden md:table-cell">
                         {editingBhId === bh.id ? (
                           <input value={editingBhDesc} onChange={(e) => setEditingBhDesc(e.target.value)} placeholder="Optional description"
                             className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full" />
@@ -1073,12 +1215,16 @@ export const UserManagementPage: React.FC = () => {
                         )}
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded ${
-                          bh.company?.name === 'Somtel' ? 'bg-somtel-100 text-somtel-600' : 'bg-bluekom-100 text-bluekom-600'
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                          isSomtel
+                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
+                            : isBluekom
+                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                         }`}>{bh.company?.name || 'N/A'}</span>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">{bh._count?.requests || 0} requests</span>
+                      <td className="py-3.5 px-4 hidden sm:table-cell">
+                        <span className="inline-flex items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">{bh._count?.requests || 0} requests</span>
                       </td>
                       <td className="py-3.5 px-6 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
@@ -1099,7 +1245,8 @@ export const UserManagementPage: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
                   {budgetHeads.length === 0 && (
                     <tr><td colSpan={6} className="py-10 text-center text-xs text-slate-400">No budget heads found. Add one above.</td></tr>
                   )}

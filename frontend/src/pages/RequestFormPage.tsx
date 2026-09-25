@@ -27,6 +27,8 @@ export const RequestFormPage: React.FC = () => {
   const [budgetHeads, setBudgetHeads] = useState<any[]>([]);
   const [budgetStats, setBudgetStats] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  // Fund availability — checked on mount so employees see a warning before submitting
+  const [fundAvailability, setFundAvailability] = useState<{ available: boolean; message: string } | null>(null);
 
   // Load projects & drafts details
   useEffect(() => {
@@ -40,6 +42,11 @@ export const RequestFormPage: React.FC = () => {
       api.get(`/companies/budget-heads?companyId=${compId}`)
         .then(res => setBudgetHeads(res.data))
         .catch(() => console.error('Failed to load budget heads'));
+
+      // Check fund availability for current month — used to disable submit button
+      api.get('/funds/availability')
+        .then(res => setFundAvailability(res.data))
+        .catch(() => console.error('Failed to check fund availability'));
     }
 
     // Load region budget stats using the logged-in user's region
@@ -115,12 +122,28 @@ export const RequestFormPage: React.FC = () => {
 
     const requestedNum = parseFloat(amount);
 
+    if (isNaN(requestedNum) || requestedNum <= 0) {
+      setError('Requested amount must be greater than zero');
+      return;
+    }
+
+    if (requestedNum > 50) {
+      setError('Petty Cash requests cannot exceed $50. For larger amounts, please use the formal procurement process.');
+      return;
+    }
+
     // Hard block submit for approval if it exceeds region monthly budget limit
     if (submitStatus === 'PENDING_APPROVAL' && budgetStats && budgetStats.monthlyBudget > 0) {
       if ((budgetStats.totalUsed + requestedNum) > budgetStats.monthlyBudget) {
         setError(`Cannot submit request: Request amount ($${requestedNum.toLocaleString()}) exceeds the remaining region budget ($${budgetStats.remainingBudget.toLocaleString()} USD).`);
         return;
       }
+    }
+
+    // Block submit if fund is not active (already checked server-side, but gives immediate UX feedback)
+    if (submitStatus === 'PENDING_APPROVAL' && fundAvailability && !fundAvailability.available) {
+      setError(fundAvailability.message);
+      return;
     }
 
     setError(null);
@@ -173,13 +196,25 @@ export const RequestFormPage: React.FC = () => {
       </button>
 
       {/* Main Layout Card */}
-      <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md transition-colors">
+      <div className="p-4 sm:p-6 lg:p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md transition-colors">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white">
           {id ? 'Modify Petty Cash Request' : 'Submit Petty Cash Request'}
         </h2>
-        <p className="text-xs text-slate-500 mb-6">
+        <p className="text-xs text-slate-500 mb-4">
           {id ? `Adjusting details for request draft` : 'Submit expenditure requests for accountant verification and approval'}
         </p>
+
+        {/* Fund Unavailability Banner */}
+        {fundAvailability && !fundAvailability.available && (
+          <div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Fund Not Available</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">{fundAvailability.message}</p>
+              <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">You can still <strong>Save as Draft</strong> and submit once the Accountant sets up the fund.</p>
+            </div>
+          </div>
+        )}
 
         {/* Region Monthly Budget Card */}
         {budgetStats && budgetStats.monthlyBudget > 0 && (
@@ -244,15 +279,22 @@ export const RequestFormPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Requested Amount *</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Requested Amount *</label>
+                <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 dark:bg-amber-950/60 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-300 dark:border-amber-800">
+                  Max: $50.00
+                </span>
+              </div>
               <div className="flex gap-2">
                 <input
                   type="number"
                   placeholder="0.00"
                   step="0.01"
+                  min="0.01"
+                  max="50"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+                  className={`flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border ${numAmount > 50 ? 'border-rose-500 ring-1 ring-rose-500 text-rose-600 dark:text-rose-400' : 'border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white'} rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all`}
                 />
                 <select
                   value={currency}
@@ -264,6 +306,12 @@ export const RequestFormPage: React.FC = () => {
                   <option value="SLS">SLS</option>
                 </select>
               </div>
+              {numAmount > 50 && (
+                <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-1.5 flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5 inline shrink-0" />
+                  Petty Cash requests cannot exceed $50.00. For amounts over $50, please use the procurement process.
+                </p>
+              )}
             </div>
           </div>
 
@@ -338,7 +386,7 @@ export const RequestFormPage: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Region</label>
                 <div className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-lg text-xs flex items-center gap-2 cursor-not-allowed">
-                  <span className="inline-block w-2 h-2 rounded-full bg-violet-500"></span>
+                  <span className="inline-block w-2 h-2 rounded-full bg-primary"></span>
                   {(user as any).region.name}
                   <span className="ml-auto text-[10px] text-slate-400">Auto-assigned</span>
                 </div>
@@ -381,7 +429,7 @@ export const RequestFormPage: React.FC = () => {
           </div>
 
           {/* Action buttons */}
-          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex justify-end gap-3">
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
             <button
               type="button"
               disabled={submitting}
@@ -394,9 +442,18 @@ export const RequestFormPage: React.FC = () => {
 
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || (fundAvailability !== null && !fundAvailability.available) || numAmount > 50 || isOverBudget}
+              title={
+                numAmount > 50
+                  ? 'Request amount cannot exceed $50.00'
+                  : fundAvailability && !fundAvailability.available
+                  ? fundAvailability.message
+                  : isOverBudget
+                  ? 'Request exceeds region monthly budget'
+                  : undefined
+              }
               onClick={() => handleSubmit('PENDING_APPROVAL')}
-              className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-md shadow-primary/10 cursor-pointer"
+              className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Send className="h-4 w-4" />
               {submitting ? 'Submitting...' : 'Submit Request'}

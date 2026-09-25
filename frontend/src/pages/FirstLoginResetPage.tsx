@@ -54,11 +54,10 @@ export const FirstLoginResetPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 relative overflow-hidden font-sans">
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]"></div>
-      <div className="w-full max-w-md p-8 glass rounded-2xl shadow-2xl relative z-10">
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 font-sans">
+      <div className="w-full max-w-md p-8 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl relative z-10">
         <div className="text-center mb-6">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400 mb-4">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary mb-4">
             <Lock className="h-6 w-6" />
           </div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Security Update Required</h2>
@@ -82,7 +81,7 @@ export const FirstLoginResetPage: React.FC = () => {
               placeholder="Min 6 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700 text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+              className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder-slate-500"
             />
           </div>
 
@@ -93,14 +92,14 @@ export const FirstLoginResetPage: React.FC = () => {
               placeholder="Re-enter password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700 text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+              className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder-slate-500"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-gradient-to-r from-bluekom-600 to-somtel-600 text-white text-sm font-semibold rounded-lg hover:opacity-95 active:scale-[0.99] disabled:opacity-50 transition-all cursor-pointer shadow-lg"
+            className="w-full py-2.5 bg-[#E8A020] hover:bg-[#D4911A] text-white text-sm font-semibold rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50"
           >
             {loading ? 'Updating Password...' : 'Save & Continue'}
           </button>

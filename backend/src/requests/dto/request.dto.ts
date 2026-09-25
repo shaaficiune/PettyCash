@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsNumber, IsEnum, IsDateString, IsArray, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsNumber, IsEnum, IsDateString, IsArray, ValidateNested, IsPositive, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Priority, RequestStatus } from '@prisma/client';
 
@@ -81,6 +81,9 @@ export class CreateRequestDto {
 
   @IsNotEmpty()
   @IsNumber()
+  @IsPositive()
+  @Min(0.01, { message: 'Requested amount must be greater than zero' })
+  @Max(50, { message: 'Petty Cash requests cannot exceed $50. For larger amounts, please use the formal procurement process.' })
   requestedAmount: number;
 
   @IsNotEmpty()
@@ -157,6 +160,8 @@ export class UpdateRequestDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(0.01, { message: 'Requested amount must be greater than zero' })
+  @Max(50, { message: 'Petty Cash requests cannot exceed $50. For larger amounts, please use the formal procurement process.' })
   requestedAmount?: number;
 
   @IsOptional()
@@ -193,5 +198,7 @@ export class ReviewRequestDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(0.01, { message: 'Approved amount must be greater than zero' })
+  @Max(50, { message: 'Approved amount cannot exceed the maximum petty cash limit of $50' })
   approvedAmount?: number; // Accountant can modify approved amount
 }

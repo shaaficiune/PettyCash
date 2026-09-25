@@ -20,16 +20,16 @@ const fmtMoney = (n: number) =>
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const map: Record<string, string> = {
-    COMPLETED:          'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    PAID:               'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    APPROVED:           'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
-    PENDING_APPROVAL:   'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    CORRECTION_REQUIRED:'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-    REJECTED:           'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
-    DRAFT:              'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+    COMPLETED:          'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40',
+    PAID:               'bg-blue-50 text-blue-700 border border-blue-200/60 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40',
+    APPROVED:           'bg-teal-50 text-teal-700 border border-teal-200/60 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/40',
+    PENDING_APPROVAL:   'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40',
+    CORRECTION_REQUIRED:'bg-orange-50 text-orange-700 border border-orange-200/60 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/40',
+    REJECTED:           'bg-rose-50 text-rose-700 border border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40',
+    DRAFT:              'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
   };
   return (
-    <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full whitespace-nowrap ${map[status] || map.DRAFT}`}>
+    <span className={`text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full whitespace-nowrap ${map[status] || map.DRAFT}`}>
       {status.replace(/_/g, ' ')}
     </span>
   );
@@ -96,66 +96,74 @@ const RequestsTable: React.FC<ReqTableProps> = ({
   <div className="overflow-x-auto">
     <table className="w-full text-left text-sm">
       <thead>
-        <tr className="border-b border-slate-100 dark:border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
           <th className="py-3 px-4">Request #</th>
-          <th className="py-3 px-4">Date</th>
+          <th className="py-3 px-4 hidden sm:table-cell">Date</th>
           {showEmployee && <th className="py-3 px-4">Employee</th>}
-          {showCompany && <th className="py-3 px-4">Company</th>}
-          <th className="py-3 px-4">Purpose</th>
+          {showCompany && <th className="py-3 px-4 hidden sm:table-cell">Company</th>}
+          <th className="py-3 px-4 hidden md:table-cell">Purpose</th>
           <th className="py-3 px-4">Amount</th>
           <th className="py-3 px-4">Status</th>
-          {showRemarks && <th className="py-3 px-4">Remarks</th>}
+          {showRemarks && <th className="py-3 px-4 hidden lg:table-cell">Remarks</th>}
         </tr>
       </thead>
       <tbody>
         {rows.length === 0 ? (
-          <tr>
-            <td colSpan={8} className="text-center py-10 text-xs text-slate-400">
+          <tr className="border-l-4 border-l-transparent">
+            <td colSpan={8} className="text-center py-10 text-sm text-slate-400">
               {emptyMessage ?? 'No requests found.'}
             </td>
           </tr>
         ) : (
-          rows.map(req => (
-            <tr key={req.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
-              <td className="py-3 px-4">
-                <Link to={`/requests/${req.id}`} className="text-xs font-bold text-primary hover:underline">
-                  {req.requestNumber}
-                </Link>
-              </td>
-              <td className="py-3 px-4 text-xs text-slate-500">
-                {new Date(req.requestDate || req.createdAt).toLocaleDateString()}
-              </td>
-              {showEmployee && (
-                <td className="py-3 px-4 text-xs text-slate-700 dark:text-slate-300">{req.user?.fullName}</td>
-              )}
-              {showCompany && (
-                <td className="py-3 px-4">
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded"
-                    style={{
-                      background: `${COMPANY_COLORS[req.company?.name] || '#6b7280'}18`,
-                      color: COMPANY_COLORS[req.company?.name] || '#6b7280',
-                    }}>
-                    {req.company?.name}
-                  </span>
+          rows.map(req => {
+            const isSomtel = req.company?.name === 'Somtel';
+            const isBluekom = req.company?.name === 'Bluekom';
+            const rowClass = isSomtel
+              ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
+              : isBluekom
+              ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
+              : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
+            return (
+              <tr key={req.id} className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}>
+                <td className="py-4 px-4 font-semibold text-slate-800 dark:text-slate-200">
+                  <Link to={`/requests/${req.id}`} className="text-sm font-bold text-primary hover:underline">
+                    {req.requestNumber}
+                  </Link>
                 </td>
-              )}
-              <td className="py-3 px-4 text-xs text-slate-500 truncate max-w-[140px]">{req.purpose}</td>
-              <td className="py-3 px-4 text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                {req.currency} {Number(req.requestedAmount).toLocaleString()}
-              </td>
-              <td className="py-3 px-4"><StatusBadge status={req.status} /></td>
-              {showRemarks && (
-                <td className="py-3 px-4 text-xs text-slate-500 max-w-[160px] truncate">
-                  {req.correctionNotes || req.remarks || '—'}
+                <td className="py-4 px-4 text-slate-500 hidden sm:table-cell">
+                  {new Date(req.requestDate || req.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                 </td>
-              )}
-            </tr>
-          ))
+                {showEmployee && (
+                  <td className="py-4 px-4 font-medium text-slate-800 dark:text-slate-200">{req.user?.fullName}</td>
+                )}
+                {showCompany && (
+                  <td className="py-4 px-4 hidden sm:table-cell">
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                      isSomtel ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20' : isBluekom ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {req.company?.name}
+                    </span>
+                  </td>
+                )}
+                <td className="py-4 px-4 text-slate-500 truncate max-w-[140px] hidden md:table-cell">{req.purpose}</td>
+                <td className="py-4 px-4 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                  {req.currency} {Number(req.requestedAmount).toLocaleString()}
+                </td>
+                <td className="py-4 px-4"><StatusBadge status={req.status} /></td>
+                {showRemarks && (
+                  <td className="py-4 px-4 text-slate-500 max-w-[160px] truncate hidden lg:table-cell">
+                    {req.correctionNotes || req.remarks || '—'}
+                  </td>
+                )}
+              </tr>
+            );
+          })
         )}
       </tbody>
     </table>
   </div>
 );
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. SUPER ADMIN DASHBOARD
@@ -197,7 +205,7 @@ const SuperAdminDashboard: React.FC = () => {
     icon: Building2,
     iconClass: c.name === 'Bluekom' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400',
     bgClass: c.name === 'Bluekom' ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20',
-    topBarClass: c.name === 'Bluekom' ? 'bg-gradient-to-r from-blue-500 to-blue-400' : 'bg-gradient-to-r from-orange-500 to-amber-400',
+    topBarClass: c.name === 'Bluekom' ? 'bg-blue-600' : 'bg-orange-600',
   })) || [];
 
   const mainCards: CardProps[] = [
@@ -208,7 +216,7 @@ const SuperAdminDashboard: React.FC = () => {
       icon: Wallet,
       iconClass: 'text-primary',
       bgClass: 'bg-primary/10',
-      topBarClass: 'bg-gradient-to-r from-primary to-indigo-500',
+      topBarClass: 'bg-primary',
     },
     ...companyCards,
     {
@@ -218,7 +226,7 @@ const SuperAdminDashboard: React.FC = () => {
       icon: FileText,
       iconClass: 'text-slate-600 dark:text-slate-400',
       bgClass: 'bg-slate-100 dark:bg-slate-800',
-      topBarClass: 'bg-gradient-to-r from-slate-400 to-slate-500',
+      topBarClass: 'bg-slate-400 dark:bg-slate-600',
       to: '/requests',
     },
     {
@@ -228,7 +236,7 @@ const SuperAdminDashboard: React.FC = () => {
       icon: Clock,
       iconClass: 'text-amber-600 dark:text-amber-400',
       bgClass: 'bg-amber-50 dark:bg-amber-900/20',
-      topBarClass: 'bg-gradient-to-r from-amber-400 to-orange-400',
+      topBarClass: 'bg-amber-500',
       to: '/requests?status=PENDING_APPROVAL',
     },
     {
@@ -236,9 +244,9 @@ const SuperAdminDashboard: React.FC = () => {
       value: stats?.counts?.approved ?? 0,
       sub: 'Reviewed & authorized',
       icon: CheckCircle2,
-      iconClass: 'text-emerald-600 dark:text-emerald-400',
-      bgClass: 'bg-emerald-50 dark:bg-emerald-900/20',
-      topBarClass: 'bg-gradient-to-r from-emerald-400 to-teal-500',
+      iconClass: 'text-teal-600 dark:text-teal-400',
+      bgClass: 'bg-teal-50 dark:bg-teal-900/20',
+      topBarClass: 'bg-teal-600',
       to: '/requests?status=APPROVED',
     },
   ];
@@ -246,7 +254,7 @@ const SuperAdminDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* KPI Cards only */}
-      <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {mainCards.map((c, i) => <SummaryCard key={i} {...c} />)}
       </div>
     </div>
@@ -289,7 +297,7 @@ const AccountantDashboard: React.FC = () => {
     icon: Building2,
     iconClass: c.name === 'Bluekom' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400',
     bgClass: c.name === 'Bluekom' ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20',
-    topBarClass: c.name === 'Bluekom' ? 'bg-gradient-to-r from-blue-500 to-blue-400' : 'bg-gradient-to-r from-orange-500 to-amber-400',
+    topBarClass: c.name === 'Bluekom' ? 'bg-blue-600' : 'bg-orange-600',
   })) || [];
 
   const mainCards: CardProps[] = [
@@ -300,7 +308,7 @@ const AccountantDashboard: React.FC = () => {
       icon: Wallet,
       iconClass: 'text-primary',
       bgClass: 'bg-primary/10',
-      topBarClass: 'bg-gradient-to-r from-primary to-indigo-500',
+      topBarClass: 'bg-primary',
     },
     ...companyCards,
     {
@@ -310,7 +318,7 @@ const AccountantDashboard: React.FC = () => {
       icon: FileText,
       iconClass: 'text-slate-600 dark:text-slate-400',
       bgClass: 'bg-slate-100 dark:bg-slate-800',
-      topBarClass: 'bg-gradient-to-r from-slate-400 to-slate-500',
+      topBarClass: 'bg-slate-400 dark:bg-slate-600',
       to: '/requests',
     },
     {
@@ -320,7 +328,7 @@ const AccountantDashboard: React.FC = () => {
       icon: Clock,
       iconClass: 'text-amber-600 dark:text-amber-400',
       bgClass: 'bg-amber-50 dark:bg-amber-900/20',
-      topBarClass: 'bg-gradient-to-r from-amber-400 to-orange-400',
+      topBarClass: 'bg-amber-500',
       to: '/requests?status=PENDING_APPROVAL',
     },
     {
@@ -328,9 +336,9 @@ const AccountantDashboard: React.FC = () => {
       value: stats?.counts?.approved ?? 0,
       sub: 'Reviewed & authorized',
       icon: CheckCircle2,
-      iconClass: 'text-emerald-600 dark:text-emerald-400',
-      bgClass: 'bg-emerald-50 dark:bg-emerald-900/20',
-      topBarClass: 'bg-gradient-to-r from-emerald-400 to-teal-500',
+      iconClass: 'text-teal-600 dark:text-teal-400',
+      bgClass: 'bg-teal-50 dark:bg-teal-900/20',
+      topBarClass: 'bg-teal-600',
       to: '/requests?status=APPROVED',
     },
   ];
@@ -338,7 +346,7 @@ const AccountantDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* KPI Cards only */}
-      <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {mainCards.map((c, i) => <SummaryCard key={i} {...c} />)}
       </div>
     </div>
@@ -378,7 +386,7 @@ const EmployeeDashboard: React.FC = () => {
       icon: FileText,
       iconClass: 'text-primary',
       bgClass: 'bg-primary/10',
-      topBarClass: 'bg-gradient-to-r from-primary to-indigo-500',
+      topBarClass: 'bg-primary',
       to: '/requests',
     },
     {
@@ -388,7 +396,7 @@ const EmployeeDashboard: React.FC = () => {
       icon: Clock,
       iconClass: 'text-amber-600 dark:text-amber-400',
       bgClass: 'bg-amber-50 dark:bg-amber-900/20',
-      topBarClass: 'bg-gradient-to-r from-amber-400 to-orange-400',
+      topBarClass: 'bg-amber-500',
       to: '/requests?status=PENDING_APPROVAL',
     },
     {
@@ -396,9 +404,9 @@ const EmployeeDashboard: React.FC = () => {
       value: stats?.counts?.approved ?? 0,
       sub: 'Ready for payment',
       icon: CheckCircle2,
-      iconClass: 'text-emerald-600 dark:text-emerald-400',
-      bgClass: 'bg-emerald-50 dark:bg-emerald-900/20',
-      topBarClass: 'bg-gradient-to-r from-emerald-400 to-teal-400',
+      iconClass: 'text-teal-600 dark:text-teal-400',
+      bgClass: 'bg-teal-50 dark:bg-teal-900/20',
+      topBarClass: 'bg-teal-600',
       to: '/requests?status=APPROVED',
     },
     {
@@ -408,7 +416,7 @@ const EmployeeDashboard: React.FC = () => {
       icon: XCircle,
       iconClass: 'text-rose-600 dark:text-rose-400',
       bgClass: 'bg-rose-50 dark:bg-rose-900/20',
-      topBarClass: 'bg-gradient-to-r from-rose-400 to-pink-500',
+      topBarClass: 'bg-rose-600',
       to: '/requests?status=REJECTED',
     },
   ];
@@ -416,14 +424,17 @@ const EmployeeDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Action Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">My Dashboard</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Track and manage your petty cash requests</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Overview of your petty cash activity</p>
         </div>
         <Link
           to="/requests/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-md shadow-primary/20 transition-all text-xs"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-white font-bold rounded-xl shadow-md transition-all text-xs"
+          style={{ backgroundColor: '#E8A020' }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#D4911A')}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#E8A020')}
         >
           <PlusCircle className="h-4 w-4" />
           New Petty Cash Request
@@ -431,7 +442,7 @@ const EmployeeDashboard: React.FC = () => {
       </div>
 
       {/* My Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {statCards.map((c, i) => <SummaryCard key={i} {...c} />)}
       </div>
 

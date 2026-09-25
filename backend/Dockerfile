@@ -40,6 +40,9 @@ COPY package*.json ./
 # Install production-only dependencies
 RUN npm ci --only=production
 
+# Install prisma CLI explicitly for migration commands at runtime
+RUN npm install prisma --save-dev --ignore-scripts
+
 # Copy built artifacts from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
@@ -54,5 +57,8 @@ RUN mkdir -p uploads
 # Expose backend port
 EXPOSE 3000
 
-# Entrypoint: Run db init then start the app
-CMD node scripts/init-db.js && npx prisma db push --accept-data-loss && npx prisma db seed && node dist/src/main
+# Entrypoint:
+#   1. Ensure database exists (init-db.js)
+#   2. Run schema migrations safely (migrate deploy — never drops data)
+#   3. Start the application
+CMD node scripts/init-db.js && npx prisma migrate deploy && node dist/src/main

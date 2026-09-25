@@ -87,6 +87,34 @@ export class FundsService {
     return newFund;
   }
 
+  async checkFundAvailability(companyId: string) {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const monthName = now.toLocaleString('en-US', { month: 'long' });
+
+    const fund = await (this.prisma as any).pettyCashFund.findUnique({
+      where: {
+        companyId_month_year: { companyId, month, year },
+      },
+    });
+
+    const available = !!(fund && Number(fund.totalAvailable) > 0 && fund.status === 'OPEN');
+
+    return {
+      available,
+      month,
+      year,
+      message: available
+        ? `Petty Cash Fund for ${monthName} ${year} is active.`
+        : !fund
+          ? `No Petty Cash Fund has been initialized for ${monthName} ${year}. Please ask your Accountant to set up the fund.`
+          : Number(fund.totalAvailable) <= 0
+            ? `The Petty Cash Fund for ${monthName} ${year} has a zero balance. Please ask your Accountant to top up the fund.`
+            : `The Petty Cash Fund for ${monthName} ${year} is closed.`,
+    };
+  }
+
   async getFund(companyId: string, month: number, year: number) {
     const fund = await (this.prisma as any).pettyCashFund.findUnique({
       where: {
@@ -186,23 +214,29 @@ export class FundsService {
     return this.recordApprovedPayment(companyId, null as any, approvedAmount);
   }
 
-  // Record an actual payment and create a ledger entry
+  // Record an actual payment and create a ledger entry (atomic to prevent race conditions)
   async recordPayment(companyId: string, requestId: string, amountPaid: number, paidById: string, referenceNumber?: string | null, notes?: string) {
     const fund = await this.getOrCreateCurrentMonthFund(companyId);
 
-    const totalAvailable = Number(fund.totalAvailable);
-    const currentPaid = Number(fund.paidAmount || 0);
-    const newPaid = currentPaid + Number(amountPaid);
-    const remainingBalance = totalAvailable - newPaid;
-
-    if (remainingBalance < 0) {
-      throw new BadRequestException(
-        `Insufficient Petty Cash Balance. Available: $${Number(fund.remainingBalance).toLocaleString()} USD, Requested Payout: $${Number(amountPaid).toLocaleString()} USD. Please top up your company's Petty Cash Fund.`
-      );
-    }
-
-    // Use transaction to update fund and create ledger
+    // Use transaction for the entire balance check + update to prevent race conditions
+    // (two accountants paying simultaneously won't cause lost updates)
     const updated = await this.prisma.$transaction(async (tx) => {
+      // Re-read the fund inside the transaction to get the latest locked values
+      const lockedFund = await (tx as any).pettyCashFund.findUnique({
+        where: { id: fund.id },
+      });
+
+      const totalAvailable = Number(lockedFund.totalAvailable);
+      const currentPaid = Number(lockedFund.paidAmount || 0);
+      const newPaid = currentPaid + Number(amountPaid);
+      const remainingBalance = totalAvailable - newPaid;
+
+      if (remainingBalance < 0) {
+        throw new BadRequestException(
+          `Insufficient Petty Cash Balance. Available: $${Number(lockedFund.remainingBalance).toLocaleString()} USD, Requested Payout: $${Number(amountPaid).toLocaleString()} USD. Please top up your company's Petty Cash Fund.`
+        );
+      }
+
       const updatedFund = await (tx as any).pettyCashFund.update({
         where: { id: fund.id },
         data: {

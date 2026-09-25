@@ -16,7 +16,7 @@ export class AuditLogInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(async (response) => {
         const user = request.user;
-        const action = this.determineAction(method, url);
+        const action = this.determineAction(method, url, body);
         
         if (action) {
           try {
@@ -42,32 +42,44 @@ export class AuditLogInterceptor implements NestInterceptor {
     );
   }
 
-  private determineAction(method: string, url: string): string | null {
+  private determineAction(method: string, url: string, body?: any): string | null {
     if (url.includes('/auth/login') && method === 'POST') return 'LOGIN';
     if (url.includes('/auth/logout') && method === 'POST') return 'LOGOUT';
-    
+
     if (url.includes('/requests') && method === 'POST') {
-      if (url.endsWith('/approve')) return 'APPROVE_REQUEST';
-      if (url.endsWith('/reject')) return 'REJECT_REQUEST';
-      if (url.endsWith('/correct')) return 'CORRECTION_REQUIRED';
+      // /requests/:id/review endpoint
+      if (url.match(/\/requests\/[^/]+\/review$/)) {
+        const status = body?.status;
+        if (status === 'APPROVED') return 'APPROVE_REQUEST';
+        if (status === 'REJECTED') return 'REJECT_REQUEST';
+        if (status === 'CORRECTION_REQUIRED') return 'CORRECTION_REQUIRED';
+        return 'REVIEW_REQUEST';
+      }
       return 'CREATE_REQUEST';
     }
-    
+
     if (url.includes('/requests') && method === 'PUT') return 'UPDATE_REQUEST';
     if (url.includes('/requests') && method === 'DELETE') return 'DELETE_REQUEST';
-    
+
     if (url.includes('/payments') && method === 'POST') return 'RECORD_PAYMENT';
+
     if (url.includes('/settlements') && method === 'POST') {
-      if (url.endsWith('/approve')) return 'APPROVE_SETTLEMENT';
+      // /settlements/:id/review endpoint
+      if (url.match(/\/settlements\/[^/]+\/review$/)) {
+        const status = body?.status;
+        if (status === 'APPROVED') return 'APPROVE_SETTLEMENT';
+        if (status === 'REJECTED') return 'REJECT_SETTLEMENT';
+        return 'REVIEW_SETTLEMENT';
+      }
       return 'SUBMIT_SETTLEMENT';
     }
-    
+
     if (url.includes('/users')) {
       if (method === 'POST') return 'CREATE_USER';
       if (method === 'PUT') return 'UPDATE_USER';
       if (method === 'DELETE') return 'DISABLE_USER';
     }
-    
+
     return null;
   }
 

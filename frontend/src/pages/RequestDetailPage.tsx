@@ -82,6 +82,17 @@ export const RequestDetailPage: React.FC = () => {
   const handleReview = async (status: 'APPROVED' | 'REJECTED' | 'CORRECTION_REQUIRED') => {
     try {
       setError(null);
+      if (status === 'APPROVED') {
+        const parsedAmount = parseFloat(approvedAmountOverride);
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+          setError('Approved amount must be greater than zero');
+          return;
+        }
+        if (parsedAmount > 50) {
+          setError('Approved amount cannot exceed the maximum petty cash limit of $50.');
+          return;
+        }
+      }
       await api.post(`/requests/${id}/review`, {
         status,
         comments: actionComments,
@@ -162,7 +173,7 @@ export const RequestDetailPage: React.FC = () => {
         {isEmployee && (request.status === 'DRAFT' || request.status === 'CORRECTION_REQUIRED') && (
           <Link
             to={`/requests/edit/${request.id}`}
-            className="px-4 py-1.5 bg-primary hover:bg-primary/95 text-white text-xs font-semibold rounded-lg shadow-sm"
+            className="px-4 py-1.5 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-semibold rounded-lg shadow-sm transition-all"
           >
             Edit Draft Request
           </Link>
@@ -176,7 +187,7 @@ export const RequestDetailPage: React.FC = () => {
       )}
 
       {/* Main Request Information Card */}
-      <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-6 transition-colors">
+      <div className="p-4 sm:p-6 lg:p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-6 transition-colors">
         
         {/* Top Header Row */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-6">
@@ -185,29 +196,18 @@ export const RequestDetailPage: React.FC = () => {
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                 Request #{request.requestNumber}
               </h2>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                request.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' :
-                request.status === 'PAID' || request.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400' :
-                request.status === 'REJECTED' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400' :
-                request.status === 'CORRECTION_REQUIRED' ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400' :
-                'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                request.status === 'APPROVED' ? 'bg-teal-50 text-teal-700 border border-teal-200/60 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/40' :
+                request.status === 'PAID' ? 'bg-blue-50 text-blue-700 border border-blue-200/60 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40' :
+                request.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40' :
+                request.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40' :
+                request.status === 'CORRECTION_REQUIRED' ? 'bg-orange-50 text-orange-700 border border-orange-200/60 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/40' :
+                request.status === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40' :
+                'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
               }`}>
                 {request.status.replace('_', ' ')}
               </span>
             </div>
-          </div>
-
-          <div className="text-right">
-            <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${
-              request.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
-              request.status === 'PAID' ? 'bg-blue-100 text-blue-700' :
-              request.status === 'APPROVED' ? 'bg-indigo-100 text-indigo-700' :
-              request.status === 'PENDING_APPROVAL' ? 'bg-amber-100 text-amber-700' :
-              request.status === 'CORRECTION_REQUIRED' ? 'bg-orange-100 text-orange-700' :
-              'bg-slate-100 text-slate-700'
-            }`}>
-              {request.status.replace('_', ' ')}
-            </span>
           </div>
         </div>
 
@@ -240,7 +240,7 @@ export const RequestDetailPage: React.FC = () => {
             )}
           </div>
 
-          <div className="space-y-4 border-l border-slate-100 dark:border-slate-800/60 pl-0 md:pl-8">
+          <div className="space-y-4 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800/60 pt-6 md:pt-0 pl-0 md:pl-8">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400">Requested Amount</span>
@@ -271,7 +271,7 @@ export const RequestDetailPage: React.FC = () => {
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Region</span>
                 {request.region ? (
-                  <span className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
+                  <span className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/60">
                     {request.region.name}
                   </span>
                 ) : (
@@ -281,7 +281,7 @@ export const RequestDetailPage: React.FC = () => {
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Budget Head</span>
                 {request.budgetHead ? (
-                  <span className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+                  <span className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200/60 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/40">
                     {request.budgetHead.code} – {request.budgetHead.name}
                   </span>
                 ) : (
@@ -322,13 +322,26 @@ export const RequestDetailPage: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-2">Approved Amount Override</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-xs font-semibold text-slate-500">Approved Amount Override</label>
+                <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 dark:bg-amber-950/60 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-300 dark:border-amber-800">
+                  Max: $50.00
+                </span>
+              </div>
               <input
                 type="number"
+                step="0.01"
+                min="0.01"
+                max="50"
                 value={approvedAmountOverride}
                 onChange={(e) => setApprovedAmountOverride(e.target.value)}
-                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
+                className={`w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border ${parseFloat(approvedAmountOverride) > 50 ? 'border-rose-500 ring-1 ring-rose-500 text-rose-600' : 'border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white'} rounded-lg text-xs focus:outline-none`}
               />
+              {parseFloat(approvedAmountOverride) > 50 && (
+                <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-1">
+                  Approved amount cannot exceed the $50.00 maximum limit.
+                </p>
+              )}
             </div>
 
             <div>
@@ -343,7 +356,7 @@ export const RequestDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex flex-col sm:flex-row gap-2 justify-end">
             <button
               onClick={() => handleReview('CORRECTION_REQUIRED')}
               className="px-4 py-2 border border-orange-200 dark:border-orange-900/50 bg-orange-50 hover:bg-orange-100 text-orange-700 dark:bg-orange-950/20 dark:text-orange-400 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
@@ -360,7 +373,7 @@ export const RequestDetailPage: React.FC = () => {
             </button>
             <button
               onClick={() => handleReview('APPROVED')}
-              className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-md shadow-primary/10 cursor-pointer"
+              className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
             >
               <ShieldCheck className="h-4 w-4" />
               Approve Payout
@@ -371,7 +384,7 @@ export const RequestDetailPage: React.FC = () => {
 
       {/* ACCOUNTANT RECORD PAYMENT DRAWER */}
       {isAccountant && request.status === 'APPROVED' && (
-        <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-4 transition-colors">
+        <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-4 transition-colors">
           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Disbursement / Record Payment</h3>
           <p className="text-xs text-slate-400">Enter cash transaction details to mark request as disbursed/Paid</p>
 
@@ -435,7 +448,7 @@ export const RequestDetailPage: React.FC = () => {
 
       {/* EMPLOYEE SUBMIT SETTLEMENT DRAWER */}
       {isEmployee && request.status === 'PAID' && (
-        <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-4 transition-colors">
+        <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-4 transition-colors">
           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Submit Expense Settlement</h3>
           <p className="text-xs text-slate-400">Discharge remaining balances and upload actual expense documentation</p>
 
@@ -483,7 +496,7 @@ export const RequestDetailPage: React.FC = () => {
           <div className="flex justify-end">
             <button
               onClick={handleSubmitSettlement}
-              className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
             >
               <CheckSquare className="h-4 w-4" />
               Submit Settlement
@@ -494,8 +507,8 @@ export const RequestDetailPage: React.FC = () => {
 
       {/* DISBURSED PAYMENT RECORDS DISPLAY */}
       {request.payments?.length > 0 && (
-        <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm transition-colors">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">Payout Transaction logs</h3>
+        <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm transition-colors">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">Payment Details</h3>
           <div className="space-y-3">
             {request.payments.map((pm: any) => (
               <div key={pm.id} className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-center justify-between text-xs transition-colors">
@@ -516,7 +529,7 @@ export const RequestDetailPage: React.FC = () => {
 
       {/* EXPENSE SETTLEMENTS DISPLAY */}
       {request.settlements?.length > 0 && (
-        <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm transition-colors">
+        <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm transition-colors">
           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">Expense Settlement & Receipts Auditing</h3>
           <div className="space-y-4">
             {request.settlements.map((st: any) => (

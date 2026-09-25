@@ -30,12 +30,70 @@ export class RequestsService {
     const suffix = String(count + 1).padStart(4, '0');
     const requestNumber = `${prefix}${suffix}`;
 
+    // ── $50 Maximum Cap ──────────────────────────────────────────────────────
+    // Petty Cash is for small, routine expenses only. Maximum per request: $50.
+    const PETTY_CASH_MAX = 50;
+    if (Number(dto.requestedAmount) > PETTY_CASH_MAX) {
+      throw new BadRequestException(
+        `Petty Cash requests cannot exceed $${PETTY_CASH_MAX}. ` +
+        `Your requested amount ($${Number(dto.requestedAmount).toLocaleString()}) exceeds the limit. ` +
+        `For larger amounts, please use the formal procurement process.`
+      );
+    }
+
     // Validate attachments count limit (max 10)
     if (dto.attachments && dto.attachments.length > 10) {
       throw new BadRequestException('You cannot upload more than 10 attachments');
     }
 
-    // Enforce Region Monthly Budget Limit
+    // Fund Availability Check: block PENDING_APPROVAL submissions when no active fund exists
+    // Employees can still save as DRAFT — this only blocks actual submission for review.
+    if (dto.status === RequestStatus.PENDING_APPROVAL) {
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
+      const monthName = now.toLocaleString('en-US', { month: 'long' });
+
+      const fund = await (this.prisma as any).pettyCashFund.findUnique({
+        where: {
+          companyId_month_year: {
+            companyId,
+            month: currentMonth,
+            year: currentYear,
+          },
+        },
+      });
+
+      if (!fund) {
+        throw new BadRequestException(
+          `No Petty Cash Fund has been initialized for ${monthName} ${currentYear}. ` +
+          `Please ask your Accountant to set up the monthly fund before submitting requests. ` +
+          `You can save this request as a Draft in the meantime.`
+        );
+      }
+
+      if (Number(fund.totalAvailable) <= 0) {
+        throw new BadRequestException(
+          `The Petty Cash Fund for ${monthName} ${currentYear} has a zero balance. ` +
+          `Please ask your Accountant to top up the fund before submitting requests. ` +
+          `You can save this request as a Draft in the meantime.`
+        );
+      }
+
+      if (fund.status === 'CLOSED') {
+        throw new BadRequestException(
+          `The Petty Cash Fund for ${monthName} ${currentYear} has been closed. ` +
+          `Please contact your Accountant.`
+        );
+      }
+    }
+
+    // Enforce Maximum Petty Cash Limit ($50)
+    if (Number(dto.requestedAmount) > 50) {
+      throw new BadRequestException('Petty Cash requests cannot exceed $50. For larger amounts, please use the formal procurement process.');
+    }
+
+    // Enforce Region Monthly Budget Limit (only when submitting, not drafting)
     if (dto.regionId && dto.status === RequestStatus.PENDING_APPROVAL) {
       await this.checkRegionBudget(dto.regionId, dto.requestedAmount);
     }
@@ -81,7 +139,8 @@ export class RequestsService {
     if (initialStatus === RequestStatus.PENDING_APPROVAL) {
       await this.notifyAccountants(
         `New request submitted: ${requestNumber}`,
-        `Employee ${request.user.fullName} created request ${requestNumber} for ${request.currency} ${request.requestedAmount}.`
+        `Employee ${request.user.fullName} created request ${requestNumber} for ${request.currency} ${request.requestedAmount}.`,
+        companyId
       );
     }
 
@@ -188,7 +247,12 @@ export class RequestsService {
     if (dto.costCenter !== undefined) data.costCenter = dto.costCenter || null;
     if (dto.purpose !== undefined) data.purpose = dto.purpose;
     if (dto.description !== undefined) data.description = dto.description || '';
-    if (dto.requestedAmount !== undefined) data.requestedAmount = dto.requestedAmount;
+    if (dto.requestedAmount !== undefined) {
+      if (Number(dto.requestedAmount) > 50) {
+        throw new BadRequestException('Petty Cash requests cannot exceed $50. For larger amounts, please use the formal procurement process.');
+      }
+      data.requestedAmount = dto.requestedAmount;
+    }
     if (dto.currency !== undefined) data.currency = dto.currency;
     if (dto.priority !== undefined) data.priority = dto.priority;
     if (dto.requiredDate !== undefined) data.requiredDate = new Date(dto.requiredDate);
@@ -204,12 +268,34 @@ export class RequestsService {
     // If status is updated (e.g. employee resubmitting correction request)
     if (dto.status) {
       if (request.status === RequestStatus.CORRECTION_REQUIRED && dto.status === RequestStatus.PENDING_APPROVAL) {
+        // Fund check on resubmission
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+        const monthName = now.toLocaleString('en-US', { month: 'long' });
+        const fund = await (this.prisma as any).pettyCashFund.findUnique({
+          where: {
+            companyId_month_year: {
+              companyId: request.companyId,
+              month: currentMonth,
+              year: currentYear,
+            },
+          },
+        });
+        if (!fund || Number(fund.totalAvailable) <= 0 || fund.status === 'CLOSED') {
+          throw new BadRequestException(
+            `Cannot resubmit: the Petty Cash Fund for ${monthName} ${currentYear} is unavailable or has no balance. ` +
+            `Please contact your Accountant.`
+          );
+        }
+
         data.status = RequestStatus.PENDING_APPROVAL;
         data.correctionNotes = null; // Clear correction notes on resubmission
         
         await this.notifyAccountants(
           `Resubmitted request: ${request.requestNumber}`,
-          `Employee resubmitted corrected request ${request.requestNumber} for review.`
+          `Employee resubmitted corrected request ${request.requestNumber} for review.`,
+          request.companyId
         );
       } else {
         data.status = dto.status;
@@ -286,7 +372,10 @@ export class RequestsService {
     };
 
     if (dto.status === RequestStatus.APPROVED) {
-      data.approvedAmount = dto.approvedAmount || request.requestedAmount;
+      data.approvedAmount = dto.approvedAmount !== undefined ? dto.approvedAmount : request.requestedAmount;
+      if (Number(data.approvedAmount) > 50) {
+        throw new BadRequestException('Approved amount cannot exceed the maximum petty cash limit of $50.');
+      }
       // Reserve approved amount in petty cash fund; will throw if insufficient
       await this.fundsService.recordApproval(request.companyId, Number(data.approvedAmount));
       // After accountant approval, status moves to approved
@@ -362,14 +451,16 @@ export class RequestsService {
     }
   }
 
-  private async notifyAccountants(title: string, message: string) {
-    // Fetch all accountants
-    const accountants = await this.prisma.user.findMany({
-      where: {
-        role: { name: RoleName.ACCOUNTANT },
-        status: 'ACTIVE',
-      },
-    });
+  private async notifyAccountants(title: string, message: string, companyId?: string) {
+    // Fetch accountants filtered by companyId to prevent cross-tenant notification leaks
+    const where: any = {
+      role: { name: RoleName.ACCOUNTANT },
+      status: 'ACTIVE',
+    };
+    if (companyId) {
+      where.companyId = companyId;
+    }
+    const accountants = await this.prisma.user.findMany({ where });
 
     for (const acc of accountants) {
       await this.notifications.create(acc.id, title, message);

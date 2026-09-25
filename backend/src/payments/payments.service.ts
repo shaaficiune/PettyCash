@@ -30,6 +30,10 @@ export class PaymentsService {
       throw new BadRequestException('Payment amount must be greater than zero');
     }
 
+    if (Number(dto.amountPaid) > 50) {
+      throw new BadRequestException('Payment amount cannot exceed the maximum petty cash limit of $50');
+    }
+
     // Ensure actor belongs to same company unless SUPER_ADMIN or ACCOUNTANT
     const actor = await this.prisma.user.findUnique({ where: { id: paidById }, include: { role: true } });
     if (!actor) throw new ForbiddenException('Actor account not found');
@@ -37,7 +41,6 @@ export class PaymentsService {
     if (!isCrossCompanyRole && actor.companyId !== request.companyId) {
       throw new ForbiddenException('Not allowed to record payments for this company');
     }
-
 
     // Compute existing total paid for request to support partial payments
     const paidAgg = await this.prisma.payment.aggregate({
@@ -47,6 +50,16 @@ export class PaymentsService {
     const alreadyPaid = Number(paidAgg._sum.amountPaid || 0);
     const newTotalPaid = alreadyPaid + Number(dto.amountPaid);
     const approvedAmount = Number(request.approvedAmount ?? request.requestedAmount);
+
+    // Overpayment Guard: prevent disbursements exceeding the approved amount
+    if (newTotalPaid > approvedAmount) {
+      const remaining = approvedAmount - alreadyPaid;
+      throw new BadRequestException(
+        `Overpayment prevented: approved amount is ${request.currency} ${approvedAmount.toLocaleString()}, ` +
+        `already paid ${request.currency} ${alreadyPaid.toLocaleString()}, ` +
+        `remaining balance is ${request.currency} ${remaining.toLocaleString()}.`
+      );
+    }
 
     // Create payment entry
     const payment = await this.prisma.payment.create({
@@ -116,7 +129,16 @@ export class PaymentsService {
     const [items, total] = await Promise.all([
       this.prisma.payment.findMany({
         where,
-        include: { paidBy: { select: { id: true, fullName: true, username: true } }, request: { select: { requestNumber: true, id: true } } },
+        include: { 
+          paidBy: { select: { id: true, fullName: true, username: true } }, 
+          request: { 
+            select: { 
+              requestNumber: true, 
+              id: true,
+              company: { select: { id: true, name: true } }
+            } 
+          } 
+        },
         orderBy: { paymentDate: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,

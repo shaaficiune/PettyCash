@@ -18,6 +18,8 @@ export default {
         primary: {
           DEFAULT:    "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover:      "var(--color-primary-hover)",
+          active:     "var(--color-primary-active)",
         },
         secondary: {
           DEFAULT:    "hsl(var(--secondary))",
@@ -44,22 +46,43 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
 
-        // ── Bluekom Brand Scale (50–900) ────────────────────────────────────
-        bluekom: {
-          50:  '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
+        // ── Semantic Surface Tokens ──────────────────────────────────────────
+        surface: {
+          DEFAULT: "var(--color-surface)",
+          muted:   "var(--color-surface-muted)",
         },
 
-        // ── Somtel Brand Scale (50–900) ─────────────────────────────────────
+        // ── CashDesk Deep Teal Scale (Primary) ──────────────────────────────
+        cashdesk: {
+          50:  '#f0fafa',
+          100: '#cceeee',
+          200: '#9ddada',
+          300: '#5ec0c0',
+          400: '#2ea8a8',
+          500: '#178c8c',
+          600: '#136f6f',
+          700: '#115858',
+          800: '#0f4646',
+          900: '#0a2e2e',  // ← PRIMARY
+          950: '#051818',
+        },
+
+        // ── Golden Amber CTA Scale ───────────────────────────────────────────
+        gold: {
+          50:  '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
+          300: '#fcd34d',
+          400: '#fbbf24',
+          500: '#f59e0b',
+          DEFAULT: '#E8A020',  // ← PRIMARY CTA
+          600: '#d97706',
+          700: '#b45309',
+          800: '#92400e',
+          900: '#78350f',
+        },
+
+        // ── Somtel Brand Scale (Orange) — unchanged ──────────────────────────
         somtel: {
           50:  '#fff7ed',
           100: '#ffedd5',
@@ -74,15 +97,29 @@ export default {
           950: '#431407',
         },
 
+        // ── Bluekom (kept for legacy company badge usage) ────────────────────
+        bluekom: {
+          50:  '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
+        },
+
         // ── Status Semantic Palette ─────────────────────────────────────────
-        // These mirror Tailwind's built-ins but are named for intent clarity
         status: {
-          approved:    '#10b981', // emerald-500
-          pending:     '#f59e0b', // amber-500
-          rejected:    '#f43f5e', // rose-500
-          correction:  '#f97316', // orange-500
-          paid:        '#3b82f6', // blue-500
-          closed:      '#94a3b8', // slate-400
+          approved:    '#0d9488',
+          pending:     '#d97706',
+          rejected:    '#e11d48',
+          correction:  '#ea580c',
+          paid:        '#2563eb',
+          closed:      '#64748b',
         },
       },
 

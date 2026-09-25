@@ -34,7 +34,7 @@ export class UsersService {
 
     // Hash default initial password
     const defaultPassword = 'Welcome@2026';
-    const passwordHash = bcrypt.hashSync(defaultPassword, 10);
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
     return this.prisma.user.create({
       data: {
@@ -160,7 +160,7 @@ export class UsersService {
     }
 
     const pass = tempPassword || 'Welcome@2026';
-    const passwordHash = bcrypt.hashSync(pass, 10);
+    const passwordHash = await bcrypt.hash(pass, 10);
 
     await this.prisma.user.update({
       where: { id },

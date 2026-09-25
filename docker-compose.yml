@@ -13,7 +13,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # Bind to localhost only — prevents direct internet exposure of database port
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
@@ -34,8 +35,9 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # MinIO Console
+      # Bind to localhost only — prevents direct internet exposure of MinIO
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 30s
@@ -59,9 +61,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      HOST: 0.0.0.0
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Somtel%40PL}@postgres:5432/${POSTGRES_DB:-petty_cash_db}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-somtel_bluekom_petty_cash_secret_key_2026_jwt}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-somtel_bluekom_petty_cash_refresh_secret_key_2026_jwt}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRES: ${JWT_ACCESS_EXPIRES:-15m}
       JWT_REFRESH_EXPIRES: ${JWT_REFRESH_EXPIRES:-7d}
       STORAGE_TYPE: ${STORAGE_TYPE:-local}
@@ -71,10 +74,11 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-petty-cash-attachments}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://10.35.70.248}
     volumes:
       - backend_uploads:/app/uploads
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     networks:
       - petty_cash_net
 

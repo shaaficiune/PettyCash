@@ -28,6 +28,15 @@ export class SettlementsService {
       throw new BadRequestException('Settlements can only be submitted for paid requests');
     }
 
+    if (Number(dto.actualExpenseAmount) > 50) {
+      throw new BadRequestException('Expense settlement cannot exceed the maximum petty cash limit of $50.');
+    }
+
+    const approvedLimit = Number(request.approvedAmount || request.requestedAmount);
+    if (Number(dto.actualExpenseAmount) > approvedLimit) {
+      throw new BadRequestException(`Expense settlement cannot exceed the approved amount of ${request.currency} ${approvedLimit}.`);
+    }
+
     // Check if there is already a pending/approved settlement
     const existing = await this.prisma.expenseSettlement.findFirst({
       where: { requestId: dto.requestId },

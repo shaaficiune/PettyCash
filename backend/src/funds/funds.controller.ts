@@ -64,5 +64,10 @@ export class FundsController {
     const size = parseInt(pageSize as any, 10) || 20;
     return this.fundsService.getTransactions(effectiveCompanyId, transactionType, pageNum, size);
   }
-}
 
+  @Get('availability')
+  @ApiOperation({ summary: 'Check if an active fund with positive balance exists for the current month' })
+  async checkAvailability(@Request() req: any) {
+    return this.fundsService.checkFundAvailability(req.user.companyId);
+  }
+}

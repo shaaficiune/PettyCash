@@ -9,6 +9,17 @@ const api = axios.create({
   },
 });
 
+// Helper: clear session and signal AuthContext to redirect via React Router
+// (never use window.location.href — that causes a hard page reload)
+const clearSessionAndRedirect = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
+  // Dispatch a custom event that AuthContext listens to, so
+  // setUser(null) is called and ProtectedRoute redirects via React Router.
+  window.dispatchEvent(new CustomEvent('auth:logout'));
+};
+
 // Inject Bearer token
 api.interceptors.request.use(
   (config) => {
@@ -21,39 +32,44 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Intercept 401s and refresh token
+// Intercept 401s — try to refresh the token, otherwise sign out cleanly.
+// IMPORTANT: skip auth endpoints entirely so a failed login (wrong password)
+// or a failed refresh don't accidentally trigger a session-clear redirect.
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const url: string = originalRequest?.url || '';
+
+    // Never intercept auth routes — let them fail naturally to their callers
+    const isAuthEndpoint = url.includes('/auth/login') ||
+                           url.includes('/auth/refresh') ||
+                           url.includes('/auth/logout');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
       const refreshToken = localStorage.getItem('refreshToken');
-      
+
       if (refreshToken) {
         try {
           const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
           const { accessToken, refreshToken: newRefreshToken } = res.data;
-          
+
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', newRefreshToken);
-          
+
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return api(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed, clean up and redirect to login
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('user');
-          window.location.href = '/login?session_expired=true';
+        } catch {
+          // Refresh failed — sign out without a hard reload
+          clearSessionAndRedirect();
         }
       } else {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        // No refresh token at all — sign out without a hard reload
+        clearSessionAndRedirect();
       }
     }
+
     return Promise.reject(error);
   }
 );

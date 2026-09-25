@@ -4,7 +4,11 @@ import react from '@vitejs/plugin-react';
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
-  const backendTarget = env.VITE_BACKEND_URL || 'http://10.35.70.251:3000';
+  const rawTarget = env.VITE_BACKEND_URL;
+  // Proxy target must be a full URL with protocol (http:// or https://)
+  const backendTarget = (rawTarget && /^https?:\/\//i.test(rawTarget))
+    ? rawTarget
+    : 'http://localhost:3000';
 
   return {
     plugins: [react()],
