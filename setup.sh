@@ -5,6 +5,30 @@ echo "=========================================="
 echo "🚀 PETTY CASH ALL-IN-ONE UBUNTU SETUP"
 echo "=========================================="
 
+# 0. Fix Ubuntu 24.04 mirror if regional mirror (like so.archive) has connection issues
+if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+    sudo sed -i 's|http://so.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list.d/ubuntu.sources
+fi
+if [ -f /etc/apt/sources.list ]; then
+    sudo sed -i 's|http://so.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list
+fi
+
+# Ensure node and npm are installed cleanly
+if ! command -v npm &> /dev/null; then
+    echo "📦 Node.js / npm not found. Installing Node.js 20 LTS..."
+    sudo apt update --fix-missing
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt install -y nodejs nginx postgresql postgresql-contrib
+fi
+
+# Also ensure postgresql and nginx are installed
+if ! command -v nginx &> /dev/null; then
+    sudo apt install -y nginx
+fi
+if ! command -v psql &> /dev/null; then
+    sudo apt install -y postgresql postgresql-contrib
+fi
+
 # 1. Install PM2
 echo "📦 Installing PM2..."
 sudo npm install -g pm2
