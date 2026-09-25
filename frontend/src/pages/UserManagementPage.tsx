@@ -22,7 +22,6 @@ export const UserManagementPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [employeeNumber, setEmployeeNumber] = useState('');
   const [companyId, setCompanyId] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [userRegionId, setUserRegionId] = useState('');
@@ -60,7 +59,7 @@ export const UserManagementPage: React.FC = () => {
 
   // Edit User state
   const [editingUser, setEditingUser] = useState<any | null>(null);
-  const [editForm, setEditForm] = useState({ fullName: '', email: '', phone: '', departmentId: '', regionId: '', role: '' });
+  const [editForm, setEditForm] = useState({ fullName: '', email: '', phone: '', jobTitle: '', departmentId: '', regionId: '', role: '' });
   const [editDepartments, setEditDepartments] = useState<any[]>([]);
   const [editRegions, setEditRegions] = useState<any[]>([]);
   const [editError, setEditError] = useState<string | null>(null);
@@ -210,6 +209,7 @@ export const UserManagementPage: React.FC = () => {
       fullName: u.fullName || '',
       email: u.email || '',
       phone: u.phone || '',
+      jobTitle: u.jobTitle || '',
       departmentId: u.department?.id || '',
       regionId: u.region?.id || '',
       role: u.role?.name || u.role || 'EMPLOYEE',
@@ -219,8 +219,8 @@ export const UserManagementPage: React.FC = () => {
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editForm.fullName || !editForm.departmentId || !editForm.role) {
-      setEditError('Full Name, Department, and Role are required');
+    if (!editForm.fullName || !editForm.phone || !editForm.departmentId || !editForm.role) {
+      setEditError('Full Name, Phone Number, Department, and Role are required');
       return;
     }
     setSavingUser(true);
@@ -229,7 +229,8 @@ export const UserManagementPage: React.FC = () => {
       await api.put(`/users/${editingUser.id}`, {
         fullName: editForm.fullName,
         email: editForm.email || undefined,
-        phone: editForm.phone || undefined,
+        phone: editForm.phone,
+        jobTitle: editForm.jobTitle || undefined,
         departmentId: editForm.departmentId,
         regionId: editForm.regionId || undefined,
         role: editForm.role,
@@ -358,7 +359,8 @@ export const UserManagementPage: React.FC = () => {
       const match =
         (u.fullName && u.fullName.toLowerCase().includes(q)) ||
         (u.username && u.username.toLowerCase().includes(q)) ||
-        (u.employeeNumber && u.employeeNumber.toLowerCase().includes(q)) ||
+        (u.phone && u.phone.toLowerCase().includes(q)) ||
+        (u.jobTitle && u.jobTitle.toLowerCase().includes(q)) ||
         (u.department?.name && u.department.name.toLowerCase().includes(q));
       if (!match) return false;
     }
@@ -510,30 +512,11 @@ export const UserManagementPage: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Job Title (Optional)</label>
-                  <select
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                  >
-                    <option value="">— Select Job Title —</option>
-                    <option>General Manager</option>
-                    <option>Finance Manager</option>
-                    <option>Operations Manager</option>
-                    <option>Network Engineer</option>
-                    <option>Field Technician</option>
-                    <option>Accountant</option>
-                    <option>Sales Supervisor</option>
-                    <option>HR Officer</option>
-                    <option>Fleet Officer</option>
-                    <option>IT Technician</option>
-                </div>
-
-                <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Company *</label>
                   <select
                     value={companyId}
-                    onChange={(e) => { setCompanyId(e.target.value); setDepartmentId(''); }}
+                    onChange={(e) => { setCompanyId(e.target.value); setDepartmentId(''); setUserRegionId(''); }}
+                    required
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
                   >
                     <option value="">Select Company</option>
@@ -542,38 +525,74 @@ export const UserManagementPage: React.FC = () => {
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Department *</label>
                   <select
                     value={departmentId}
                     onChange={(e) => setDepartmentId(e.target.value)}
+                    required
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
                     disabled={!companyId}
                   >
-                    <option value="">Select Department</option>
+                    <option value="">{companyId ? 'Select Department' : 'First select Company'}</option>
                     {departments.map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </select>
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Assigned Region (Optional)</label>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Job Title *</label>
                   <select
-                    value={userRegionId}
-                    onChange={(e) => setUserRegionId(e.target.value)}
+                    value={jobTitle}
+                    onChange={(e) => setJobTitle(e.target.value)}
+                    required
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                    disabled={!companyId}
                   >
-                    <option value="">No Region (Default)</option>
-                    {companyRegions.map(r => (
-                      <option key={r.id} value={r.id}>{r.name} {r.code ? `(${r.code})` : ''}</option>
-                    ))}
+                    <option value="">— Select Job Title —</option>
+                    <option value="General Manager">General Manager</option>
+                    <option value="Finance Manager">Finance Manager</option>
+                    <option value="Operations Manager">Operations Manager</option>
+                    <option value="Network Engineer">Network Engineer</option>
+                    <option value="Field Technician">Field Technician</option>
+                    <option value="Accountant">Accountant</option>
+                    <option value="Sales Supervisor">Sales Supervisor</option>
+                    <option value="HR Officer">HR Officer</option>
+                    <option value="Fleet Officer">Fleet Officer</option>
+                    <option value="IT Technician">IT Technician</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">System Access Role *</label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
+                  >
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="ACCOUNTANT">Accountant</option>
+                    <option value="SUPER_ADMIN">Super Admin</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Assigned Region (Optional)</label>
+                <select
+                  value={userRegionId}
+                  onChange={(e) => setUserRegionId(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
+                  disabled={!companyId}
+                >
+                  <option value="">No Region (Default)</option>
+                  {companyRegions.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} {r.code ? `(${r.code})` : ''}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="pt-4 flex justify-end gap-2">
@@ -599,7 +618,7 @@ export const UserManagementPage: React.FC = () => {
                 </span>
                 <input
                   type="text"
-                  placeholder="Search by employee, username, or emp #..."
+                  placeholder="Search by name, username, phone, or job title..."
                   value={searchUser}
                   onChange={(e) => setSearchUser(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
@@ -690,6 +709,7 @@ export const UserManagementPage: React.FC = () => {
                                   <p className="font-semibold text-slate-800 dark:text-slate-200">{u.fullName}</p>
                                   <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
                                     <span>@{u.username}</span>
+                                    {u.phone && <span>• {u.phone}</span>}
                                   </div>
                                 </div>
                               </td>
@@ -717,9 +737,16 @@ export const UserManagementPage: React.FC = () => {
                                 )}
                               </td>
                               <td className="py-4 px-4">
-                                <span className="text-xs font-bold uppercase px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded border border-slate-200/60 dark:border-slate-700">
-                                  {u.role?.name || u.role}
-                                </span>
+                                <div>
+                                  <span className="text-xs font-bold uppercase px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded border border-slate-200/60 dark:border-slate-700">
+                                    {u.role?.name || u.role}
+                                  </span>
+                                  {u.jobTitle && (
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">
+                                      {u.jobTitle}
+                                    </p>
+                                  )}
+                                </div>
                               </td>
                               <td className="py-4 px-4">
                                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
@@ -827,24 +854,33 @@ export const UserManagementPage: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Phone (Optional)</label>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Phone Number *</label>
                   <input
                     type="text"
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    required
                     className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Role *</label>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Job Title *</label>
                   <select
-                    value={editForm.role}
-                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                    value={editForm.jobTitle}
+                    onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
                   >
-                    <option value="EMPLOYEE">Employee</option>
-                    <option value="ACCOUNTANT">Accountant</option>
-                    <option value="SUPER_ADMIN">Super Admin</option>
+                    <option value="">— Select Job Title —</option>
+                    <option value="General Manager">General Manager</option>
+                    <option value="Finance Manager">Finance Manager</option>
+                    <option value="Operations Manager">Operations Manager</option>
+                    <option value="Network Engineer">Network Engineer</option>
+                    <option value="Field Technician">Field Technician</option>
+                    <option value="Accountant">Accountant</option>
+                    <option value="Sales Supervisor">Sales Supervisor</option>
+                    <option value="HR Officer">HR Officer</option>
+                    <option value="Fleet Officer">Fleet Officer</option>
+                    <option value="IT Technician">IT Technician</option>
                   </select>
                 </div>
               </div>
@@ -864,18 +900,31 @@ export const UserManagementPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Region (Optional)</label>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">System Access Role *</label>
                   <select
-                    value={editForm.regionId}
-                    onChange={(e) => setEditForm({ ...editForm, regionId: e.target.value })}
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
                   >
-                    <option value="">No Region</option>
-                    {editRegions.map(r => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ))}
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="ACCOUNTANT">Accountant</option>
+                    <option value="SUPER_ADMIN">Super Admin</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Region (Optional)</label>
+                <select
+                  value={editForm.regionId}
+                  onChange={(e) => setEditForm({ ...editForm, regionId: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
+                >
+                  <option value="">No Region</option>
+                  {editRegions.map(r => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="pt-4 flex justify-end gap-2">
