@@ -271,7 +271,7 @@ export const RequestFormPage: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Purpose *</label>
               <input
                 type="text"
-                placeholder="e.g. Purchase office stationery"
+                placeholder="Purchase office stationery"
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"

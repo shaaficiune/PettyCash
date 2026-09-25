@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isLoading = false;
 
   // Listen for forced-logout events dispatched by the api.ts 401 interceptor
-  // when a token refresh fails (e.g. session expired). This avoids any hard
+  // when a token refresh fails, such as on session expiry. This avoids any hard
   // page reload — setUser(null) triggers ProtectedRoute to redirect via React Router.
   useEffect(() => {
     const handleForcedLogout = () => {

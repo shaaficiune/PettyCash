@@ -451,7 +451,7 @@ export const UserManagementPage: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Full Name *</label>
                   <input
                     type="text"
-                    placeholder="e.g. Shafi Dirie"
+                    placeholder="Full name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
@@ -462,7 +462,7 @@ export const UserManagementPage: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Username *</label>
                   <input
                     type="text"
-                    placeholder="e.g. shafi"
+                    placeholder="Username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
@@ -475,7 +475,7 @@ export const UserManagementPage: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Email (Optional)</label>
                   <input
                     type="email"
-                    placeholder="e.g. shafi@somtel.com"
+                    placeholder="email@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
@@ -486,7 +486,7 @@ export const UserManagementPage: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Phone Number *</label>
                   <input
                     type="text"
-                    placeholder="e.g. +25266..."
+                    placeholder="+252 61 XXX XXXX"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
@@ -952,7 +952,7 @@ export const UserManagementPage: React.FC = () => {
             <form onSubmit={handleCreateRegion} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1.5">Region Name *</label>
-                <input type="text" placeholder="e.g. Banaadir" value={newRegionName} onChange={(e) => setNewRegionName(e.target.value)}
+                <input type="text" placeholder="Region name" value={newRegionName} onChange={(e) => setNewRegionName(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
               <div>
@@ -1069,12 +1069,12 @@ export const UserManagementPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Budget Head Name *</label>
-                  <input type="text" placeholder="e.g. Office Supplies" value={newBhName} onChange={(e) => setNewBhName(e.target.value)}
+                  <input type="text" placeholder="Budget head name" value={newBhName} onChange={(e) => setNewBhName(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Code *</label>
-                  <input type="text" placeholder="e.g. BH-101" value={newBhCode} onChange={(e) => setNewBhCode(e.target.value)}
+                  <input type="text" placeholder="BH-101" value={newBhCode} onChange={(e) => setNewBhCode(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
               </div>
