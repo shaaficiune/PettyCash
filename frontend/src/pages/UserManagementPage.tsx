@@ -517,73 +517,16 @@ export const UserManagementPage: React.FC = () => {
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
                   >
                     <option value="">— Select Job Title —</option>
-                    <optgroup label="Management & Administration">
-                      <option>General Manager</option>
-                      <option>Regional Manager</option>
-                      <option>Operations Manager</option>
-                      <option>Finance Manager</option>
-                      <option>HR Manager</option>
-                      <option>IT Manager</option>
-                      <option>Sales Manager</option>
-                      <option>Project Manager</option>
-                      <option>Department Head</option>
-                      <option>Executive Secretary</option>
-                      <option>Administrative Officer</option>
-                      <option>Legal Officer</option>
-                      <option>Compliance Officer</option>
-                    </optgroup>
-                    <optgroup label="Finance & Accounting">
-                      <option>Chief Accountant</option>
-                      <option>Senior Accountant</option>
-                      <option>Accountant</option>
-                      <option>Finance Officer</option>
-                      <option>Financial Analyst</option>
-                      <option>Accounts Payable Officer</option>
-                      <option>Treasury Officer</option>
-                      <option>Internal Auditor</option>
-                      <option>Procurement Officer</option>
-                    </optgroup>
-                    <optgroup label="Engineering & Technical">
-                      <option>Network Engineer</option>
-                      <option>Wireless Field Engineer</option>
-                      <option>Transmission Field Engineer</option>
-                      <option>ISP Field Engineer</option>
-                      <option>RF Engineer</option>
-                      <option>NOC Engineer</option>
-                      <option>Systems Administrator</option>
-                      <option>IT Technician</option>
-                      <option>Network Technician</option>
-                      <option>Field Technician</option>
-                      <option>Civil Engineer</option>
-                      <option>Power Engineer</option>
-                      <option>Mechanical Engineer</option>
-                      <option>Software Developer</option>
-                    </optgroup>
-                    <optgroup label="Operations & Fleet">
-                      <option>Operations Officer</option>
-                      <option>Fleet Manager</option>
-                      <option>Fleet Officer</option>
-                      <option>Logistics Officer</option>
-                      <option>Warehouse Officer</option>
-                      <option>Driver</option>
-                      <option>Office Messenger</option>
-                    </optgroup>
-                    <optgroup label="Sales & Commercial">
-                      <option>Sales Supervisor</option>
-                      <option>Sales Representative</option>
-                      <option>Account Manager</option>
-                      <option>Business Development Officer</option>
-                      <option>Marketing Officer</option>
-                      <option>Customer Service Representative</option>
-                      <option>Retail Officer</option>
-                    </optgroup>
-                    <optgroup label="Other">
-                      <option>Receptionist</option>
-                      <option>Data Entry Clerk</option>
-                      <option>Security Officer</option>
-                      <option>Cleaner</option>
-                    </optgroup>
-                  </select>
+                    <option>General Manager</option>
+                    <option>Finance Manager</option>
+                    <option>Operations Manager</option>
+                    <option>Network Engineer</option>
+                    <option>Field Technician</option>
+                    <option>Accountant</option>
+                    <option>Sales Supervisor</option>
+                    <option>HR Officer</option>
+                    <option>Fleet Officer</option>
+                    <option>IT Technician</option>
                 </div>
 
                 <div>
