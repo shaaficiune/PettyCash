@@ -412,7 +412,7 @@ export const DashboardLayout: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-white">My Profile</h2>
-                  <p className="text-[11px] text-white/60">View and update your details</p>
+                  <p className="text-[11px] text-white/60">Account details and settings</p>
                 </div>
               </div>
               <button
@@ -449,7 +449,7 @@ export const DashboardLayout: React.FC = () => {
               {/* Username — READ ONLY */}
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-                  Username <span className="text-slate-400 font-normal">(cannot be changed)</span>
+                  Username <span className="text-slate-400 font-normal">(read-only)</span>
                 </label>
                 <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                   <span className="text-sm text-slate-400 dark:text-slate-500 select-none">@</span>
@@ -469,7 +469,7 @@ export const DashboardLayout: React.FC = () => {
                   onChange={e => { setProfileName(e.target.value); setProfileError(''); setProfileSuccess(false); }}
                   onKeyDown={e => e.key === 'Enter' && handleSaveProfile()}
                   className="w-full px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0a2e2e] dark:focus:ring-teal-500 transition"
-                  placeholder="Your full name"
+                  placeholder="Full Name"
                   autoFocus
                 />
               </div>
@@ -502,7 +502,7 @@ export const DashboardLayout: React.FC = () => {
               {/* Success */}
               {profileSuccess && (
                 <p className="text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2 font-semibold">
-                  ✓ Profile updated successfully!
+                  Profile updated successfully.
                 </p>
               )}
             </div>

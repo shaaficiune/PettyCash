@@ -365,8 +365,8 @@ export const UserManagementPage: React.FC = () => {
     <div className="space-y-4 font-sans">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white">Directory & Management</h2>
-          <p className="text-xs text-slate-500">Employee accounts, regional assignments, and spending limits</p>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white">User Directory</h2>
+          <p className="text-xs text-slate-500">Manage user accounts, roles, regional assignments, and budget limits</p>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto justify-between sm:justify-end">
@@ -377,7 +377,7 @@ export const UserManagementPage: React.FC = () => {
                 activeTab === 'users' ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              Users Directory
+              Users
             </button>
             <button
               onClick={() => { setActiveTab('budgets'); setFormOpen(false); }}
@@ -411,7 +411,7 @@ export const UserManagementPage: React.FC = () => {
               className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <UserPlus className="h-4.5 w-4.5" />
-              {formOpen ? 'View Directory' : 'Register New User'}
+              {formOpen ? 'View Users' : 'Add User'}
             </button>
           ) : activeTab === 'regions' ? (
             <button
@@ -419,7 +419,7 @@ export const UserManagementPage: React.FC = () => {
               className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <PlusCircle className="h-4.5 w-4.5" />
-              {regionFormOpen ? 'View Regions' : 'Add New Region'}
+              {regionFormOpen ? 'View Regions' : 'Add Region'}
             </button>
           ) : activeTab === 'budget-heads' ? (
             <button
@@ -427,7 +427,7 @@ export const UserManagementPage: React.FC = () => {
               className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <PlusCircle className="h-4.5 w-4.5" />
-              {bhFormOpen ? 'View Budget Heads' : 'Add New Budget Head'}
+              {bhFormOpen ? 'View Budget Heads' : 'Add Budget Head'}
             </button>
           ) : null}
         </div>
@@ -438,7 +438,7 @@ export const UserManagementPage: React.FC = () => {
         formOpen ? (
           /* CREATE USER FORM */
           <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md transition-colors max-w-2xl mx-auto">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6">Create New Employee Credentials</h3>
+            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6">Add New User</h3>
             {error && (
               <div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded text-xs text-rose-600 dark:text-rose-400">
                 {error}
@@ -512,7 +512,7 @@ export const UserManagementPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">System Access Role *</label>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Role *</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
@@ -526,7 +526,7 @@ export const UserManagementPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Assigned Region (Optional)</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Region (Optional)</label>
                 <select
                   value={userRegionId}
                   onChange={(e) => setUserRegionId(e.target.value)}
@@ -547,7 +547,7 @@ export const UserManagementPage: React.FC = () => {
                 </button>
                 <button type="submit"
                   className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg cursor-pointer shadow-sm transition-all">
-                  Register Employee
+                  Save User
                 </button>
               </div>
             </form>
@@ -721,8 +721,8 @@ export const UserManagementPage: React.FC = () => {
                                   onClick={() => handleDeleteUser(u)}
                                   title={
                                     u.status === 'DISABLED'
-                                      ? 'Delete User Account'
-                                      : 'Account must be DISABLED before it can be deleted'
+                                      ? 'Delete User'
+                                      : 'Account must be disabled prior to deletion'
                                   }
                                   className="inline-flex p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-all cursor-pointer"
                                 >
@@ -752,7 +752,7 @@ export const UserManagementPage: React.FC = () => {
             >
               <X className="h-4 w-4" />
             </button>
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">Edit Employee</h3>
+            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">Edit User</h3>
             <p className="text-xs text-slate-500 mb-6">
               Editing: <span className="font-semibold text-slate-700 dark:text-slate-300">{editingUser.fullName}</span>
               &nbsp;·&nbsp;<span className="text-slate-400">{editingUser.username}</span>
@@ -798,7 +798,7 @@ export const UserManagementPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">System Access Role *</label>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Role *</label>
                   <select
                     value={editForm.role}
                     onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}

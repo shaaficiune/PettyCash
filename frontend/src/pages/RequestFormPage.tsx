@@ -192,16 +192,16 @@ export const RequestFormPage: React.FC = () => {
         className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 font-semibold cursor-pointer"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to List
+        Back
       </button>
 
       {/* Main Layout Card */}
       <div className="p-4 sm:p-6 lg:p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md transition-colors">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white">
-          {id ? 'Modify Petty Cash Request' : 'Submit Petty Cash Request'}
+          {id ? 'Edit Request' : 'New Petty Cash Request'}
         </h2>
         <p className="text-xs text-slate-500 mb-4">
-          {id ? `Adjusting details for request draft` : 'Submit expenditure requests for accountant verification and approval'}
+          {id ? 'Update draft request details' : 'Create an expense request within your regional budget'}
         </p>
 
         {/* Fund Unavailability Banner */}
@@ -209,9 +209,9 @@ export const RequestFormPage: React.FC = () => {
           <div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3">
             <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Fund Not Available</p>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Fund Unavailable</p>
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">{fundAvailability.message}</p>
-              <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">You can still <strong>Save as Draft</strong> and submit once the Accountant sets up the fund.</p>
+              <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">You can save this request as a draft and submit once fund allocation is complete.</p>
             </div>
           </div>
         )}
@@ -251,7 +251,7 @@ export const RequestFormPage: React.FC = () => {
               <div className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 p-2.5 rounded-lg border border-rose-200 dark:border-rose-900/50 flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
                 <div>
-                  Budget Limit Exceeded: Requesting ${numAmount.toLocaleString()} exceeds your region&apos;s remaining budget by ${(budgetStats.totalUsed + numAmount - budgetStats.monthlyBudget).toLocaleString()} USD. Submission for approval is disabled.
+                  Budget limit exceeded: Requested amount (${numAmount.toLocaleString()}) exceeds the remaining regional budget by ${(budgetStats.totalUsed + numAmount - budgetStats.monthlyBudget).toLocaleString()} USD.
                 </div>
               </div>
             )}

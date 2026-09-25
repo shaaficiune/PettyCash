@@ -318,12 +318,12 @@ export const RequestDetailPage: React.FC = () => {
       {/* ACCOUNTANT APPROVAL DRAWER */}
       {isAccountant && request.status === 'PENDING_APPROVAL' && (
         <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-4 transition-colors">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Accountant Verification Panel</h3>
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Review &amp; Approval</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-xs font-semibold text-slate-500">Approved Amount Override</label>
+                <label className="block text-xs font-semibold text-slate-500">Approved Amount</label>
                 <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 dark:bg-amber-950/60 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-300 dark:border-amber-800">
                   Max: $50.00
                 </span>
@@ -348,7 +348,7 @@ export const RequestDetailPage: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-500 mb-2">Comments / Review Notes</label>
               <input
                 type="text"
-                placeholder="Type explanation for corrections or rejections..."
+                placeholder="Notes or justification for this action..."
                 value={actionComments}
                 onChange={(e) => setActionComments(e.target.value)}
                 className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
@@ -376,7 +376,7 @@ export const RequestDetailPage: React.FC = () => {
               className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
             >
               <ShieldCheck className="h-4 w-4" />
-              Approve Payout
+              Approve Request
             </button>
           </div>
         </div>
@@ -385,8 +385,8 @@ export const RequestDetailPage: React.FC = () => {
       {/* ACCOUNTANT RECORD PAYMENT DRAWER */}
       {isAccountant && request.status === 'APPROVED' && (
         <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-4 transition-colors">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Disbursement / Record Payment</h3>
-          <p className="text-xs text-slate-400">Enter cash transaction details to mark request as disbursed/Paid</p>
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Record Disbursement</h3>
+          <p className="text-xs text-slate-400">Record payment method and transaction reference</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -401,7 +401,7 @@ export const RequestDetailPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-2">Transaction ID / Reference</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-2">Transaction ID</label>
               <input
                 type="text"
                 placeholder="TXN-998822"
@@ -412,7 +412,7 @@ export const RequestDetailPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-2">Internal Suffix / Reference</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-2">Reference Number</label>
               <input
                 type="text"
                 placeholder="REF-0012"
@@ -427,7 +427,7 @@ export const RequestDetailPage: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-500 mb-2">Disbursement Notes</label>
             <input
               type="text"
-              placeholder="e.g. Disbursed by hand in somtel HQ"
+              placeholder="Payment voucher or disbursement note"
               value={paymentNotes}
               onChange={(e) => setPaymentNotes(e.target.value)}
               className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
@@ -440,7 +440,7 @@ export const RequestDetailPage: React.FC = () => {
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer"
             >
               <Coins className="h-4 w-4" />
-              Disburse & Mark Paid
+              Record Payment
             </button>
           </div>
         </div>
@@ -449,8 +449,8 @@ export const RequestDetailPage: React.FC = () => {
       {/* EMPLOYEE SUBMIT SETTLEMENT DRAWER */}
       {isEmployee && request.status === 'PAID' && (
         <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-4 transition-colors">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Submit Expense Settlement</h3>
-          <p className="text-xs text-slate-400">Discharge remaining balances and upload actual expense documentation</p>
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Expense Settlement</h3>
+          <p className="text-xs text-slate-400">Reconcile actual expenses and receipts against disbursed funds</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -466,7 +466,7 @@ export const RequestDetailPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-2">Refund / Balance Claim</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-2">Remaining Balance</label>
               <input
                 type="text"
                 disabled
@@ -477,7 +477,7 @@ export const RequestDetailPage: React.FC = () => {
 
             <div className="flex items-end">
               <span className="text-[10px] text-slate-400 mb-2 block leading-snug">
-                {parseFloat(remainingBalance) > 0 ? 'You owe a refund of balance' : parseFloat(remainingBalance) < 0 ? 'You are claiming back expense' : 'Balanced spent'}
+                {parseFloat(remainingBalance) > 0 ? 'Refund due to company' : parseFloat(remainingBalance) < 0 ? 'Reimbursement requested' : 'Fully reconciled'}
               </span>
             </div>
           </div>
