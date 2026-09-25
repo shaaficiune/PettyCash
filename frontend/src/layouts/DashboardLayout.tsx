@@ -16,7 +16,8 @@ import {
   Coins,
   Wallet,
   Menu,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -193,8 +194,12 @@ export const DashboardLayout: React.FC = () => {
 
         {/* User profile footer — always pinned at bottom */}
         <div className="flex-shrink-0 p-4 border-t border-white/10 dark:border-slate-800 bg-[#0a2e2e] dark:bg-slate-900/90">
-          <div className="flex items-center gap-3 mb-3.5">
-            <div className="h-9 w-9 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+          {/* Clickable profile card — navigates to User Management for admins */}
+          <Link
+            to={user.role === 'SUPER_ADMIN' ? '/users' : '/'}
+            className="flex items-center gap-3 mb-3.5 p-2 -m-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer group"
+          >
+            <div className="h-9 w-9 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 group-hover:bg-white/25 transition-colors">
               {user.fullName.split(' ').map(n => n[0]).join('')}
             </div>
             <div className="flex-1 min-w-0">
@@ -218,7 +223,10 @@ export const DashboardLayout: React.FC = () => {
                 )}
               </div>
             </div>
-          </div>
+            {user.role === 'SUPER_ADMIN' && (
+              <Settings className="h-3.5 w-3.5 text-white/40 group-hover:text-white/80 transition-colors flex-shrink-0" />
+            )}
+          </Link>
           <button
             onClick={logout}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-white/80 hover:text-white border border-white/15 dark:border-slate-700 rounded-lg text-xs font-semibold transition-all cursor-pointer"

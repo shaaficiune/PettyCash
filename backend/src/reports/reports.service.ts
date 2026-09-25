@@ -166,7 +166,7 @@ export class ReportsService {
     return this.prisma.pettyCashRequest.findMany({
       where,
       include: {
-        user: { select: { fullName: true, employeeNumber: true } },
+        user: { select: { fullName: true, phone: true } },
         company: { select: { name: true } },
         department: { select: { name: true } },
       },
@@ -220,7 +220,7 @@ export class ReportsService {
   async getAuditLogs() {
     return this.prisma.auditLog.findMany({
       include: {
-        user: { select: { fullName: true, username: true, employeeNumber: true } },
+        user: { select: { fullName: true, username: true, phone: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: 200,
@@ -251,7 +251,7 @@ export class ReportsService {
     const requests = await this.prisma.pettyCashRequest.findMany({
       where,
       include: {
-        user: { select: { fullName: true, employeeNumber: true } },
+        user: { select: { fullName: true, phone: true } },
         company: { select: { name: true } },
         department: { select: { name: true } },
       },
@@ -262,7 +262,7 @@ export class ReportsService {
       RequestNumber: r.requestNumber,
       Date: r.requestDate.toISOString().slice(0, 10),
       EmployeeName: r.user.fullName,
-      EmployeeNumber: r.user.employeeNumber,
+      Phone: r.user.phone || '',
       Company: r.company.name,
       Department: r.department.name,
       Purpose: r.purpose,
@@ -273,7 +273,7 @@ export class ReportsService {
     }));
 
     const headers = [
-      'RequestNumber', 'Date', 'EmployeeName', 'EmployeeNumber',
+      'RequestNumber', 'Date', 'EmployeeName', 'Phone',
       'Company', 'Department', 'Purpose', 'Amount', 'Currency', 'Status', 'Priority',
     ];
 

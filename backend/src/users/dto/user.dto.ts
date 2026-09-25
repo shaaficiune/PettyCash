@@ -26,9 +26,9 @@ export class CreateUserDto {
   @IsString()
   companyId: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  departmentId: string;
+  departmentId?: string;
 
   @IsOptional()
   @IsString()

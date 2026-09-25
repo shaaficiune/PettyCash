@@ -23,6 +23,10 @@ frontend/.env
 # Don't commit generated client or migration lock
 backend/prisma/dev.db
 
+# ─── Debug / Admin Scripts ────────────────────────────────────────────────────
+# One-off utility scripts should never be in version control
+backend/scripts/
+
 # ─── Uploads ──────────────────────────────────────────────────────────────────
 backend/uploads/
 

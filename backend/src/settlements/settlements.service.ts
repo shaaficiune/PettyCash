@@ -129,7 +129,7 @@ export class SettlementsService {
       include: {
         request: {
           include: {
-            user: { select: { fullName: true, employeeNumber: true } },
+            user: { select: { fullName: true, phone: true } },
             company: { select: { name: true } },
           },
         },

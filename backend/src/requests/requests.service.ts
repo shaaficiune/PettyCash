@@ -130,7 +130,7 @@ export class RequestsService {
       },
       include: {
         attachments: true,
-        user: { select: { fullName: true, employeeNumber: true } },
+        user: { select: { fullName: true, phone: true } },
         region: { select: { name: true } },
         budgetHead: { select: { name: true, code: true } },
       },
@@ -168,7 +168,7 @@ export class RequestsService {
     const items = await this.prisma.pettyCashRequest.findMany({
       where,
       include: {
-        user: { select: { fullName: true, username: true, employeeNumber: true } },
+        user: { select: { fullName: true, username: true, phone: true } },
         company: { select: { name: true } },
         department: { select: { name: true } },
         project: { select: { name: true } },
@@ -192,7 +192,7 @@ export class RequestsService {
     const request = await this.prisma.pettyCashRequest.findUnique({
       where: { id },
       include: {
-        user: { select: { fullName: true, username: true, employeeNumber: true, phone: true } },
+        user: { select: { fullName: true, username: true, phone: true } },
         company: { select: { name: true } },
         department: { select: { name: true } },
         project: { select: { name: true } },

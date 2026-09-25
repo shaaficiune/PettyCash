@@ -208,7 +208,7 @@ export class AuthService {
         username: user.username,
         email: user.email,
         phone: user.phone,
-        employeeNumber: user.employeeNumber,
+        jobTitle: user.jobTitle,
         company: {
           id: user.company.id,
           name: user.company.name,

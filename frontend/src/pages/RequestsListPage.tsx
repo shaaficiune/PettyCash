@@ -81,7 +81,8 @@ export const RequestsListPage: React.FC = () => {
   const filteredRequests = requests.filter(req => {
     const matchSearch = req.requestNumber.toLowerCase().includes(search.toLowerCase()) ||
                         req.purpose.toLowerCase().includes(search.toLowerCase()) ||
-                        (req.user?.fullName && req.user.fullName.toLowerCase().includes(search.toLowerCase()));
+                        (req.user?.fullName && req.user.fullName.toLowerCase().includes(search.toLowerCase())) ||
+                        (req.region?.name && req.region.name.toLowerCase().includes(search.toLowerCase()));
     const matchPriority = priorityFilter ? req.priority === priorityFilter : true;
     return matchSearch && matchPriority;
   });
@@ -127,7 +128,7 @@ export const RequestsListPage: React.FC = () => {
           </span>
           <input
             type="text"
-            placeholder="Search by #, purpose, or employee..."
+            placeholder="Search by #, purpose, employee, or region..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
@@ -182,7 +183,7 @@ export const RequestsListPage: React.FC = () => {
                 <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
                   <th className="py-3.5 px-6">Request #</th>
                   <th className="py-3.5 px-4">Employee</th>
-                  <th className="py-3.5 px-4 hidden md:table-cell">Department</th>
+                  <th className="py-3.5 px-4 hidden md:table-cell">Region</th>
                   <th className="py-3.5 px-4 hidden sm:table-cell">Request Date</th>
                   <th className="py-3.5 px-4">Amount</th>
                   <th className="py-3.5 px-4 hidden lg:table-cell">Priority</th>
@@ -225,7 +226,15 @@ export const RequestsListPage: React.FC = () => {
                           </span>
                         </div>
                       </td>
-                      <td className="py-4 px-4 text-slate-500 dark:text-slate-400 hidden md:table-cell">{req.department?.name}</td>
+                      <td className="py-4 px-4 text-slate-500 dark:text-slate-400 hidden md:table-cell">
+                        {req.region?.name ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                            {req.region.name}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
                       <td className="py-4 px-4 text-slate-500 dark:text-slate-400 hidden sm:table-cell">
                         {new Date(req.requiredDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>

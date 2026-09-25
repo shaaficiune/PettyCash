@@ -36,15 +36,25 @@ export class UsersService {
     const defaultPassword = 'Welcome@2026';
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
+    let departmentId = dto.departmentId;
+    if (!departmentId) {
+      const defaultDept = await this.prisma.department.findFirst({
+        where: { companyId: dto.companyId },
+      });
+      if (defaultDept) {
+        departmentId = defaultDept.id;
+      }
+    }
+
     return this.prisma.user.create({
       data: {
         fullName: dto.fullName,
         username: dto.username,
         email: dto.email,
         phone: dto.phone,
-        jobTitle: dto.jobTitle,
+        jobTitle: dto.jobTitle || undefined,
         companyId: dto.companyId,
-        departmentId: dto.departmentId,
+        departmentId: departmentId!,
         regionId: dto.regionId || undefined,
         roleId: roleObj.id,
         passwordHash,

@@ -410,7 +410,7 @@ export class FundsService {
       where,
       include: {
         company: { select: { name: true } },
-        employee: { select: { fullName: true, employeeNumber: true } },
+        employee: { select: { fullName: true, phone: true } },
         request: { select: { requestNumber: true, purpose: true } },
       },
       orderBy: { createdAt: 'desc' },

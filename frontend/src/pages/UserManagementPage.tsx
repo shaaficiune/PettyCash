@@ -6,7 +6,6 @@ export const UserManagementPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'budgets' | 'regions' | 'budget-heads'>('users');
   const [users, setUsers] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,11 +22,9 @@ export const UserManagementPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [companyId, setCompanyId] = useState('');
-  const [departmentId, setDepartmentId] = useState('');
   const [userRegionId, setUserRegionId] = useState('');
   const [companyRegions, setCompanyRegions] = useState<any[]>([]);
   const [role, setRole] = useState('EMPLOYEE');
-  const [jobTitle, setJobTitle] = useState('');
 
   // Region & Department Budget Editing state
   const [editingBudgets, setEditingBudgets] = useState<{ [key: string]: string }>({});
@@ -59,8 +56,7 @@ export const UserManagementPage: React.FC = () => {
 
   // Edit User state
   const [editingUser, setEditingUser] = useState<any | null>(null);
-  const [editForm, setEditForm] = useState({ fullName: '', email: '', phone: '', jobTitle: '', departmentId: '', regionId: '', role: '' });
-  const [editDepartments, setEditDepartments] = useState<any[]>([]);
+  const [editForm, setEditForm] = useState({ fullName: '', email: '', phone: '', regionId: '', role: '' });
   const [editRegions, setEditRegions] = useState<any[]>([]);
   const [editError, setEditError] = useState<string | null>(null);
   const [savingUser, setSavingUser] = useState(false);
@@ -190,13 +186,10 @@ export const UserManagementPage: React.FC = () => {
     loadUsersAndFilters();
   }, []);
 
-  // Load departments and regions for the edit user form when editing
+  // Load regions for the edit user form when editing
   useEffect(() => {
     const cId = editingUser?.company?.id;
     if (cId) {
-      api.get(`/companies/departments?companyId=${cId}`)
-        .then(res => setEditDepartments(res.data))
-        .catch(() => {});
       api.get(`/companies/regions?companyId=${cId}`)
         .then(res => setEditRegions(res.data))
         .catch(() => {});
@@ -209,8 +202,6 @@ export const UserManagementPage: React.FC = () => {
       fullName: u.fullName || '',
       email: u.email || '',
       phone: u.phone || '',
-      jobTitle: u.jobTitle || '',
-      departmentId: u.department?.id || '',
       regionId: u.region?.id || '',
       role: u.role?.name || u.role || 'EMPLOYEE',
     });
@@ -219,8 +210,8 @@ export const UserManagementPage: React.FC = () => {
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editForm.fullName || !editForm.phone || !editForm.departmentId || !editForm.role) {
-      setEditError('Full Name, Phone Number, Department, and Role are required');
+    if (!editForm.fullName || !editForm.phone || !editForm.role) {
+      setEditError('Full Name, Phone Number, and Role are required');
       return;
     }
     setSavingUser(true);
@@ -230,8 +221,6 @@ export const UserManagementPage: React.FC = () => {
         fullName: editForm.fullName,
         email: editForm.email || undefined,
         phone: editForm.phone,
-        jobTitle: editForm.jobTitle || undefined,
-        departmentId: editForm.departmentId,
         regionId: editForm.regionId || undefined,
         role: editForm.role,
       });
@@ -244,24 +233,20 @@ export const UserManagementPage: React.FC = () => {
     }
   };
 
-  // Fetch departments and regions when selected company changes in user creation form
+  // Fetch regions when selected company changes in user creation form
   useEffect(() => {
     if (companyId) {
-      api.get(`/companies/departments?companyId=${companyId}`)
-        .then(res => setDepartments(res.data))
-        .catch(() => console.error('Failed to load departments'));
       api.get(`/companies/regions?companyId=${companyId}`)
         .then(res => setCompanyRegions(res.data))
         .catch(() => console.error('Failed to load regions'));
     } else {
-      setDepartments([]);
       setCompanyRegions([]);
     }
   }, [companyId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !username || !phone || !companyId || !departmentId || !role) {
+    if (!fullName || !username || !phone || !companyId || !role) {
       setError('Please fill in all mandatory fields');
       return;
     }
@@ -273,9 +258,7 @@ export const UserManagementPage: React.FC = () => {
         username,
         email: email || undefined,
         phone,
-        jobTitle: jobTitle || undefined,
         companyId,
-        departmentId,
         regionId: userRegionId || undefined,
         role
       });
@@ -285,9 +268,7 @@ export const UserManagementPage: React.FC = () => {
       setUsername('');
       setEmail('');
       setPhone('');
-      setJobTitle('');
       setCompanyId('');
-      setDepartmentId('');
       setUserRegionId('');
       setRole('EMPLOYEE');
       setFormOpen(false);
@@ -301,6 +282,12 @@ export const UserManagementPage: React.FC = () => {
 
   // Toggle user active status
   const handleToggleStatus = async (userObj: any) => {
+    if (userObj.username === 'admin' && userObj.status === 'ACTIVE') {
+      alert('The primary Super Admin account ("admin") cannot be disabled to prevent system lockout.');
+      return;
+    }
+    const actionText = userObj.status === 'ACTIVE' ? 'disable' : 'activate';
+    if (!window.confirm(`Are you sure you want to ${actionText} user "${userObj.fullName}"?`)) return;
     const newStatus = userObj.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     try {
       await api.put(`/users/${userObj.id}`, { status: newStatus });
@@ -359,9 +346,7 @@ export const UserManagementPage: React.FC = () => {
       const match =
         (u.fullName && u.fullName.toLowerCase().includes(q)) ||
         (u.username && u.username.toLowerCase().includes(q)) ||
-        (u.phone && u.phone.toLowerCase().includes(q)) ||
-        (u.jobTitle && u.jobTitle.toLowerCase().includes(q)) ||
-        (u.department?.name && u.department.name.toLowerCase().includes(q));
+        (u.phone && u.phone.toLowerCase().includes(q));
       if (!match) return false;
     }
     if (userCompanyFilter && u.company?.id !== userCompanyFilter && u.companyId !== userCompanyFilter) {
@@ -515,7 +500,7 @@ export const UserManagementPage: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">Company *</label>
                   <select
                     value={companyId}
-                    onChange={(e) => { setCompanyId(e.target.value); setDepartmentId(''); setUserRegionId(''); }}
+                    onChange={(e) => { setCompanyId(e.target.value); setUserRegionId(''); }}
                     required
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
                   >
@@ -523,46 +508,6 @@ export const UserManagementPage: React.FC = () => {
                     {companies.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Department *</label>
-                  <select
-                    value={departmentId}
-                    onChange={(e) => setDepartmentId(e.target.value)}
-                    required
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                    disabled={!companyId}
-                  >
-                    <option value="">{companyId ? 'Select Department' : 'First select Company'}</option>
-                    {departments.map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Job Title *</label>
-                  <select
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                    required
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                  >
-                    <option value="">— Select Job Title —</option>
-                    <option value="General Manager">General Manager</option>
-                    <option value="Finance Manager">Finance Manager</option>
-                    <option value="Operations Manager">Operations Manager</option>
-                    <option value="Network Engineer">Network Engineer</option>
-                    <option value="Field Technician">Field Technician</option>
-                    <option value="Accountant">Accountant</option>
-                    <option value="Sales Supervisor">Sales Supervisor</option>
-                    <option value="HR Officer">HR Officer</option>
-                    <option value="Fleet Officer">Fleet Officer</option>
-                    <option value="IT Technician">IT Technician</option>
                   </select>
                 </div>
 
@@ -618,7 +563,7 @@ export const UserManagementPage: React.FC = () => {
                 </span>
                 <input
                   type="text"
-                  placeholder="Search by name, username, phone, or job title..."
+                  placeholder="Search by name, username, or phone..."
                   value={searchUser}
                   onChange={(e) => setSearchUser(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
@@ -675,7 +620,6 @@ export const UserManagementPage: React.FC = () => {
                       <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
                         <th className="py-3.5 px-6">Employee</th>
                         <th className="py-3.5 px-4">Company</th>
-                        <th className="py-3.5 px-4 hidden md:table-cell">Department</th>
                         <th className="py-3.5 px-4 hidden lg:table-cell">Region</th>
                         <th className="py-3.5 px-4">Role</th>
                         <th className="py-3.5 px-4">Status</th>
@@ -685,7 +629,7 @@ export const UserManagementPage: React.FC = () => {
                     <tbody>
                       {filteredUsers.length === 0 ? (
                         <tr className="border-l-4 border-l-transparent">
-                          <td colSpan={7} className="text-center py-12 text-sm text-slate-400">
+                          <td colSpan={6} className="text-center py-12 text-sm text-slate-400">
                             No employees found matching your filters
                           </td>
                         </tr>
@@ -724,9 +668,6 @@ export const UserManagementPage: React.FC = () => {
                                   {u.company?.name || 'N/A'}
                                 </span>
                               </td>
-                              <td className="py-4 px-4 text-slate-500 dark:text-slate-400 hidden md:table-cell">
-                                {u.department?.name || '—'}
-                              </td>
                               <td className="py-4 px-4 hidden lg:table-cell">
                                 {u.region?.name ? (
                                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/60">
@@ -737,16 +678,9 @@ export const UserManagementPage: React.FC = () => {
                                 )}
                               </td>
                               <td className="py-4 px-4">
-                                <div>
-                                  <span className="text-xs font-bold uppercase px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded border border-slate-200/60 dark:border-slate-700">
-                                    {u.role?.name || u.role}
-                                  </span>
-                                  {u.jobTitle && (
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-                                      {u.jobTitle}
-                                    </p>
-                                  )}
-                                </div>
+                                <span className="text-xs font-bold uppercase px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded border border-slate-200/60 dark:border-slate-700">
+                                  {u.role?.name || u.role}
+                                </span>
                               </td>
                               <td className="py-4 px-4">
                                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
@@ -862,42 +796,6 @@ export const UserManagementPage: React.FC = () => {
                     required
                     className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Job Title *</label>
-                  <select
-                    value={editForm.jobTitle}
-                    onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                  >
-                    <option value="">— Select Job Title —</option>
-                    <option value="General Manager">General Manager</option>
-                    <option value="Finance Manager">Finance Manager</option>
-                    <option value="Operations Manager">Operations Manager</option>
-                    <option value="Network Engineer">Network Engineer</option>
-                    <option value="Field Technician">Field Technician</option>
-                    <option value="Accountant">Accountant</option>
-                    <option value="Sales Supervisor">Sales Supervisor</option>
-                    <option value="HR Officer">HR Officer</option>
-                    <option value="Fleet Officer">Fleet Officer</option>
-                    <option value="IT Technician">IT Technician</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Department *</label>
-                  <select
-                    value={editForm.departmentId}
-                    onChange={(e) => setEditForm({ ...editForm, departmentId: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                  >
-                    <option value="">Select Department</option>
-                    {editDepartments.map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">System Access Role *</label>
