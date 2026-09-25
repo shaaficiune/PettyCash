@@ -75,7 +75,7 @@ cd ..
 # 6. Configure Nginx
 echo "🌐 Configuring Nginx..."
 CURRENT_DIR=$(pwd)
-sudo cat << EOF > /etc/nginx/sites-available/petty-cash
+sudo tee /etc/nginx/sites-available/petty-cash > /dev/null << EOF
 server {
     listen 80 default_server;
     server_name _;
