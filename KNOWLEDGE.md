@@ -243,11 +243,13 @@ DRAFT → PENDING_APPROVAL → APPROVED → PAYMENT_PROCESSING → PAID → COMP
 
 ## 7. ✅ ALL FEATURES BUILT (Complete List)
 
-### Authentication
+### Authentication & Profile
 - [x] Login with username/password
 - [x] JWT access + refresh token flow with rotation
 - [x] First-login forced password reset
 - [x] Change password (authenticated)
+- [x] My Profile modal (click bottom sidebar user card to view details & update Full Name; username is read-only)
+- [x] Self-service profile update API (`PUT /auth/profile`) for authenticated users
 - [x] Logout (invalidates refresh token)
 - [x] Account status check on every request
 

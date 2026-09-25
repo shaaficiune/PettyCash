@@ -17,12 +17,15 @@ import {
   Wallet,
   Menu,
   X,
-  Settings
+  Settings,
+  UserCircle,
+  Save,
+  ShieldCheck
 } from 'lucide-react';
 import api from '../services/api';
 
 export const DashboardLayout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUserContext } = useAuth();
   const location = useLocation();
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -30,6 +33,38 @@ export const DashboardLayout: React.FC = () => {
   const [companyContext, setCompanyContext] = useState<string>('ALL'); // ALL, Somtel, Bluekom
   const [companies, setCompanies] = useState<any[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [profileSuccess, setProfileSuccess] = useState(false);
+
+  const openProfileModal = () => {
+    setProfileName(user?.fullName || '');
+    setProfileError('');
+    setProfileSuccess(false);
+    setMobileMenuOpen(false);
+    setShowProfileModal(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!profileName.trim()) {
+      setProfileError('Full name cannot be empty');
+      return;
+    }
+    setProfileSaving(true);
+    setProfileError('');
+    try {
+      await api.put('/auth/profile', { fullName: profileName.trim() });
+      updateUserContext({ fullName: profileName.trim() });
+      setProfileSuccess(true);
+      setTimeout(() => setShowProfileModal(false), 1200);
+    } catch (err: any) {
+      setProfileError(err.response?.data?.message || 'Failed to save changes');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -194,10 +229,10 @@ export const DashboardLayout: React.FC = () => {
 
         {/* User profile footer — always pinned at bottom */}
         <div className="flex-shrink-0 p-4 border-t border-white/10 dark:border-slate-800 bg-[#0a2e2e] dark:bg-slate-900/90">
-          {/* Clickable profile card — navigates to User Management for admins */}
-          <Link
-            to={user.role === 'SUPER_ADMIN' ? '/users' : '/'}
-            className="flex items-center gap-3 mb-3.5 p-2 -m-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer group"
+          {/* Clickable profile card — opens My Profile modal */}
+          <button
+            onClick={openProfileModal}
+            className="w-full flex items-center gap-3 mb-3.5 p-2 -mx-0 rounded-lg hover:bg-white/10 transition-colors cursor-pointer group text-left"
           >
             <div className="h-9 w-9 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 group-hover:bg-white/25 transition-colors">
               {user.fullName.split(' ').map(n => n[0]).join('')}
@@ -223,10 +258,8 @@ export const DashboardLayout: React.FC = () => {
                 )}
               </div>
             </div>
-            {user.role === 'SUPER_ADMIN' && (
-              <Settings className="h-3.5 w-3.5 text-white/40 group-hover:text-white/80 transition-colors flex-shrink-0" />
-            )}
-          </Link>
+            <UserCircle className="h-3.5 w-3.5 text-white/40 group-hover:text-white/80 transition-colors flex-shrink-0" />
+          </button>
           <button
             onClick={logout}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-white/80 hover:text-white border border-white/15 dark:border-slate-700 rounded-lg text-xs font-semibold transition-all cursor-pointer"
@@ -362,6 +395,142 @@ export const DashboardLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* ── MY PROFILE MODAL ──────────────────────────────────────────── */}
+      {showProfileModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowProfileModal(false); }}
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-[#0a2e2e] to-[#0d3d3d]">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-white font-bold text-sm">
+                  {user.fullName.split(' ').map(n => n[0]).join('')}
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white">My Profile</h2>
+                  <p className="text-[11px] text-white/60">View and update your details</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-5 space-y-4">
+
+              {/* Role Badge */}
+              <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                <ShieldCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Role</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-white">
+                    {user.role.replace('_', ' ')}
+                  </p>
+                </div>
+                {user.company?.name && (
+                  <>
+                    <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-2" />
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Company</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white">{user.company.name}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Username — READ ONLY */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
+                  Username <span className="text-slate-400 font-normal">(cannot be changed)</span>
+                </label>
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <span className="text-sm text-slate-400 dark:text-slate-500 select-none">@</span>
+                  <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{user.username}</span>
+                  <span className="ml-auto text-[10px] px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-400 rounded font-medium">Read only</span>
+                </div>
+              </div>
+
+              {/* Full Name — EDITABLE */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={profileName}
+                  onChange={e => { setProfileName(e.target.value); setProfileError(''); setProfileSuccess(false); }}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveProfile()}
+                  className="w-full px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0a2e2e] dark:focus:ring-teal-500 transition"
+                  placeholder="Your full name"
+                  autoFocus
+                />
+              </div>
+
+              {/* Email + Phone (read only display) */}
+              {(user.email || user.phone) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {user.email && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide mb-1">Email</p>
+                      <p className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate">{user.email}</p>
+                    </div>
+                  )}
+                  {user.phone && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide mb-1">Phone</p>
+                      <p className="text-xs font-medium text-slate-600 dark:text-slate-300">{user.phone}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Error */}
+              {profileError && (
+                <p className="text-xs text-rose-500 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg px-3 py-2">
+                  {profileError}
+                </p>
+              )}
+
+              {/* Success */}
+              {profileSuccess && (
+                <p className="text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2 font-semibold">
+                  ✓ Profile updated successfully!
+                </p>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveProfile}
+                disabled={profileSaving || profileSuccess}
+                className="flex items-center gap-2 px-4 py-2 bg-[#0a2e2e] hover:bg-[#0d3d3d] disabled:opacity-60 text-white text-xs font-semibold rounded-lg transition cursor-pointer"
+              >
+                {profileSaving ? (
+                  <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+                {profileSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

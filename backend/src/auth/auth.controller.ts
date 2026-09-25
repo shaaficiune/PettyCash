@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Put, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto, ChangePasswordDto, FirstLoginResetDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -57,5 +57,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Reset password during first login mandate' })
   async resetPasswordFirstLogin(@Request() req, @Body() resetDto: FirstLoginResetDto) {
     return this.authService.resetPasswordFirstLogin(req.user.userId, resetDto);
+  }
+  @UseGuards(JwtAuthGuard)
+  @Put('profile')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update own profile (fullName only — username cannot be changed)' })
+  async updateProfile(
+    @Request() req,
+    @Body('fullName') fullName: string,
+  ) {
+    return this.authService.updateProfile(req.user.userId, fullName);
   }
 }

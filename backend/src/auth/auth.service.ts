@@ -227,4 +227,37 @@ export class AuthService {
       },
     };
   }
+
+  async updateProfile(userId: string, fullName: string) {
+    if (!fullName || !fullName.trim()) {
+      throw new BadRequestException('Full name cannot be empty');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        fullName: fullName.trim(),
+      },
+      include: {
+        role: true,
+        company: true,
+        department: true,
+        region: true,
+      },
+    });
+
+    return {
+      message: 'Profile updated successfully',
+      user: {
+        id: updated.id,
+        username: updated.username,
+        fullName: updated.fullName,
+        email: updated.email,
+        phone: updated.phone,
+        role: updated.role.name,
+        company: updated.company ? { id: updated.company.id, name: updated.company.name } : null,
+        region: updated.region ? { id: updated.region.id, name: updated.region.name } : null,
+      },
+    };
+  }
 }
