@@ -23,9 +23,10 @@ frontend/.env
 # Don't commit generated client or migration lock
 backend/prisma/dev.db
 
-# ─── Debug / Admin Scripts ────────────────────────────────────────────────────
-# One-off utility scripts should never be in version control
-backend/scripts/
+# ─── Scripts ──────────────────────────────────────────────────────────────────
+# Exclude debug scripts but ALLOW data exports and import/export tools
+backend/scripts/enable-admin.js
+# DO commit: backend/scripts/export-data.js, import-data.js, scripts/data/
 
 # ─── Uploads ──────────────────────────────────────────────────────────────────
 backend/uploads/

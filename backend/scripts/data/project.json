@@ -1,0 +1,20 @@
+[
+  {
+    "id": "77849afa-abde-4c28-b096-3c123e386ca5",
+    "name": "Somtel 5G Rollout",
+    "description": "Expansion of 5G cellular coverage nationwide",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.803Z",
+    "updatedAt": "2026-08-02T15:56:25.803Z"
+  },
+  {
+    "id": "959d6eed-c5c9-45d7-97c7-780ee60bc7ce",
+    "name": "Fiber Expansion Project",
+    "description": "Laying down metropolitan fiber lines",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.816Z",
+    "updatedAt": "2026-08-02T15:56:25.816Z"
+  }
+]

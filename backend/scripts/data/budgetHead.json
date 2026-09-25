@@ -1,0 +1,156 @@
+[
+  {
+    "id": "161b30d9-b075-4012-94d8-51135b8ca1f9",
+    "code": "BH-101",
+    "name": "Tasliix",
+    "description": "Tasliix expenses",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyLimit": "5000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.850Z",
+    "updatedAt": "2026-08-02T15:56:25.850Z"
+  },
+  {
+    "id": "1669b4b0-c95b-4d77-a706-4c918b7f7aa2",
+    "code": "BH-102",
+    "name": "Transportation",
+    "description": "Local transportation and travel",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyLimit": "5000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.863Z",
+    "updatedAt": "2026-08-02T15:56:25.863Z"
+  },
+  {
+    "id": "2940f222-02fd-4495-a28f-8720eb9d727c",
+    "code": "BH-103",
+    "name": "Repair of Vehicles",
+    "description": "Vehicle maintenance and repairs",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyLimit": "5000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.866Z",
+    "updatedAt": "2026-08-02T15:56:25.866Z"
+  },
+  {
+    "id": "816a0cd6-89da-4917-9f92-b6e570b710d4",
+    "code": "BH-104",
+    "name": "Repair of Buildings",
+    "description": "Building and facility maintenance",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyLimit": "5000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.868Z",
+    "updatedAt": "2026-08-02T15:56:25.868Z"
+  },
+  {
+    "id": "d7a3aaa1-e282-4127-a8c9-c295728eb7c4",
+    "code": "BH-105",
+    "name": "Repair of Generators",
+    "description": "Generator maintenance and repairs",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyLimit": "5000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.871Z",
+    "updatedAt": "2026-08-02T15:56:25.871Z"
+  },
+  {
+    "id": "9787b1ef-2033-42fb-a552-ef615f73383b",
+    "code": "BH-106",
+    "name": "Refreshment",
+    "description": "Refreshments, meetings and hospitality",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyLimit": "3000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.873Z",
+    "updatedAt": "2026-08-02T15:56:25.873Z"
+  },
+  {
+    "id": "18e70a8f-2beb-4ffb-8491-663039a1e326",
+    "code": "BH-107",
+    "name": "Miscellaneous expenses",
+    "description": "Other general and miscellaneous expenses",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyLimit": "3000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.876Z",
+    "updatedAt": "2026-08-02T15:56:25.876Z"
+  },
+  {
+    "id": "8c61786e-bcaa-4565-baa8-d98fb727cd65",
+    "code": "BH-201",
+    "name": "Tasliix",
+    "description": "Tasliix expenses",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyLimit": "5000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.879Z",
+    "updatedAt": "2026-08-02T15:56:25.879Z"
+  },
+  {
+    "id": "64c51c73-5d57-45a5-a12c-9827f023ece8",
+    "code": "BH-202",
+    "name": "Transportation",
+    "description": "Local transportation and travel",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyLimit": "5000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.881Z",
+    "updatedAt": "2026-08-02T15:56:25.881Z"
+  },
+  {
+    "id": "56219b27-2bef-47b4-b153-37a9d62b3e3d",
+    "code": "BH-203",
+    "name": "Repair of Vehicles",
+    "description": "Vehicle maintenance and repairs",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyLimit": "5000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.884Z",
+    "updatedAt": "2026-08-02T15:56:25.884Z"
+  },
+  {
+    "id": "53f80f09-fe38-459d-8ec9-33e741c8ff1b",
+    "code": "BH-204",
+    "name": "Repair of Buildings",
+    "description": "Building and facility maintenance",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyLimit": "5000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.886Z",
+    "updatedAt": "2026-08-02T15:56:25.886Z"
+  },
+  {
+    "id": "ec67bfb1-05ba-4a5d-8f7c-7169f00a4261",
+    "code": "BH-205",
+    "name": "Repair of Generators",
+    "description": "Generator maintenance and repairs",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyLimit": "5000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.888Z",
+    "updatedAt": "2026-08-02T15:56:25.888Z"
+  },
+  {
+    "id": "607c77ba-53dd-4306-874c-0a1ff41cd902",
+    "code": "BH-206",
+    "name": "Refreshment",
+    "description": "Refreshments, meetings and hospitality",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyLimit": "3000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.891Z",
+    "updatedAt": "2026-08-02T15:56:25.891Z"
+  },
+  {
+    "id": "019973ef-325c-4c12-86c8-e0b163819aa2",
+    "code": "BH-207",
+    "name": "Miscellaneous expenses",
+    "description": "Other general and miscellaneous expenses",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyLimit": "3000",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.893Z",
+    "updatedAt": "2026-08-02T15:56:25.893Z"
+  }
+]

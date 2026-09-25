@@ -1,0 +1,74 @@
+[
+  {
+    "id": "925f8e03-e4b9-4b1f-a4a1-fa2d82568036",
+    "name": "Mudug",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyBudget": "0",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T16:05:12.632Z",
+    "updatedAt": "2026-08-02T16:05:12.632Z"
+  },
+  {
+    "id": "7eee5fc3-0e23-4a87-9998-66900b92559f",
+    "name": "Bari & Sanaag",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyBudget": "0",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T16:05:48.366Z",
+    "updatedAt": "2026-08-02T16:05:48.366Z"
+  },
+  {
+    "id": "93aa752f-9ef2-41bd-8c9a-44d888caf134",
+    "name": "Karkaar",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyBudget": "0",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T16:06:52.297Z",
+    "updatedAt": "2026-08-02T16:06:52.297Z"
+  },
+  {
+    "id": "cdd9cb9a-ee9f-4367-b531-a9bcc535ffd0",
+    "name": "Mudug",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyBudget": "200",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T16:05:22.126Z",
+    "updatedAt": "2026-08-02T16:22:33.435Z"
+  },
+  {
+    "id": "524e00bb-793d-4ea7-9fcb-53ff443438cb",
+    "name": "Nugaal",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyBudget": "200",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T16:05:04.371Z",
+    "updatedAt": "2026-08-02T16:22:50.612Z"
+  },
+  {
+    "id": "59f189b1-da70-4135-9fd5-4e8765db3caa",
+    "name": "Sanaag",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyBudget": "300",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T16:07:01.537Z",
+    "updatedAt": "2026-08-02T16:23:04.758Z"
+  },
+  {
+    "id": "d2db6d61-d1b6-4896-ac38-fcb17ab7c20f",
+    "name": "Bari & Karkaar",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "monthlyBudget": "200",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T16:05:37.899Z",
+    "updatedAt": "2026-08-02T16:23:13.373Z"
+  },
+  {
+    "id": "6600517b-6a8e-4245-9371-aacbb8ab73de",
+    "name": "Nugaal",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "monthlyBudget": "200",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T16:04:57.726Z",
+    "updatedAt": "2026-08-02T17:47:41.996Z"
+  }
+]

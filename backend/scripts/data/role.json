@@ -1,0 +1,23 @@
+[
+  {
+    "id": "d33ac25f-f1a9-4b22-8b3f-b05b288f5677",
+    "name": "SUPER_ADMIN",
+    "description": "Super administrator with access to all modules and configurations.",
+    "createdAt": "2026-08-02T15:56:25.642Z",
+    "updatedAt": "2026-08-02T15:56:25.642Z"
+  },
+  {
+    "id": "b4f4e747-d480-4cf8-ba13-207fd5414690",
+    "name": "ACCOUNTANT",
+    "description": "Accountant responsible for reviewing and paying petty cash requests.",
+    "createdAt": "2026-08-02T15:56:25.658Z",
+    "updatedAt": "2026-08-02T15:56:25.658Z"
+  },
+  {
+    "id": "d47a1a39-84c7-4e05-9471-a0797d9971d6",
+    "name": "EMPLOYEE",
+    "description": "General employee who can create petty cash requests and settle expenses.",
+    "createdAt": "2026-08-02T15:56:25.661Z",
+    "updatedAt": "2026-08-02T15:56:25.661Z"
+  }
+]

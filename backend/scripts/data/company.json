@@ -1,0 +1,16 @@
+[
+  {
+    "id": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "name": "Bluekom",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.550Z",
+    "updatedAt": "2026-08-02T15:56:25.550Z"
+  },
+  {
+    "id": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "name": "Somtel",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-02T15:56:25.638Z",
+    "updatedAt": "2026-08-02T15:56:25.638Z"
+  }
+]

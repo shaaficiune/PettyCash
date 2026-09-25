@@ -1,0 +1,53 @@
+[
+  {
+    "id": "30ed88b5-bd12-4d55-9c23-975b8c9e0244",
+    "fullName": "Bashir Abdikarim",
+    "username": "bashiir",
+    "passwordHash": "$2a$10$viYFgpS6jEDHoZbLnKjSBeQNNp.ZUeDq8SfXrOuwwF.CyLgFFA8kS",
+    "email": null,
+    "phone": null,
+    "jobTitle": null,
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "departmentId": "7bd04125-854a-4d67-bc6a-0c31f9dc1f79",
+    "regionId": "524e00bb-793d-4ea7-9fcb-53ff443438cb",
+    "roleId": "d47a1a39-84c7-4e05-9471-a0797d9971d6",
+    "status": "ACTIVE",
+    "resetPasswordRequired": false,
+    "createdAt": "2026-08-03T07:36:14.147Z",
+    "updatedAt": "2026-09-25T13:43:20.136Z"
+  },
+  {
+    "id": "8c727565-7321-4dc8-9667-5820fc2f1a19",
+    "fullName": "System Administrator",
+    "username": "admin",
+    "passwordHash": "$2a$10$dNcxwVUtZPoxDxJre/iG2.Ya0jUVfRi2oPMxYqFXaO5AWRSXVQLpK",
+    "email": "admin@somtel.com",
+    "phone": "+252660000548",
+    "jobTitle": null,
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "departmentId": "bcb54c84-0251-4702-aa22-d2a411a56434",
+    "regionId": null,
+    "roleId": "d33ac25f-f1a9-4b22-8b3f-b05b288f5677",
+    "status": "ACTIVE",
+    "resetPasswordRequired": false,
+    "createdAt": "2026-08-02T15:56:26.061Z",
+    "updatedAt": "2026-09-25T14:14:59.601Z"
+  },
+  {
+    "id": "c82c1850-e604-4361-908b-162dbbc862d0",
+    "fullName": "Mustafe Abdi Shir",
+    "username": "mustafe",
+    "passwordHash": "$2a$10$b7bgaaQ1Mud8f6i3ti3j6OrZzgRho4bp1nmtmNTVtdXf3PKptaKGW",
+    "email": "mustafe@gmail.com",
+    "phone": "66005959",
+    "jobTitle": null,
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "departmentId": "81a50da1-faec-41cb-bcef-82c72ebd11a2",
+    "regionId": null,
+    "roleId": "b4f4e747-d480-4cf8-ba13-207fd5414690",
+    "status": "ACTIVE",
+    "resetPasswordRequired": false,
+    "createdAt": "2026-09-25T14:17:34.432Z",
+    "updatedAt": "2026-09-25T14:18:09.172Z"
+  }
+]
