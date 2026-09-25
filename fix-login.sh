@@ -167,5 +167,5 @@ echo "======================================================"
 # Restart backend
 echo ""
 echo "  Restarting backend via PM2..."
-pm2 restart pettycash-backend 2>/dev/null || pm2 restart all 2>/dev/null || true
+pm2 restart backend 2>/dev/null || pm2 restart all 2>/dev/null || true
 pm2 status
