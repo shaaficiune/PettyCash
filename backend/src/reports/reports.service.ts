@@ -253,7 +253,11 @@ export class ReportsService {
 
     if (startDate || endDate) {
       where.requestDate = {};
-      if (startDate) where.requestDate.gte = new Date(startDate);
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        where.requestDate.gte = start;
+      }
       if (endDate) {
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);

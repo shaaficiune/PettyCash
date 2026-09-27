@@ -182,7 +182,9 @@ export class RequestsService {
     if (startDate || endDate) {
       where.requestDate = {};
       if (startDate) {
-        where.requestDate.gte = new Date(startDate);
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        where.requestDate.gte = start;
       }
       if (endDate) {
         // Include until the end of that day
@@ -408,7 +410,7 @@ export class RequestsService {
 
     const data: any = {};
 
-    // -- REJECT — allowed at any reviewable stage ---------------------------
+    // -- REJECT ï¿½ allowed at any reviewable stage ---------------------------
     if (newStatus === 'REJECTED') {
       data.status = RequestStatus.REJECTED;
       data.correctionNotes = dto.comments || `Rejected by ${reviewerRole}`;
@@ -419,7 +421,7 @@ export class RequestsService {
         `Your petty cash request ${request.requestNumber} has been rejected. Reason: ${dto.comments || 'No comment'}`
       );
 
-    // -- CORRECTION_REQUIRED — allowed at any reviewable stage --------------
+    // -- CORRECTION_REQUIRED ï¿½ allowed at any reviewable stage --------------
     } else if (newStatus === 'CORRECTION_REQUIRED') {
       data.status = RequestStatus.CORRECTION_REQUIRED;
       data.correctionNotes = dto.comments || 'Correction required';

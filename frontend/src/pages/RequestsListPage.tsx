@@ -4,6 +4,27 @@ import api from '../services/api';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Plus, Filter, FileSpreadsheet, Printer, Eye, Calendar, MapPin } from 'lucide-react';
 
+
+const getLocalDateString = (d: Date = new Date()): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getStartOfWeekString = (): string => {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const diff = now.getDate() - dayOfWeek;
+  const start = new Date(now.getFullYear(), now.getMonth(), diff);
+  return getLocalDateString(start);
+};
+
+const getStartOfMonthString = (): string => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+};
+
 export const RequestsListPage: React.FC = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -16,8 +37,48 @@ export const RequestsListPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [datePreset, setDatePreset] = useState<'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM'>('TODAY');
+  const [startDate, setStartDate] = useState(() => getLocalDateString());
+  const [endDate, setEndDate] = useState(() => getLocalDateString());
+
+  const applyDatePreset = (preset: 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM') => {
+    setDatePreset(preset);
+    const today = getLocalDateString();
+    if (preset === 'TODAY') {
+      setStartDate(today);
+      setEndDate(today);
+    } else if (preset === 'THIS_WEEK') {
+      setStartDate(getStartOfWeekString());
+      setEndDate(today);
+    } else if (preset === 'THIS_MONTH') {
+      setStartDate(getStartOfMonthString());
+      setEndDate(today);
+    } else if (preset === 'ALL') {
+      setStartDate('');
+      setEndDate('');
+    } else if (preset === 'CUSTOM') {
+      if (!startDate) setStartDate(today);
+      if (!endDate) setEndDate(today);
+    }
+  };
+
+  const handleStartDateChange = (val: string) => {
+    setStartDate(val);
+    setDatePreset('CUSTOM');
+  };
+
+  const handleEndDateChange = (val: string) => {
+    setEndDate(val);
+    setDatePreset('CUSTOM');
+  };
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setPriorityFilter('');
+    setRegionFilter('');
+    applyDatePreset('ALL');
+  };
 
   useEffect(() => {
     const urlStatus = searchParams.get('status');
@@ -187,9 +248,25 @@ export const RequestsListPage: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full md:w-auto shrink-0">
+            {/* Date Select Dropdown */}
+            <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
+              <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <select
+                value={datePreset}
+                onChange={(e) => applyDatePreset(e.target.value as any)}
+                className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full font-medium"
+              >
+                <option value="TODAY">Today</option>
+                <option value="THIS_WEEK">This Week</option>
+                <option value="THIS_MONTH">This Month</option>
+                <option value="CUSTOM">Custom Date...</option>
+                <option value="ALL">All Time</option>
+              </select>
+            </div>
+
             {/* Region Filter */}
-            <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
-              <MapPin className="h-3.5 w-3.5 text-slate-400" />
+            <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
+              <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
               <select
                 value={regionFilter}
                 onChange={(e) => setRegionFilter(e.target.value)}
@@ -204,7 +281,7 @@ export const RequestsListPage: React.FC = () => {
 
             {/* Status Filter */}
             <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
-              <Filter className="h-3.5 w-3.5 text-slate-400" />
+              <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -238,46 +315,41 @@ export const RequestsListPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Date Filter Row */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5 text-slate-400" />
-            <span className="font-semibold text-slate-600 dark:text-slate-400">Date Range:</span>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <label className="text-[11px] text-slate-400">From:</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="px-2 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-            />
-
-            <label className="text-[11px] text-slate-400">To:</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="px-2 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-            />
-
-            {(startDate || endDate || regionFilter || statusFilter || priorityFilter) && (
-              <button
-                onClick={() => {
-                  setStartDate('');
-                  setEndDate('');
-                  setRegionFilter('');
-                  setStatusFilter('');
-                  setPriorityFilter('');
-                }}
-                className="text-[11px] text-primary hover:underline font-semibold ml-2 cursor-pointer"
-              >
-                Clear Filters
-              </button>
+        {/* Custom Range Picker / Active Filter Reset Bar */}
+        {(datePreset === 'CUSTOM' || regionFilter || statusFilter || priorityFilter || datePreset !== 'TODAY' || search) && (
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-xs">
+            {datePreset === 'CUSTOM' ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Custom Dates:</span>
+                <span className="text-[11px] text-slate-400">From:</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+                />
+                <span className="text-[11px] text-slate-400">To:</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => handleEndDateChange(e.target.value)}
+                  className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+                />
+              </div>
+            ) : (
+              <div className="text-[11px] text-slate-400">
+                Filter: <span className="font-semibold text-primary">{datePreset === 'TODAY' ? 'Today' : datePreset === 'THIS_WEEK' ? 'This Week' : datePreset === 'THIS_MONTH' ? 'This Month' : 'All Time'}</span>
+              </div>
             )}
+
+            <button
+              onClick={handleResetFilters}
+              className="text-[11px] text-primary hover:underline font-semibold cursor-pointer ml-auto"
+            >
+              Reset Filters
+            </button>
           </div>
-        </div>
+        )}
       </div>
 
       {/* REQUESTS LIST TABLE */}
@@ -308,7 +380,16 @@ export const RequestsListPage: React.FC = () => {
                 {filteredRequests.length === 0 ? (
                   <tr className="border-l-4 border-l-transparent">
                     <td colSpan={10} className="text-center py-12 text-sm text-slate-400">
-                      No requests found matching your filters
+                      <div>No requests found matching your filters</div>
+                      {datePreset === 'TODAY' && (
+                        <button
+                          type="button"
+                          onClick={() => applyDatePreset('ALL')}
+                          className="mt-2 text-xs text-primary hover:underline font-semibold cursor-pointer block mx-auto"
+                        >
+                          View All Time Requests
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ) : (
