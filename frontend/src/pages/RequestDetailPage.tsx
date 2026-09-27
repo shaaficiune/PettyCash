@@ -404,8 +404,31 @@ export const RequestDetailPage: React.FC = () => {
       {/* ACCOUNTANT RECORD PAYMENT DRAWER */}
       {isAccountant && request.status === 'APPROVED' && (
         <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-4 transition-colors">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Record Disbursement</h3>
-          <p className="text-xs text-slate-400">Record payment method and transaction reference</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Record Disbursement</h3>
+              <p className="text-xs text-slate-400">Disburse approved funds to beneficiary</p>
+            </div>
+            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200/50">
+              Amount: {request.currency} {Number(request.approvedAmount || request.requestedAmount).toLocaleString()}
+            </span>
+          </div>
+
+          {/* Receiver / Account info submitted in request */}
+          <div className="p-3.5 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-900/40 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-400 block">Receiver / Beneficiary Name</span>
+              <p className="font-bold text-slate-900 dark:text-white mt-0.5 text-xs">
+                {request.receiverName || 'Not specified in request'}
+              </p>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-400 block">Receiver Account / Phone Number</span>
+              <p className="font-bold font-mono text-slate-900 dark:text-white mt-0.5 text-xs">
+                {request.receiverPhone || 'Not specified in request'}
+              </p>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -527,19 +550,56 @@ export const RequestDetailPage: React.FC = () => {
       {/* DISBURSED PAYMENT RECORDS DISPLAY */}
       {request.payments?.length > 0 && (
         <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm transition-colors">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">Payment Details</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Payment Details</h3>
+            <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/50">
+              Disbursed
+            </span>
+          </div>
           <div className="space-y-3">
             {request.payments.map((pm: any) => (
-              <div key={pm.id} className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-center justify-between text-xs transition-colors">
-                <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-100">Disbursed via {pm.paymentMethod}</p>
-                  <p className="text-slate-500 mt-0.5">Txn ID: {pm.transactionId || 'None'} | Ref: {pm.referenceNumber || 'None'}</p>
-                  {pm.notes && <p className="text-[11px] italic text-slate-400 mt-1">"{pm.notes}"</p>}
+              <div key={pm.id} className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl space-y-3 text-xs transition-colors border border-slate-100 dark:border-slate-800/60">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 dark:border-slate-700/50 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 font-bold rounded bg-primary/10 text-primary text-[11px]">
+                      Disbursed via {pm.paymentMethod}
+                    </span>
+                    <span className="text-slate-400 text-[11px]">
+                      {new Date(pm.paymentDate || pm.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold">Amount Paid</span>
+                    <p className="font-bold text-base text-emerald-600 dark:text-emerald-400 leading-tight">
+                      {request.currency} {Number(pm.amountPaid).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Paid by {pm.paidBy?.fullName || 'Finance'}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-emerald-600 dark:text-emerald-400">{request.currency} {Number(pm.amountPaid).toLocaleString()}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Paid by {pm.paidBy.fullName}</p>
+
+                {/* Receiver / Account details from the request */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
+                  <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Receiver / Beneficiary</span>
+                    <p className="font-semibold text-slate-800 dark:text-slate-100 mt-0.5 text-xs">
+                      {request.receiverName || 'Not specified'}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Account / Phone Number</span>
+                    <p className="font-semibold font-mono text-slate-800 dark:text-slate-100 mt-0.5 text-xs">
+                      {request.receiverPhone || 'Not specified'}
+                    </p>
+                  </div>
                 </div>
+
+                {(pm.transactionId || pm.referenceNumber || pm.notes) && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 pt-1 border-t border-slate-200/40 dark:border-slate-800">
+                    {pm.transactionId && <span>Txn ID: <strong className="text-slate-700 dark:text-slate-300 font-mono">{pm.transactionId}</strong></span>}
+                    {pm.referenceNumber && <span>Ref: <strong className="text-slate-700 dark:text-slate-300 font-mono">{pm.referenceNumber}</strong></span>}
+                    {pm.notes && <span className="italic text-slate-400">"{pm.notes}"</span>}
+                  </div>
+                )}
               </div>
             ))}
           </div>

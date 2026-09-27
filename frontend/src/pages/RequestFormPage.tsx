@@ -124,6 +124,11 @@ export const RequestFormPage: React.FC = () => {
       return;
     }
 
+    if (submitStatus === 'PENDING_APPROVAL' && (!receiverName.trim() || !receiverPhone.trim())) {
+      setError('Receiver / Beneficiary Name and Account / Phone Number are required to submit for approval.');
+      return;
+    }
+
     const requestedNum = parseFloat(amount);
 
     if (isNaN(requestedNum) || requestedNum <= 0) {
@@ -375,7 +380,7 @@ export const RequestFormPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Receiver / Beneficiary Name</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Receiver / Beneficiary Name *</label>
               <input
                 type="text"
                 placeholder="e.g. Ali Ahmed / Hotel / Vendor"
@@ -386,7 +391,7 @@ export const RequestFormPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Receiver Phone / Merchant Number</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Receiver Account / Phone Number *</label>
               <input
                 type="text"
                 placeholder="e.g. 061XXXXXXX or Merchant Till ID"
