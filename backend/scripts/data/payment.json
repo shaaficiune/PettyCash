@@ -1,0 +1,28 @@
+[
+  {
+    "id": "311f4708-01f0-49d5-a729-439caf5429b8",
+    "requestId": "51abc56a-9fbc-4b7f-98d2-5852726817bb",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "paymentDate": "2026-09-27T09:35:31.064Z",
+    "amountPaid": "30",
+    "paymentMethod": "EDAHAB",
+    "transactionId": null,
+    "referenceNumber": null,
+    "paidById": "8c727565-7321-4dc8-9667-5820fc2f1a19",
+    "notes": "",
+    "createdAt": "2026-09-27T09:35:31.065Z"
+  },
+  {
+    "id": "6c46f2a8-466f-4ea8-98a4-669ca61551c6",
+    "requestId": "5f75c6cf-cadf-49d0-acc5-807f2e62bc1e",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "paymentDate": "2026-09-27T10:50:26.847Z",
+    "amountPaid": "50",
+    "paymentMethod": "EDAHAB",
+    "transactionId": null,
+    "referenceNumber": null,
+    "paidById": "8c727565-7321-4dc8-9667-5820fc2f1a19",
+    "notes": "",
+    "createdAt": "2026-09-27T10:50:26.849Z"
+  }
+]

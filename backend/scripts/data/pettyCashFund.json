@@ -1,0 +1,34 @@
+[
+  {
+    "id": "3096c1f4-e13f-4273-8cd7-c3e365175e46",
+    "companyId": "4911f01d-6c14-43f3-902d-c9e8f063f1b6",
+    "month": 9,
+    "year": 2026,
+    "openingBalance": "1000",
+    "additionalFunding": "0",
+    "totalAvailable": "1000",
+    "approvedAmount": "0",
+    "paidAmount": "0",
+    "remainingBalance": "1000",
+    "closingBalance": "1000",
+    "status": "OPEN",
+    "createdAt": "2026-09-25T15:11:45.261Z",
+    "updatedAt": "2026-09-25T15:11:45.261Z"
+  },
+  {
+    "id": "90fd9a1c-ccd2-4c82-866c-1e0fdac49a39",
+    "companyId": "1d625f68-7207-4e5f-af81-c6d708fba6e8",
+    "month": 9,
+    "year": 2026,
+    "openingBalance": "1000",
+    "additionalFunding": "200",
+    "totalAvailable": "1200",
+    "approvedAmount": "80",
+    "paidAmount": "80",
+    "remainingBalance": "1120",
+    "closingBalance": "1120",
+    "status": "OPEN",
+    "createdAt": "2026-09-25T15:11:36.945Z",
+    "updatedAt": "2026-09-27T10:50:26.867Z"
+  }
+]
