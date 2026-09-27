@@ -612,12 +612,31 @@ export const UserManagementPage: React.FC = () => {
                 <select
                   value={userRegionFilter}
                   onChange={(e) => setUserRegionFilter(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer w-full md:w-32"
+                  className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer w-full md:w-36"
                 >
                   <option value="">All Regions</option>
-                  {regions
-                    .filter(r => !userCompanyFilter || r.companyId === userCompanyFilter)
-                    .map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  {(() => {
+                    const filtered = regions.filter(r => !userCompanyFilter || r.companyId === userCompanyFilter);
+                    const groups: { [key: string]: any[] } = {};
+                    filtered.forEach((r) => {
+                      const cName = r.company?.name || 'Other';
+                      if (!groups[cName]) groups[cName] = [];
+                      groups[cName].push(r);
+                    });
+                    const compKeys = Object.keys(groups);
+                    if (compKeys.length <= 1) {
+                      return filtered.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ));
+                    }
+                    return compKeys.map((cName) => (
+                      <optgroup key={cName} label={`── ${cName} ──`}>
+                        {groups[cName].map((r) => (
+                          <option key={r.id} value={r.id}>{r.name}</option>
+                        ))}
+                      </optgroup>
+                    ));
+                  })()}
                 </select>
               </div>
             </div>

@@ -273,9 +273,29 @@ export const RequestsListPage: React.FC = () => {
                 className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
               >
                 <option value="">All Regions</option>
-                {regions.map((reg) => (
-                  <option key={reg.id} value={reg.id}>{reg.name}</option>
-                ))}
+                {(() => {
+                  const groups: { [key: string]: any[] } = {};
+                  regions.forEach((r) => {
+                    const cName = r.company?.name || 'Other';
+                    if (!groups[cName]) groups[cName] = [];
+                    groups[cName].push(r);
+                  });
+                  const compKeys = Object.keys(groups);
+                  if (compKeys.length <= 1) {
+                    return regions.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ));
+                  }
+                  return compKeys.map((cName) => (
+                    <optgroup key={cName} label={`── ${cName} ──`}>
+                      {groups[cName].map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ));
+                })()}
               </select>
             </div>
 
