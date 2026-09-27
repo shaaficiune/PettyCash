@@ -311,6 +311,13 @@ DRAFT → PENDING_APPROVAL → APPROVED → PAYMENT_PROCESSING → PAID → COMP
 - [x] Requests list: Region column (replaced Department), searchable by region
 - [x] Sidebar profile card: clickable → navigates to User Management (Admin)
 - [x] Somtel/Bluekom brand theming (CSS custom properties)
+- [x] User Directory: Filter by Company, Role, Status, **Region**
+
+### Reporting
+- [x] Request List: Date range filter, Region filter, Status/Priority filter
+- [x] Request List: Export Excel (server-side) + Export PDF (print view)
+- [x] Request List columns: Date, Employee, Receiver/Merchant, Category, Region, Amount, Status
+- [x] Transaction Ledger: Descending order (newest first), Date column
 
 ---
 
@@ -458,3 +465,5 @@ lockoutStage         Int       @default(0)   // 0=none 1=1h 2=6h 3=DISABLED
 - `backend/prisma/schema.prisma` — 3 new columns
 - `backend/src/auth/auth.service.ts` — login() lockout logic
 - `backend/src/users/users.service.ts` — resetPassword() clears lockout
+
+> **Status:** ✅ Code complete. Deployed to server via `update-server.sh` which runs `prisma db push` automatically.
