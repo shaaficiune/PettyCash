@@ -435,247 +435,188 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       {mainTab === 'financial' ? (
-        <div className="space-y-6">
-          {/* ──────────────── Dashboard Sare (KPI Summary Cards) ──────────────── */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
-            {/* Card 1: Total Disbursed */}
-            <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Total Disbursed</span>
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+        <div className="space-y-3">
+          {/* ──────────────── Dashboard Sare (Slim KPI Strip) ──────────────── */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl px-4 py-2 shadow-xs flex flex-wrap items-center justify-between gap-y-2 gap-x-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800 text-xs transition-colors">
+            {/* Total Disbursed */}
+            <div className="flex items-center gap-2 pr-3">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block leading-tight">Total Disbursed</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                  ${reportData?.summary?.totalDisbursed?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}
+                </span>
               </div>
-              <p className="text-xl font-bold text-slate-900 dark:text-white">
-                ${reportData?.summary?.totalDisbursed?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}
-              </p>
-              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
-                {reportData?.summary?.paidCount ?? 0} disbursed transactions
-              </p>
             </div>
 
-            {/* Card 2: Total Requests */}
-            <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Total Requests</span>
-                <FileText className="h-4 w-4 text-blue-500" />
+            {/* Somtel Spent */}
+            <div className="flex items-center gap-2 px-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0" />
+              <div>
+                <span className="text-[10px] uppercase font-bold text-orange-600 dark:text-orange-400 block leading-tight">Somtel</span>
+                <span className="text-sm font-bold text-orange-700 dark:text-orange-300 leading-tight">
+                  ${reportData?.summary?.somtelSpent?.toLocaleString(undefined, { minimumFractionDigits: 2 }) ?? '0.00'}
+                </span>
               </div>
-              <p className="text-xl font-bold text-slate-900 dark:text-white">
-                {reportData?.summary?.totalCount ?? 0}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-1">
-                Requested: ${reportData?.summary?.totalRequested?.toLocaleString(undefined, { minimumFractionDigits: 2 }) ?? '0.00'}
-              </p>
             </div>
 
-            {/* Card 3: Somtel Spent */}
-            <div className="p-4 bg-orange-50/70 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-900/40 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between text-orange-600 dark:text-orange-400 mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Somtel Spent</span>
-                <Building2 className="h-4 w-4 text-orange-500" />
+            {/* Bluekom Spent */}
+            <div className="flex items-center gap-2 px-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+              <div>
+                <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 block leading-tight">Bluekom</span>
+                <span className="text-sm font-bold text-blue-700 dark:text-blue-300 leading-tight">
+                  ${reportData?.summary?.bluekomSpent?.toLocaleString(undefined, { minimumFractionDigits: 2 }) ?? '0.00'}
+                </span>
               </div>
-              <p className="text-xl font-bold text-orange-700 dark:text-orange-300">
-                ${reportData?.summary?.somtelSpent?.toLocaleString(undefined, { minimumFractionDigits: 2 }) ?? '0.00'}
-              </p>
-              <p className="text-[10px] text-orange-600/80 dark:text-orange-400/80 mt-1">
-                Actual disbursed to Somtel
-              </p>
             </div>
 
-            {/* Card 4: Bluekom Spent */}
-            <div className="p-4 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between text-blue-600 dark:text-blue-400 mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Bluekom Spent</span>
-                <Building2 className="h-4 w-4 text-blue-500" />
+            {/* Total Requests */}
+            <div className="flex items-center gap-2 px-3">
+              <FileText className="h-4 w-4 text-slate-400 shrink-0" />
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block leading-tight">Requests</span>
+                <span className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                  {reportData?.summary?.totalCount ?? 0}
+                </span>
               </div>
-              <p className="text-xl font-bold text-blue-700 dark:text-blue-300">
-                ${reportData?.summary?.bluekomSpent?.toLocaleString(undefined, { minimumFractionDigits: 2 }) ?? '0.00'}
-              </p>
-              <p className="text-[10px] text-blue-600/80 dark:text-blue-400/80 mt-1">
-                Actual disbursed to Bluekom
-              </p>
             </div>
 
-            {/* Card 5: Pending Approvals */}
-            <div className="p-4 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between text-amber-600 dark:text-amber-400 mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Pending Review</span>
-                <Clock className="h-4 w-4 text-amber-500" />
+            {/* Pending */}
+            <div className="flex items-center gap-2 pl-3">
+              <Clock className="h-4 w-4 text-amber-500 shrink-0" />
+              <div>
+                <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block leading-tight">Pending</span>
+                <span className="text-sm font-bold text-amber-700 dark:text-amber-300 leading-tight">
+                  {reportData?.summary?.pendingCount ?? 0}
+                </span>
               </div>
-              <p className="text-xl font-bold text-amber-700 dark:text-amber-300">
-                {reportData?.summary?.pendingCount ?? 0}
-              </p>
-              <p className="text-[10px] text-amber-600/80 dark:text-amber-400/80 mt-1">
-                Awaiting approval / review
-              </p>
             </div>
           </div>
 
-          {/* ──────────────── Filter Bar ──────────────── */}
-          <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-sm space-y-3.5">
-            {/* Row 1: Filters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {/* Period Preset */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  <Calendar className="h-3 w-3 inline mr-1" />
-                  Period
-                </label>
-                <select
-                  id="filter-period-preset"
-                  value={preset}
-                  onChange={(e) => setPreset(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                >
-                  <option value="TODAY">Today</option>
-                  <option value="THIS_MONTH">This Month</option>
-                  <option value="LAST_MONTH">Last Month</option>
-                  <option value="THIS_QUARTER">This Quarter</option>
-                  <option value="YTD">Year to Date (YTD)</option>
-                  <option value="ALL_TIME">All Time</option>
-                  <option value="CUSTOM">Custom Range</option>
-                </select>
-              </div>
-
-              {/* Company Filter */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  <Building2 className="h-3 w-3 inline mr-1" />
-                  Company
-                </label>
-                <select
-                  id="filter-company"
-                  value={companyId}
-                  onChange={(e) => setCompanyId(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                >
-                  <option value="ALL">All Companies</option>
-                  {companies.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Region Filter */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  <MapPin className="h-3 w-3 inline mr-1" />
-                  Region
-                </label>
-                <select
-                  id="filter-region"
-                  value={regionId}
-                  onChange={(e) => setRegionId(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                >
-                  <option value="ALL">All Regions</option>
-                  {regions.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} {r.company?.name ? `(${r.company.name})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Budget Head (Category) Filter */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  <Tag className="h-3 w-3 inline mr-1" />
-                  Budget Head
-                </label>
-                <select
-                  id="filter-budget-head"
-                  value={budgetHeadId}
-                  onChange={(e) => setBudgetHeadId(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                >
-                  <option value="ALL">All Budget Heads</option>
-                  {budgetHeads.map((bh) => (
-                    <option key={bh.id} value={bh.id}>
-                      {bh.code ? `[${bh.code}] ` : ''}{bh.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Status Filter */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  <CheckCircle2 className="h-3 w-3 inline mr-1" />
-                  Status Scope
-                </label>
-                <select
-                  id="filter-status"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                >
-                  <option value="PAID_ONLY">Actual Disbursed (Paid)</option>
-                  <option value="APPROVED_AND_PAID">Approved &amp; Paid (Committed)</option>
-                  <option value="ALL">All Statuses</option>
-                  <option value="PENDING_APPROVAL">Pending Approval</option>
-                  <option value="ACCOUNTANT_REVIEW">Accountant Review</option>
-                  <option value="REJECTED">Rejected</option>
-                </select>
-              </div>
+          {/* ──────────────── Single-Row Integrated Toolbar ──────────────── */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-2.5 shadow-xs flex flex-wrap items-center gap-2 transition-colors">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[170px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                id="report-search-input"
+                placeholder="Search records..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+              />
             </div>
 
-            {/* Row 2: Custom Date Inputs & Search */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-              {/* Custom Date Range (when CUSTOM selected) */}
-              {preset === 'CUSTOM' ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400 font-medium">Dates:</span>
-                  <input
-                    type="date"
-                    id="filter-custom-start"
-                    value={customStart}
-                    onChange={(e) => setCustomStart(e.target.value)}
-                    className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                  />
-                  <span className="text-xs text-slate-400">to</span>
-                  <input
-                    type="date"
-                    id="filter-custom-end"
-                    value={customEnd}
-                    onChange={(e) => setCustomEnd(e.target.value)}
-                    className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                  />
-                </div>
-              ) : (
-                <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                  <span>
-                    Range: {getDateRange().start || 'Beginning'} &rarr; {getDateRange().end || 'Present'}
-                  </span>
-                </div>
-              )}
+            {/* Period Preset */}
+            <select
+              id="filter-period-preset"
+              value={preset}
+              onChange={(e) => setPreset(e.target.value)}
+              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer"
+            >
+              <option value="TODAY">Today</option>
+              <option value="THIS_MONTH">This Month</option>
+              <option value="LAST_MONTH">Last Month</option>
+              <option value="THIS_QUARTER">This Quarter</option>
+              <option value="YTD">YTD</option>
+              <option value="ALL_TIME">All Time</option>
+              <option value="CUSTOM">Custom Range</option>
+            </select>
 
-              {/* Search & Reset */}
-              <div className="flex items-center gap-2 flex-1 max-w-md ml-auto">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                  <input
-                    type="text"
-                    id="report-search-input"
-                    placeholder="Search records..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                  />
-                </div>
+            {/* Company Filter */}
+            <select
+              id="filter-company"
+              value={companyId}
+              onChange={(e) => setCompanyId(e.target.value)}
+              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">All Companies</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
 
-                <button
-                  id="report-reset-btn"
-                  onClick={handleResetFilters}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Reset all filters"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Reset
-                </button>
+            {/* Region Filter */}
+            <select
+              id="filter-region"
+              value={regionId}
+              onChange={(e) => setRegionId(e.target.value)}
+              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer max-w-[150px]"
+            >
+              <option value="ALL">All Regions</option>
+              {regions.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} {r.company?.name ? `(${r.company.name})` : ''}
+                </option>
+              ))}
+            </select>
+
+            {/* Budget Head Filter */}
+            <select
+              id="filter-budget-head"
+              value={budgetHeadId}
+              onChange={(e) => setBudgetHeadId(e.target.value)}
+              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer max-w-[170px]"
+            >
+              <option value="ALL">All Budget Heads</option>
+              {budgetHeads.map((bh) => (
+                <option key={bh.id} value={bh.id}>
+                  {bh.code ? `[${bh.code}] ` : ''}{bh.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Status Filter */}
+            <select
+              id="filter-status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer"
+            >
+              <option value="PAID_ONLY">Disbursed (Paid)</option>
+              <option value="APPROVED_AND_PAID">Approved &amp; Paid</option>
+              <option value="ALL">All Statuses</option>
+              <option value="PENDING_APPROVAL">Pending Approval</option>
+              <option value="ACCOUNTANT_REVIEW">Accountant Review</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+
+            {/* Reset */}
+            <button
+              id="report-reset-btn"
+              onClick={handleResetFilters}
+              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+              title="Reset all filters"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset
+            </button>
+
+            {/* Custom Range (shown only if preset === 'CUSTOM') */}
+            {preset === 'CUSTOM' && (
+              <div className="flex items-center gap-2 w-full pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                <span className="text-slate-400 font-medium text-[11px]">Dates:</span>
+                <input
+                  type="date"
+                  id="filter-custom-start"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                />
+                <span className="text-slate-400 text-xs">to</span>
+                <input
+                  type="date"
+                  id="filter-custom-end"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                />
               </div>
-            </div>
+            )}
           </div>
 
           {/* ──────────────── Table Caadi Ah (Standard Data Table) ──────────────── */}
