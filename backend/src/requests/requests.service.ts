@@ -395,36 +395,46 @@ export class RequestsService {
       throw new NotFoundException('Request not found');
     }
 
-    const isPendingFirstStage = request.status === RequestStatus.PENDING_APPROVAL;
-    const isPendingSecondStage = request.status === RequestStatus.ACCOUNTANT_REVIEW;
+    // Use plain string comparison to avoid any Prisma enum mismatch issues
+    const currentStatus = String(request.status);
+    const newStatus = String(dto.status);
 
-    if (!isPendingFirstStage && !isPendingSecondStage) {
-      throw new BadRequestException('Request is not in a reviewable state');
+    // Only PENDING_APPROVAL and ACCOUNTANT_REVIEW are reviewable
+    if (currentStatus !== 'PENDING_APPROVAL' && currentStatus !== 'ACCOUNTANT_REVIEW') {
+      throw new BadRequestException(
+        `Request is not in a reviewable state. Current status: ${currentStatus}`
+      );
     }
 
     const data: any = {};
 
-    // Rejection or Correction can happen at either stage
-    if (dto.status === RequestStatus.REJECTED) {
+    // -- REJECT — allowed at any reviewable stage ---------------------------
+    if (newStatus === 'REJECTED') {
       data.status = RequestStatus.REJECTED;
       data.correctionNotes = dto.comments || `Rejected by ${reviewerRole}`;
-      
+
       await this.notifications.create(
         request.userId,
         `Request Rejected: ${request.requestNumber}`,
         `Your petty cash request ${request.requestNumber} has been rejected. Reason: ${dto.comments || 'No comment'}`
       );
-    } else if (dto.status === RequestStatus.CORRECTION_REQUIRED) {
+
+    // -- CORRECTION_REQUIRED — allowed at any reviewable stage --------------
+    } else if (newStatus === 'CORRECTION_REQUIRED') {
       data.status = RequestStatus.CORRECTION_REQUIRED;
       data.correctionNotes = dto.comments || 'Correction required';
-      
+
       await this.notifications.create(
         request.userId,
         `Correction Required: ${request.requestNumber}`,
         `Correction requested for ${request.requestNumber}. Comments: ${dto.comments || 'No comment'}`
       );
-    } else if (dto.status === RequestStatus.ACCOUNTANT_REVIEW || (isPendingFirstStage && dto.status === RequestStatus.APPROVED && reviewerRole === RoleName.ACCOUNTANT)) {
-      // Stage 1: Accountant review passed -> moves to ACCOUNTANT_REVIEW for CFO/Finance final approval
+
+    // -- STAGE 1: PENDING_APPROVAL ? ACCOUNTANT_REVIEW --------------------
+    } else if (newStatus === 'ACCOUNTANT_REVIEW') {
+      if (currentStatus !== 'PENDING_APPROVAL') {
+        throw new BadRequestException('Request must be in Pending Approval to forward to CFO review.');
+      }
       data.status = RequestStatus.ACCOUNTANT_REVIEW;
       if (dto.approvedAmount !== undefined) {
         if (Number(dto.approvedAmount) > 50) {
@@ -438,26 +448,30 @@ export class RequestsService {
         `Accountant Reviewed: ${request.requestNumber}`,
         `Your petty cash request ${request.requestNumber} was reviewed by the Accountant and is now awaiting Finance/CFO Approval.`
       );
-    } else if (dto.status === RequestStatus.APPROVED) {
-      // Stage 2: Final approval by CFO / Super Admin
+
+    // -- STAGE 2: ? APPROVED (CFO/Finance final, or SUPER_ADMIN direct) ----
+    // Accepts from ACCOUNTANT_REVIEW (normal) or PENDING_APPROVAL (SUPER_ADMIN bypass)
+    } else if (newStatus === 'APPROVED') {
       data.status = RequestStatus.APPROVED;
-      data.approvedAmount = dto.approvedAmount !== undefined ? dto.approvedAmount : (request.approvedAmount || request.requestedAmount);
-      
+      data.approvedAmount = dto.approvedAmount !== undefined
+        ? dto.approvedAmount
+        : (request.approvedAmount || request.requestedAmount);
+
       if (Number(data.approvedAmount) > 50) {
         throw new BadRequestException('Approved amount cannot exceed the maximum petty cash limit of $50.');
       }
 
-      // Reserve approved amount in petty cash fund; will throw if insufficient
+      // Reserve approved amount in petty cash fund; throws if insufficient
       await this.fundsService.recordApproval(request.companyId, Number(data.approvedAmount));
 
-      // Notify employee
       await this.notifications.create(
         request.userId,
         `Request Approved: ${request.requestNumber}`,
         `Your petty cash request ${request.requestNumber} has received final approval for ${request.currency} ${data.approvedAmount}.`
       );
+
     } else {
-      throw new BadRequestException('Invalid status transition');
+      throw new BadRequestException(`Invalid status transition: cannot change to '${newStatus}'`);
     }
 
     return this.prisma.pettyCashRequest.update({

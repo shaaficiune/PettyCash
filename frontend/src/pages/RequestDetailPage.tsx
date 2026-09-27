@@ -78,10 +78,12 @@ export const RequestDetailPage: React.FC = () => {
     );
   }
 
-  // Submit Accountant Review
-  const handleReview = async (status: 'APPROVED' | 'REJECTED' | 'CORRECTION_REQUIRED') => {
+  // Submit Accountant/CFO Review
+  // ACCOUNTANT_REVIEW = Stage 1 forward to CFO | APPROVED = Stage 2 final
+  const handleReview = async (status: 'APPROVED' | 'REJECTED' | 'CORRECTION_REQUIRED' | 'ACCOUNTANT_REVIEW') => {
     try {
       setError(null);
+      // Only validate amount for final APPROVED action (Stage 2)
       if (status === 'APPROVED') {
         const parsedAmount = parseFloat(approvedAmountOverride);
         if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -96,10 +98,10 @@ export const RequestDetailPage: React.FC = () => {
       await api.post(`/requests/${id}/review`, {
         status,
         comments: actionComments,
-        approvedAmount: status === 'APPROVED' ? parseFloat(approvedAmountOverride) : undefined
+        approvedAmount: status === 'APPROVED' ? parseFloat(approvedAmountOverride) : undefined,
       });
       setActionComments('');
-      loadRequestDetails();
+      await loadRequestDetails(); // await so UI is fresh before re-render
     } catch (err: any) {
       setError(err.response?.data?.message || 'Review action failed');
     }
