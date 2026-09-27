@@ -84,10 +84,13 @@ export class AuditLogInterceptor implements NestInterceptor {
   }
 
   private sanitizeBody(body: any): any {
-    if (!body) return null;
+    if (!body || typeof body !== 'object') return null;
     const sanitized = { ...body };
-    if (sanitized.password) sanitized.password = '********';
-    if (sanitized.newPassword) sanitized.newPassword = '********';
+    for (const key of Object.keys(sanitized)) {
+      if (/password/i.test(key) || key === 'token' || key === 'refreshToken') {
+        sanitized[key] = '********';
+      }
+    }
     return sanitized;
   }
 }

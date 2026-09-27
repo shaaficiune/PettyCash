@@ -23,7 +23,7 @@ npm install
 # 3. Apply any new schema changes to the existing database
 echo "🗄️  [3/5] Applying database schema changes..."
 npx prisma generate
-npx prisma db push --accept-data-loss
+npx prisma db push
 
 # 4. Build backend
 echo "🔨 [4/5] Building backend..."

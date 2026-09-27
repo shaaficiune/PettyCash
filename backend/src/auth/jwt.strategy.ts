@@ -7,10 +7,16 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly prisma: PrismaService) {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret && process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is not defined in production!');
+    }
+    const secretOrKey = jwtSecret || 'somtel_bluekom_petty_cash_secret_key_2026_jwt';
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'somtel_bluekom_petty_cash_secret_key_2026_jwt',
+      secretOrKey,
     });
   }
 

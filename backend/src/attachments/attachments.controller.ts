@@ -40,8 +40,21 @@ export class AttachmentsController {
       fileFilter: (req, file, cb) => {
         // Allowed formats
         const allowedExtensions = ['.pdf', '.docx', '.xlsx', '.png', '.jpg', '.jpeg'];
+        const allowedMimeTypes = [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'image/png',
+          'image/jpeg',
+          'image/pjpeg',
+          'application/octet-stream',
+        ];
         const ext = extname(file.originalname).toLowerCase();
-        if (allowedExtensions.includes(ext)) {
+        const mime = file.mimetype?.toLowerCase();
+
+        if (allowedExtensions.includes(ext) && (allowedMimeTypes.includes(mime) || !mime)) {
           cb(null, true);
         } else {
           cb(new BadRequestException(`Unsupported file format. Allowed types: ${allowedExtensions.join(', ')}`), false);

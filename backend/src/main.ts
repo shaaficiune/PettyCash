@@ -6,8 +6,13 @@ import helmet from 'helmet';
 import * as express from 'express';
 import { join } from 'path';
 
+import { NestExpressApplication } from '@nestjs/platform-express';
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Trust proxy for accurate client IP detection behind Cloudflare Tunnel & Nginx
+  app.set('trust proxy', 1);
 
   // Global prefix
   app.setGlobalPrefix('api');
@@ -26,6 +31,8 @@ async function bootstrap() {
     'http://localhost:80',
     'http://localhost:3000',
     'http://localhost:5173',
+    'https://pettycash.bluekompl.com',
+    'http://pettycash.bluekompl.com',
   ];
   const allowedOrigins = allowedOriginsEnv
     ? allowedOriginsEnv.split(',').map((o) => o.trim())
@@ -39,8 +46,11 @@ async function bootstrap() {
         process.env.NODE_ENV !== 'production' ||
         allowedOrigins.includes('*') ||
         allowedOrigins.includes(origin) ||
-        origin.startsWith('http://localhost') ||
-        origin.startsWith('https://localhost')
+        origin === 'http://localhost' ||
+        origin === 'https://localhost' ||
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('https://localhost:') ||
+        origin.startsWith('http://127.0.0.1:')
       ) {
         return callback(null, true);
       }

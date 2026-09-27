@@ -17,7 +17,7 @@ export class ChangePasswordDto {
 
   @IsNotEmpty({ message: 'New password is required' })
   @IsString()
-  @MinLength(6, { message: 'New password must be at least 6 characters' })
+  @MinLength(8, { message: 'New password must be at least 8 characters' })
   newPassword: string;
 }
 
@@ -28,13 +28,13 @@ export class ResetPasswordDto {
 
   @IsNotEmpty({ message: 'New temporary password is required' })
   @IsString()
-  @MinLength(6, { message: 'Password must be at least 6 characters' })
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
   newPassword: string;
 }
 
 export class FirstLoginResetDto {
   @IsNotEmpty({ message: 'New password is required' })
   @IsString()
-  @MinLength(6, { message: 'Password must be at least 6 characters' })
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
   newPassword: string;
 }

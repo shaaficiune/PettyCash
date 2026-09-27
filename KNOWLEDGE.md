@@ -80,7 +80,8 @@ d:\Petty Cash App\          ← Root workspace (Windows local dev)
 ### Server Setup (Critical — Read Carefully)
 - **Server OS:** Ubuntu (running inside VirtualBox on a local Windows machine)
 - **No external IP used** — everything runs on `localhost` internally
-- **Access method:** Cloudflare Tunnel connects the Ubuntu VM to the internet
+- **Production Domain:** `pettycash.bluekompl.com` (HTTPS via Cloudflare Tunnel)
+- **Access method:** Cloudflare Tunnel connects the Ubuntu VM to the internet (`pettycash.bluekompl.com`)
 - **VirtualBox networking:** NAT or Bridged Adapter (no SSH from outside)
 - **Git clone folder:** App was cloned into `~/app` (home directory, subfolder named `app`)
 
@@ -233,11 +234,21 @@ DRAFT → PENDING_APPROVAL → APPROVED → PAYMENT_PROCESSING → PAID → COMP
 | Disabled user blocking | JWT validation checks `status === ACTIVE` on every request |
 | Role enforcement | `@Roles()` decorator + `RolesGuard` on all protected routes |
 | Data isolation | Employees see only their own data; cross-tenant access blocked |
-| File upload safety | Whitelist extensions + 20MB limit + unique filenames |
+| File upload safety | Whitelist extensions + **MIME-type double-check** + 20MB limit + unique filenames |
 | Security headers | Helmet.js enabled |
-| CORS | Locked to `ALLOWED_ORIGINS` in production |
+| CORS | Locked to `ALLOWED_ORIGINS` + **exact localhost matching** (no prefix bypass) |
 | Input validation | NestJS `ValidationPipe` with `whitelist: true` |
 | Swagger | Disabled in production (`ENABLE_SWAGGER=false`) |
+| **Login rate limiting** | `@Throttle(10 req/min)` on `/api/auth/login` per real client IP |
+| **Trust Proxy** | `app.set('trust proxy', 1)` — reads real IP via Cloudflare CF-Connecting-IP |
+| **Audit log sanitization** | All `password*`, `token`, `refreshToken` fields auto-masked as `********` in AuditLog |
+| **Admin account immutability** | Backend guard: `admin` account can never be DISABLED via API |
+| **JWT_SECRET enforcement** | `jwt.strategy.ts` throws fatal error if JWT_SECRET missing in production |
+| **Progressive lockout** | 5 failures→1h lock→5 more→6h lock→5 more→account DISABLED (**in progress**) |
+| **Production domain** | `https://pettycash.bluekompl.com` (Cloudflare Tunnel, HTTPS at edge) |
+| **Password min length** | `@MinLength(8)` enforced on all password-change/reset endpoints |
+| **Safe deploy** | `update-server.sh` uses `prisma db push` without `--accept-data-loss` |
+
 
 ---
 
@@ -396,14 +407,54 @@ pm2 restart petty-cash-backend
 
 1. **`psql -U postgres -f database_dump.sql` FAILS** — Use `node scripts/import-data.js` instead. Reason: local PG v18 ≠ server PG version, plus server uses `petty_user` not `postgres`.
 
-2. **Server has NO external IP** — VirtualBox Ubuntu uses localhost internally. Cloudflare Tunnel provides the public URL. There's no direct SSH from outside.
+2. **Server has NO external IP** — VirtualBox Ubuntu uses localhost internally. Cloudflare Tunnel (`pettycash.bluekompl.com`) provides the public URL. No direct SSH from outside.
 
 3. **`pettyCashFund` uses `(prisma as any)`** — TypeScript types lag behind schema for some models. Intentional workaround, don't remove the casts.
 
 4. **Swagger disabled in production** — Temporarily enable with `ENABLE_SWAGGER=true` in `.env` if debugging is needed. Disable again after.
 
-5. **`enable-admin.js`** — Debug script, excluded from git. Only needed if admin account gets accidentally disabled via database.
+5. **`enable-admin.js`** — Debug script, excluded from git. Only needed if admin account gets accidentally disabled directly in the database.
 
 6. **`setup.sh` uses `CURRENT_DIR=$(pwd)`** — Must be run from inside the `~/app` directory. Nginx root path is set dynamically from where the script is run.
 
 7. **`database_dump.sql` is in git** — This was a mistake (kept for reference only). Always prefer `scripts/data/*.json` files for data restoration.
+
+8. **`prisma generate` may fail on Windows while `npm start` is running** — The query engine DLL is locked by the running process. Either stop the backend first, or let `update-server.sh` handle it on the Ubuntu server (PM2 restarts after generate).
+
+9. **Progressive lockout columns need `prisma db push` on server** — The 3 new columns (`failedLoginAttempts`, `lockoutUntil`, `lockoutStage`) added to the `User` model are safe additive columns with defaults. They will be applied automatically on next `bash update-server.sh`.
+
+---
+
+## 11. 🔒 PROGRESSIVE LOCKOUT FEATURE (2026-09-27)
+
+### Overview
+After a security audit, a **Progressive Account Lockout Policy** was designed and is being implemented to protect against brute-force / credential stuffing attacks.
+
+### Lockout Rules
+| Stage | Trigger | Action | Duration |
+|-------|---------|--------|----------|
+| Stage 0 | Normal | No lockout | — |
+| Stage 1 | 5 consecutive wrong passwords | Account locked | **1 hour** |
+| Stage 2 | 5 more wrong passwords after Stage 1 expires | Account locked | **6 hours** |
+| Stage 3 | 5 more wrong passwords after Stage 2 expires | Account **DISABLED** | Permanent (Admin must re-enable) |
+
+### Counter Reset Rule
+A **successful login at any stage** resets `failedLoginAttempts = 0`, `lockoutStage = 0`, and `lockoutUntil = null`.
+
+### Admin Immunity
+The `admin` account (username: `admin`) is **NEVER permanently disabled** by lockout. It can reach Stage 1 and Stage 2 temporary lockouts, but Stage 3 DISABLED is skipped for the primary admin to prevent denial-of-service against the system.
+
+### Admin Unlock
+When an Admin resets a user's password (`POST /users/:id/reset-password`), the lockout state is automatically cleared (`failedLoginAttempts = 0`, `lockoutUntil = null`, `lockoutStage = 0`).
+
+### New Database Columns (User model)
+```prisma
+failedLoginAttempts  Int       @default(0)   // resets on successful login
+lockoutUntil         DateTime?               // null = not locked
+lockoutStage         Int       @default(0)   // 0=none 1=1h 2=6h 3=DISABLED
+```
+
+### Files Affected
+- `backend/prisma/schema.prisma` — 3 new columns
+- `backend/src/auth/auth.service.ts` — login() lockout logic
+- `backend/src/users/users.service.ts` — resetPassword() clears lockout

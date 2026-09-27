@@ -136,7 +136,12 @@ export class UsersService {
     if (dto.jobTitle !== undefined) data.jobTitle = dto.jobTitle;
     if (dto.departmentId) data.departmentId = dto.departmentId;
     if (dto.regionId !== undefined) data.regionId = dto.regionId || null;
-    if (dto.status) data.status = dto.status;
+    if (dto.status) {
+      if (user.username === 'admin' && dto.status === 'DISABLED') {
+        throw new BadRequestException('The primary admin account cannot be disabled');
+      }
+      data.status = dto.status;
+    }
 
     if (dto.role) {
       const roleObj = await this.prisma.role.findUnique({
@@ -177,6 +182,12 @@ export class UsersService {
       data: {
         passwordHash,
         resetPasswordRequired: true,
+        // Clear all lockout state — admin reset unlocks the account
+        failedLoginAttempts: 0,
+        lockoutUntil: null,
+        lockoutStage: 0,
+        // Re-enable account if it was permanently disabled by lockout
+        status: 'ACTIVE',
       },
     });
 
