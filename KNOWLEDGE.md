@@ -311,13 +311,17 @@ DRAFT → PENDING_APPROVAL → APPROVED → PAYMENT_PROCESSING → PAID → COMP
 - [x] Requests list: Region column (replaced Department), searchable by region
 - [x] Sidebar profile card: clickable → navigates to User Management (Admin)
 - [x] Somtel/Bluekom brand theming (CSS custom properties)
-- [x] User Directory: Filter by Company, Role, Status, **Region**
+- [x] User Directory: Filter by Company, Role, Status, **Region** (grouped by Company via `<optgroup>`)
+- [x] Request List: Region filter grouped by Company (`<optgroup>`) to easily differentiate duplicate region names (e.g. Nugaal Somtel vs Nugaal Bluekom)
 
-### Reporting
-- [x] Request List: Date range filter, Region filter, Status/Priority filter
+### Reporting & Filtering (Updated 2026-09-27)
+- [x] Request List: Single select dropdown for Date filtering, defaulted to **Today** (presets: Today, This Week, This Month, Custom Date Range, All Time)
+- [x] Request List: Region filter, Status filter, Priority filter on a unified sleek toolbar
 - [x] Request List: Export Excel (server-side) + Export PDF (print view)
 - [x] Request List columns: Date, Employee, Receiver/Merchant, Category, Region, Amount, Status
 - [x] Transaction Ledger: Descending order (newest first), Date column
+- [x] Payment Details & Disbursement: Clearly displays Receiver/Beneficiary Name and Account/Phone Number submitted in request (clean UI, removed 'None' fallbacks)
+- [x] Two-Stage Review Lifecycle: Employee (Draft/Pending) → Accountant Review (`ACCOUNTANT_REVIEW`) → CFO/Finance Approval (`APPROVED`) → Payment Disbursement (`PAID`)
 
 ---
 
