@@ -670,6 +670,8 @@ export const UserManagementPage: React.FC = () => {
                         </tr>
                       ) : (
                         filteredUsers.map((u) => {
+                          const isSomtel = u.company?.name === 'Somtel';
+                          const isBluekom = u.company?.name === 'Bluekom';
                           return (
                             <tr
                               key={u.id}
@@ -908,6 +910,8 @@ export const UserManagementPage: React.FC = () => {
                 {regions
                   .filter(r => !regionCompanyFilter || r.companyId === regionCompanyFilter || r.company?.id === regionCompanyFilter)
                   .map((region) => {
+                  const isSomtel = region.company?.name === 'Somtel';
+                  const isBluekom = region.company?.name === 'Bluekom';
                   return (
                     <tr key={region.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-200">
@@ -1029,6 +1033,8 @@ export const UserManagementPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
                   {regions.map((r) => {
+                    const isSomtel = r.company?.name === 'Somtel';
+                    const isBluekom = r.company?.name === 'Bluekom';
                     return (
                       <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="py-4 px-6">
@@ -1151,6 +1157,8 @@ export const UserManagementPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
                   {budgetHeads.map((bh) => {
+                    const isSomtel = bh.company?.name === 'Somtel';
+                    const isBluekom = bh.company?.name === 'Bluekom';
                     return (
                       <tr key={bh.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="py-4 px-6">
