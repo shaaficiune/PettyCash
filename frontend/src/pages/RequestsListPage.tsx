@@ -2,18 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Plus, Filter, FileSpreadsheet, Eye } from 'lucide-react';
+import { Search, Plus, Filter, FileSpreadsheet, Printer, Eye, Calendar, MapPin } from 'lucide-react';
 
 export const RequestsListPage: React.FC = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [requests, setRequests] = useState<any[]>([]);
+  const [regions, setRegions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page] = useState(1);
-  const [pageSize] = useState(20);
+  const [pageSize] = useState(50);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [regionFilter, setRegionFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     const urlStatus = searchParams.get('status');
@@ -22,6 +26,16 @@ export const RequestsListPage: React.FC = () => {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    // Load regions for filter dropdown
+    const compFilter = sessionStorage.getItem('companyFilter') || 'ALL';
+    const params: any = {};
+    if (compFilter !== 'ALL') params.companyId = compFilter;
+    api.get('/companies/regions', { params })
+      .then(res => setRegions(res.data || []))
+      .catch(() => console.error('Failed to load regions'));
+  }, []);
+
   const loadRequests = async () => {
     setLoading(true);
     try {
@@ -29,13 +43,15 @@ export const RequestsListPage: React.FC = () => {
       const params: any = { page, pageSize };
       if (companyFilter !== 'ALL') params.companyId = companyFilter;
       if (statusFilter) params.status = statusFilter;
+      if (regionFilter) params.regionId = regionFilter;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
 
       const res = await api.get('/requests', { params });
       const data = res.data;
       if (data && data.items) {
         setRequests(data.items);
       } else {
-        // fallback to older shape
         setRequests(data || []);
       }
     } catch (e) {
@@ -51,58 +67,92 @@ export const RequestsListPage: React.FC = () => {
     return () => {
       window.removeEventListener('companyFilterChanged', loadRequests);
     };
-  }, [statusFilter]);
+  }, [statusFilter, regionFilter, startDate, endDate]);
 
   useEffect(() => {
     loadRequests();
   }, [page]);
 
-  const handleExportCSV = async () => {
+  const handleExportExcel = async () => {
     try {
       const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
       const params: any = {};
       if (companyFilter !== 'ALL') params.companyId = companyFilter;
-      const res = await api.get('/reports/export-csv', { params, responseType: 'blob' });
-      const blob = new Blob([res.data], { type: 'text/csv' });
+      if (regionFilter) params.regionId = regionFilter;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const res = await api.get('/reports/export-excel', { params, responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'application/vnd.ms-excel' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'petty_cash_requests_export.csv';
+      a.download = `petty_cash_requests_${new Date().toISOString().slice(0, 10)}.xls`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      console.error('Export failed', e);
+      console.error('Excel Export failed', e);
     }
   };
 
-  // Filter client-side by search and priority (to optimize queries)
+  const handleExportPdf = () => {
+    const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
+    const params = new URLSearchParams();
+    if (companyFilter !== 'ALL') params.append('companyId', companyFilter);
+    if (regionFilter) params.append('regionId', regionFilter);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    const token = localStorage.getItem('accessToken');
+    const pdfUrl = `${api.defaults.baseURL || '/api'}/reports/export-pdf?${params.toString()}`;
+    
+    // Open printable HTML window
+    const printWindow = window.open(pdfUrl, '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to view and print the PDF report.');
+    }
+  };
+
+  // Filter client-side by search and priority
   const filteredRequests = requests.filter(req => {
-    const matchSearch = req.requestNumber.toLowerCase().includes(search.toLowerCase()) ||
-                        req.purpose.toLowerCase().includes(search.toLowerCase()) ||
-                        (req.user?.fullName && req.user.fullName.toLowerCase().includes(search.toLowerCase())) ||
-                        (req.region?.name && req.region.name.toLowerCase().includes(search.toLowerCase()));
+    const s = search.toLowerCase();
+    const matchSearch =
+      req.requestNumber.toLowerCase().includes(s) ||
+      req.purpose.toLowerCase().includes(s) ||
+      (req.user?.fullName && req.user.fullName.toLowerCase().includes(s)) ||
+      (req.region?.name && req.region.name.toLowerCase().includes(s)) ||
+      (req.receiverName && req.receiverName.toLowerCase().includes(s)) ||
+      (req.receiverPhone && req.receiverPhone.toLowerCase().includes(s));
     const matchPriority = priorityFilter ? req.priority === priorityFilter : true;
     return matchSearch && matchPriority;
   });
 
   return (
     <div className="space-y-3 font-sans">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-baseline gap-2 min-w-0">
           <h2 className="text-base font-bold text-slate-800 dark:text-white whitespace-nowrap leading-none">Petty Cash Requests</h2>
           <span className="hidden sm:inline text-slate-300 dark:text-slate-600 text-xs">·</span>
           <p className="hidden sm:block text-[11px] text-slate-400 truncate">Employee petty cash requests</p>
         </div>
         
-        <div className="flex gap-2 shrink-0">
+        <div className="flex flex-wrap gap-2 shrink-0">
           <button
-            onClick={handleExportCSV}
-            className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
+            onClick={handleExportExcel}
+            className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
           >
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-            Export CSV
+            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            Export Excel
+          </button>
+
+          <button
+            onClick={handleExportPdf}
+            className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+          >
+            <Printer className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+            Export PDF
           </button>
           
           {user?.role === 'EMPLOYEE' && (
@@ -121,51 +171,112 @@ export const RequestsListPage: React.FC = () => {
       </div>
 
       {/* FILTER HUB */}
-      <div className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm flex flex-col md:flex-row gap-2 items-center transition-colors">
-        <div className="relative flex-1 w-full">
-          <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-            <Search className="h-4 w-4" />
-          </span>
-          <input
-            type="text"
-            placeholder="Search by #, purpose, employee, or region..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
-          />
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
-          <div className="flex items-center gap-2 flex-1 md:flex-initial">
-            <Filter className="h-3.5 w-3.5 text-slate-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
-            >
-              <option value="">All Statuses</option>
-              <option value="DRAFT">Draft</option>
-              <option value="PENDING_APPROVAL">Pending Approval</option>
-              <option value="CORRECTION_REQUIRED">Correction Required</option>
-              <option value="APPROVED">Approved</option>
-              <option value="PAID">Paid</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="REJECTED">Rejected</option>
-            </select>
+      <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm flex flex-col gap-2.5 transition-colors">
+        <div className="flex flex-col md:flex-row gap-2 items-center">
+          <div className="relative flex-1 w-full">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+              <Search className="h-4 w-4" />
+            </span>
+            <input
+              type="text"
+              placeholder="Search by #, purpose, receiver, employee, region..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+            />
           </div>
 
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full md:w-32"
-          >
-            <option value="">All Priorities</option>
-            <option value="LOW">Low</option>
-            <option value="NORMAL">Normal</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
-            <option value="URGENT">Urgent</option>
-          </select>
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full md:w-auto shrink-0">
+            {/* Region Filter */}
+            <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
+              <MapPin className="h-3.5 w-3.5 text-slate-400" />
+              <select
+                value={regionFilter}
+                onChange={(e) => setRegionFilter(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
+              >
+                <option value="">All Regions</option>
+                {regions.map((reg) => (
+                  <option key={reg.id} value={reg.id}>{reg.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
+              <Filter className="h-3.5 w-3.5 text-slate-400" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
+              >
+                <option value="">All Statuses</option>
+                <option value="DRAFT">Draft</option>
+                <option value="PENDING_APPROVAL">Pending Approval (Accountant)</option>
+                <option value="ACCOUNTANT_REVIEW">Accountant Reviewed (CFO)</option>
+                <option value="CORRECTION_REQUIRED">Correction Required</option>
+                <option value="APPROVED">Approved</option>
+                <option value="PAID">Paid</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="REJECTED">Rejected</option>
+              </select>
+            </div>
+
+            {/* Priority Filter */}
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full sm:w-28"
+            >
+              <option value="">All Priorities</option>
+              <option value="LOW">Low</option>
+              <option value="NORMAL">Normal</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="URGENT">Urgent</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Date Filter Row */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-500">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-slate-400" />
+            <span className="font-semibold text-slate-600 dark:text-slate-400">Date Range:</span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="text-[11px] text-slate-400">From:</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-2 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+            />
+
+            <label className="text-[11px] text-slate-400">To:</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-2 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+            />
+
+            {(startDate || endDate || regionFilter || statusFilter || priorityFilter) && (
+              <button
+                onClick={() => {
+                  setStartDate('');
+                  setEndDate('');
+                  setRegionFilter('');
+                  setStatusFilter('');
+                  setPriorityFilter('');
+                }}
+                className="text-[11px] text-primary hover:underline font-semibold ml-2 cursor-pointer"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -181,20 +292,22 @@ export const RequestsListPage: React.FC = () => {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
-                  <th className="py-3.5 px-6">Request #</th>
-                  <th className="py-3.5 px-4">Employee</th>
-                  <th className="py-3.5 px-4 hidden md:table-cell">Region</th>
-                  <th className="py-3.5 px-4 hidden sm:table-cell">Request Date</th>
-                  <th className="py-3.5 px-4">Amount</th>
-                  <th className="py-3.5 px-4 hidden lg:table-cell">Priority</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-6 text-center">Action</th>
+                  <th className="py-3 px-4">Request #</th>
+                  <th className="py-3 px-3">Date</th>
+                  <th className="py-3 px-4">Employee</th>
+                  <th className="py-3 px-4">Receiver / Merchant</th>
+                  <th className="py-3 px-3 hidden md:table-cell">Region</th>
+                  <th className="py-3 px-3 hidden lg:table-cell">Category</th>
+                  <th className="py-3 px-3">Amount</th>
+                  <th className="py-3 px-3 hidden xl:table-cell">Priority</th>
+                  <th className="py-3 px-3">Status</th>
+                  <th className="py-3 px-4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRequests.length === 0 ? (
                   <tr className="border-l-4 border-l-transparent">
-                    <td colSpan={8} className="text-center py-12 text-sm text-slate-400">
+                    <td colSpan={10} className="text-center py-12 text-sm text-slate-400">
                       No requests found matching your filters
                     </td>
                   </tr>
@@ -213,35 +326,50 @@ export const RequestsListPage: React.FC = () => {
                         key={req.id}
                         className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}
                       >
-                        <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-200">
+                        <td className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">
                           {req.requestNumber}
                         </td>
-                      <td className="py-4 px-4">
-                        <div>
-                          <p className="font-medium text-slate-800 dark:text-slate-200">{req.user?.fullName}</p>
-                          <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                            req.company.name === 'Somtel' ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20' : 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                          }`}>
-                            {req.company.name}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-slate-500 dark:text-slate-400 hidden md:table-cell">
-                        {req.region?.name ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-                            {req.region.name}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-xs">—</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4 text-slate-500 dark:text-slate-400 hidden sm:table-cell">
-                        {new Date(req.requiredDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </td>
-                      <td className="py-4 px-4 font-bold text-slate-800 dark:text-slate-100">
-                        {req.currency} {Number(req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-4 px-4 hidden lg:table-cell">
+                        <td className="py-3 px-3 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">
+                          {new Date(req.requestDate || req.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div>
+                            <p className="font-medium text-slate-800 dark:text-slate-200">{req.user?.fullName}</p>
+                            <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                              req.company.name === 'Somtel' ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20' : 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+                            }`}>
+                              {req.company.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          {req.receiverName ? (
+                            <div>
+                              <p className="font-medium text-slate-800 dark:text-slate-200 text-xs">{req.receiverName}</p>
+                              {req.receiverPhone && (
+                                <p className="text-[11px] text-slate-400 font-mono">{req.receiverPhone}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-slate-500 dark:text-slate-400 hidden md:table-cell">
+                          {req.region?.name ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                              {req.region.name}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-slate-600 dark:text-slate-400 hidden lg:table-cell text-xs">
+                          {req.budgetHead ? `${req.budgetHead.code} – ${req.budgetHead.name}` : (req.requestType || '—')}
+                        </td>
+                        <td className="py-3 px-3 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                          {req.currency} {Number(req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-3 hidden xl:table-cell">
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded border ${
                           req.priority === 'URGENT' || req.priority === 'HIGH' ? 'bg-rose-50 text-rose-700 border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40' :
                           req.priority === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40' :

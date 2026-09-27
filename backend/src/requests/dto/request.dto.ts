@@ -61,6 +61,14 @@ export class CreateRequestDto {
 
   @IsOptional()
   @IsString()
+  receiverName?: string;
+
+  @IsOptional()
+  @IsString()
+  receiverPhone?: string;
+
+  @IsOptional()
+  @IsString()
   invoiceNumber?: string;
 
   @IsOptional()
@@ -133,6 +141,14 @@ export class UpdateRequestDto {
   @IsOptional()
   @IsString()
   vendorName?: string;
+
+  @IsOptional()
+  @IsString()
+  receiverName?: string;
+
+  @IsOptional()
+  @IsString()
+  receiverPhone?: string;
 
   @IsOptional()
   @IsString()

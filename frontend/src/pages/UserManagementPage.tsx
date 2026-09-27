@@ -15,6 +15,7 @@ export const UserManagementPage: React.FC = () => {
   const [userCompanyFilter, setUserCompanyFilter] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('');
   const [userStatusFilter, setUserStatusFilter] = useState('');
+  const [userRegionFilter, setUserRegionFilter] = useState('');
 
   // Form Fields
   const [fullName, setFullName] = useState('');
@@ -32,6 +33,7 @@ export const UserManagementPage: React.FC = () => {
 
   // Regions state
   const [regions, setRegions] = useState<any[]>([]);
+  const [regionCompanyFilter, setRegionCompanyFilter] = useState('');
   const [regionFormOpen, setRegionFormOpen] = useState(false);
   const [newRegionName, setNewRegionName] = useState('');
   const [newRegionCompanyId, setNewRegionCompanyId] = useState('');
@@ -358,6 +360,9 @@ export const UserManagementPage: React.FC = () => {
     if (userStatusFilter && u.status !== userStatusFilter) {
       return false;
     }
+    if (userRegionFilter && u.region?.id !== userRegionFilter) {
+      return false;
+    }
     return true;
   });
 
@@ -603,6 +608,17 @@ export const UserManagementPage: React.FC = () => {
                   <option value="ACTIVE">Active</option>
                   <option value="DISABLED">Disabled</option>
                 </select>
+
+                <select
+                  value={userRegionFilter}
+                  onChange={(e) => setUserRegionFilter(e.target.value)}
+                  className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer w-full md:w-32"
+                >
+                  <option value="">All Regions</option>
+                  {regions
+                    .filter(r => !userCompanyFilter || r.companyId === userCompanyFilter)
+                    .map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
               </div>
             </div>
 
@@ -844,12 +860,26 @@ export const UserManagementPage: React.FC = () => {
       {/* TAB: Region Budgets */}
       {activeTab === 'budgets' && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
-          <div className="p-5 border-b border-slate-200/60 dark:border-slate-800">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
-              Region Monthly Budgets
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Monthly spending limits by operating region</p>
+          <div className="p-4 sm:p-5 border-b border-slate-200/60 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                Region Monthly Budgets
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">Monthly spending limits by operating region</p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5 text-slate-400" />
+              <select
+                value={regionCompanyFilter}
+                onChange={(e) => setRegionCompanyFilter(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1 text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="">All Companies</option>
+                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -864,7 +894,9 @@ export const UserManagementPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {regions.map((region) => {
+                {regions
+                  .filter(r => !regionCompanyFilter || r.companyId === regionCompanyFilter || r.company?.id === regionCompanyFilter)
+                  .map((region) => {
                   const isSomtel = region.company?.name === 'Somtel';
                   const isBluekom = region.company?.name === 'Bluekom';
                   const rowClass = isSomtel

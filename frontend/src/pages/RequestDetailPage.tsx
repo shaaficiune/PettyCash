@@ -221,6 +221,16 @@ export const RequestDetailPage: React.FC = () => {
             </div>
 
             <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400">Receiver / Merchant Details</span>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mt-1">
+                {request.receiverName || 'Not specified'}
+              </p>
+              {request.receiverPhone && (
+                <p className="text-xs text-slate-500 font-mono mt-0.5">Phone / ID: {request.receiverPhone}</p>
+              )}
+            </div>
+
+            <div>
               <span className="text-[10px] uppercase font-bold text-slate-400">Purpose</span>
               <p className="text-sm font-medium text-slate-800 dark:text-slate-200 mt-1">{request.purpose}</p>
             </div>
@@ -315,10 +325,17 @@ export const RequestDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ACCOUNTANT APPROVAL DRAWER */}
-      {isAccountant && request.status === 'PENDING_APPROVAL' && (
+      {/* 2-STAGE APPROVAL DRAWER */}
+      {isAccountant && (request.status === 'PENDING_APPROVAL' || request.status === 'ACCOUNTANT_REVIEW') && (
         <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md space-y-4 transition-colors">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Review &amp; Approval</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              {request.status === 'PENDING_APPROVAL' ? 'Stage 1: Accountant Review' : 'Stage 2: Finance / CFO Final Approval'}
+            </h3>
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary">
+              {request.status === 'PENDING_APPROVAL' ? 'Awaiting Accountant' : 'Awaiting CFO'}
+            </span>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -372,11 +389,11 @@ export const RequestDetailPage: React.FC = () => {
               Reject Request
             </button>
             <button
-              onClick={() => handleReview('APPROVED')}
+              onClick={() => handleReview(request.status === 'PENDING_APPROVAL' ? 'ACCOUNTANT_REVIEW' : 'APPROVED')}
               className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
             >
               <ShieldCheck className="h-4 w-4" />
-              Approve Request
+              {request.status === 'PENDING_APPROVAL' ? 'Approve (Forward to CFO)' : 'Final Approve (Ready for Payment)'}
             </button>
           </div>
         </div>

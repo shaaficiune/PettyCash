@@ -244,7 +244,7 @@ DRAFT → PENDING_APPROVAL → APPROVED → PAYMENT_PROCESSING → PAID → COMP
 | **Audit log sanitization** | All `password*`, `token`, `refreshToken` fields auto-masked as `********` in AuditLog |
 | **Admin account immutability** | Backend guard: `admin` account can never be DISABLED via API |
 | **JWT_SECRET enforcement** | `jwt.strategy.ts` throws fatal error if JWT_SECRET missing in production |
-| **Progressive lockout** | 5 failures→1h lock→5 more→6h lock→5 more→account DISABLED (**in progress**) |
+| **Progressive lockout** | 5 failures→1h lock→5 more→6h lock→5 more→account DISABLED (Active) |
 | **Production domain** | `https://pettycash.bluekompl.com` (Cloudflare Tunnel, HTTPS at edge) |
 | **Password min length** | `@MinLength(8)` enforced on all password-change/reset endpoints |
 | **Safe deploy** | `update-server.sh` uses `prisma db push` without `--accept-data-loss` |

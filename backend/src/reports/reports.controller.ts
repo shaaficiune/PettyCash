@@ -49,13 +49,50 @@ export class ReportsController {
     return this.reportsService.getAuditLogs();
   }
 
-  @Get('export-csv')
-  @Header('Content-Type', 'text/csv')
-  @Header('Content-Disposition', 'attachment; filename="petty_cash_requests_export.csv"')
-  @ApiOperation({ summary: 'Download comma-separated CSV log sheet of requests' })
-  async exportCsv(@Request() req, @Response() res, @Query('companyId') companyId?: string) {
+  @Get('export-excel')
+  @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  @Header('Content-Disposition', 'attachment; filename="petty_cash_requests_export.xlsx"')
+  @ApiOperation({ summary: 'Download Excel spreadsheet of petty cash requests' })
+  async exportExcel(
+    @Request() req,
+    @Response() res,
+    @Query('companyId') companyId?: string,
+    @Query('regionId') regionId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
     const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
-    const csvContent = await this.reportsService.exportRequests(req.user, targetCompanyId);
-    return res.status(200).send(csvContent);
+    const excelXml = await this.reportsService.exportRequestsExcel(
+      req.user,
+      targetCompanyId,
+      regionId,
+      startDate,
+      endDate
+    );
+    res.setHeader('Content-Type', 'application/vnd.ms-excel');
+    res.setHeader('Content-Disposition', 'attachment; filename="petty_cash_requests.xls"');
+    return res.status(200).send(excelXml);
+  }
+
+  @Get('export-pdf')
+  @ApiOperation({ summary: 'Generate printable HTML/PDF report of petty cash requests' })
+  async exportPdf(
+    @Request() req,
+    @Response() res,
+    @Query('companyId') companyId?: string,
+    @Query('regionId') regionId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
+    const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
+    const htmlReport = await this.reportsService.exportRequestsPdfHtml(
+      req.user,
+      targetCompanyId,
+      regionId,
+      startDate,
+      endDate
+    );
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(htmlReport);
   }
 }

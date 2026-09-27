@@ -110,6 +110,10 @@ export class RequestsService {
         regionId: dto.regionId || null,
         budgetHeadId: dto.budgetHeadId || null,
         costCenter: dto.costCenter || null,
+        vendorName: dto.vendorName || null,
+        receiverName: dto.receiverName || null,
+        receiverPhone: dto.receiverPhone || null,
+        invoiceNumber: dto.invoiceNumber || null,
         purpose: dto.purpose,
         description: dto.description || '',
         requestedAmount: dto.requestedAmount,
@@ -147,7 +151,17 @@ export class RequestsService {
     return request;
   }
 
-  async findAll(user: any, companyId?: string, status?: RequestStatus, priority?: Priority, page = 1, pageSize = 20) {
+  async findAll(
+    user: any,
+    companyId?: string,
+    status?: RequestStatus,
+    priority?: Priority,
+    regionId?: string,
+    startDate?: string,
+    endDate?: string,
+    page = 1,
+    pageSize = 20
+  ) {
     const where: any = {};
 
     // Enforce data isolation: Employees only see their own requests
@@ -163,6 +177,20 @@ export class RequestsService {
 
     if (status) where.status = status;
     if (priority) where.priority = priority;
+    if (regionId) where.regionId = regionId;
+
+    if (startDate || endDate) {
+      where.requestDate = {};
+      if (startDate) {
+        where.requestDate.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Include until the end of that day
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.requestDate.lte = end;
+      }
+    }
 
     const total = await this.prisma.pettyCashRequest.count({ where });
     const items = await this.prisma.pettyCashRequest.findMany({
@@ -245,6 +273,10 @@ export class RequestsService {
     if (dto.regionId !== undefined) data.regionId = dto.regionId || null;
     if (dto.budgetHeadId !== undefined) data.budgetHeadId = dto.budgetHeadId || null;
     if (dto.costCenter !== undefined) data.costCenter = dto.costCenter || null;
+    if (dto.vendorName !== undefined) data.vendorName = dto.vendorName || null;
+    if (dto.receiverName !== undefined) data.receiverName = dto.receiverName || null;
+    if (dto.receiverPhone !== undefined) data.receiverPhone = dto.receiverPhone || null;
+    if (dto.invoiceNumber !== undefined) data.invoiceNumber = dto.invoiceNumber || null;
     if (dto.purpose !== undefined) data.purpose = dto.purpose;
     if (dto.description !== undefined) data.description = dto.description || '';
     if (dto.requestedAmount !== undefined) {
@@ -354,7 +386,7 @@ export class RequestsService {
     return { success: true, message: 'Request deleted successfully' };
   }
 
-  async review(id: string, accountantId: string, dto: ReviewRequestDto) {
+  async review(id: string, reviewerId: string, reviewerRole: string, dto: ReviewRequestDto) {
     const request = await this.prisma.pettyCashRequest.findUnique({
       where: { id },
     });
@@ -363,35 +395,20 @@ export class RequestsService {
       throw new NotFoundException('Request not found');
     }
 
-    if (request.status !== RequestStatus.PENDING_APPROVAL) {
+    const isPendingFirstStage = request.status === RequestStatus.PENDING_APPROVAL;
+    const isPendingSecondStage = request.status === RequestStatus.ACCOUNTANT_REVIEW;
+
+    if (!isPendingFirstStage && !isPendingSecondStage) {
       throw new BadRequestException('Request is not in a reviewable state');
     }
 
-    const data: any = {
-      status: dto.status,
-    };
+    const data: any = {};
 
-    if (dto.status === RequestStatus.APPROVED) {
-      data.approvedAmount = dto.approvedAmount !== undefined ? dto.approvedAmount : request.requestedAmount;
-      if (Number(data.approvedAmount) > 50) {
-        throw new BadRequestException('Approved amount cannot exceed the maximum petty cash limit of $50.');
-      }
-      // Reserve approved amount in petty cash fund; will throw if insufficient
-      await this.fundsService.recordApproval(request.companyId, Number(data.approvedAmount));
-      // After accountant approval, status moves to approved
-      // In the workflow, it can skip straight to approved or PAYMENT_PROCESSING
-      // approved -> payment processing is standard. Let's make it APPROVED.
+    // Rejection or Correction can happen at either stage
+    if (dto.status === RequestStatus.REJECTED) {
+      data.status = RequestStatus.REJECTED;
+      data.correctionNotes = dto.comments || `Rejected by ${reviewerRole}`;
       
-      // Notify employee
-      await this.notifications.create(
-        request.userId,
-        `Request Approved: ${request.requestNumber}`,
-        `Your petty cash request ${request.requestNumber} has been approved for ${request.currency} ${data.approvedAmount}.`
-      );
-    } else if (dto.status === RequestStatus.REJECTED) {
-      data.correctionNotes = dto.comments || 'Rejected by Accountant';
-      
-      // Notify employee
       await this.notifications.create(
         request.userId,
         `Request Rejected: ${request.requestNumber}`,
@@ -401,12 +418,46 @@ export class RequestsService {
       data.status = RequestStatus.CORRECTION_REQUIRED;
       data.correctionNotes = dto.comments || 'Correction required';
       
-      // Notify employee
       await this.notifications.create(
         request.userId,
         `Correction Required: ${request.requestNumber}`,
         `Correction requested for ${request.requestNumber}. Comments: ${dto.comments || 'No comment'}`
       );
+    } else if (dto.status === RequestStatus.ACCOUNTANT_REVIEW || (isPendingFirstStage && dto.status === RequestStatus.APPROVED && reviewerRole === RoleName.ACCOUNTANT)) {
+      // Stage 1: Accountant review passed -> moves to ACCOUNTANT_REVIEW for CFO/Finance final approval
+      data.status = RequestStatus.ACCOUNTANT_REVIEW;
+      if (dto.approvedAmount !== undefined) {
+        if (Number(dto.approvedAmount) > 50) {
+          throw new BadRequestException('Approved amount cannot exceed the maximum petty cash limit of $50.');
+        }
+        data.approvedAmount = dto.approvedAmount;
+      }
+
+      await this.notifications.create(
+        request.userId,
+        `Accountant Reviewed: ${request.requestNumber}`,
+        `Your petty cash request ${request.requestNumber} was reviewed by the Accountant and is now awaiting Finance/CFO Approval.`
+      );
+    } else if (dto.status === RequestStatus.APPROVED) {
+      // Stage 2: Final approval by CFO / Super Admin
+      data.status = RequestStatus.APPROVED;
+      data.approvedAmount = dto.approvedAmount !== undefined ? dto.approvedAmount : (request.approvedAmount || request.requestedAmount);
+      
+      if (Number(data.approvedAmount) > 50) {
+        throw new BadRequestException('Approved amount cannot exceed the maximum petty cash limit of $50.');
+      }
+
+      // Reserve approved amount in petty cash fund; will throw if insufficient
+      await this.fundsService.recordApproval(request.companyId, Number(data.approvedAmount));
+
+      // Notify employee
+      await this.notifications.create(
+        request.userId,
+        `Request Approved: ${request.requestNumber}`,
+        `Your petty cash request ${request.requestNumber} has received final approval for ${request.currency} ${data.approvedAmount}.`
+      );
+    } else {
+      throw new BadRequestException('Invalid status transition');
     }
 
     return this.prisma.pettyCashRequest.update({

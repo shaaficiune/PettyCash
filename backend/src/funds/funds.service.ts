@@ -413,7 +413,7 @@ export class FundsService {
         employee: { select: { fullName: true, phone: true } },
         request: { select: { requestNumber: true, purpose: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
       skip: (page - 1) * pageSize,
       take: pageSize,
     });

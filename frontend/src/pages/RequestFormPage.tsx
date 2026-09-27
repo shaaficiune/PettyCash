@@ -16,6 +16,8 @@ export const RequestFormPage: React.FC = () => {
   const [currency, setCurrency] = useState('USD');
   const [priority, setPriority] = useState('NORMAL');
   const [requiredDate, setRequiredDate] = useState(() => new Date().toISOString().substring(0, 10));
+  const [receiverName, setReceiverName] = useState('');
+  const [receiverPhone, setReceiverPhone] = useState('');
   const [projectId, setProjectId] = useState('');
   const [budgetHeadId, setBudgetHeadId] = useState('');
   
@@ -74,6 +76,8 @@ export const RequestFormPage: React.FC = () => {
           setRequiredDate(req.requiredDate.substring(0, 10));
           setProjectId(req.projectId || '');
           setBudgetHeadId(req.budgetHeadId || '');
+          setReceiverName(req.receiverName || '');
+          setReceiverPhone(req.receiverPhone || '');
           setAttachments(req.attachments || []);
         })
         .catch(err => {
@@ -156,6 +160,8 @@ export const RequestFormPage: React.FC = () => {
       projectId: projectId || undefined,
       regionId: userRegionId,
       budgetHeadId: budgetHeadId || undefined,
+      receiverName: receiverName.trim() || undefined,
+      receiverPhone: receiverPhone.trim() || undefined,
       purpose,
       description,
       requestedAmount: requestedNum,
@@ -364,6 +370,30 @@ export const RequestFormPage: React.FC = () => {
                   <option key={proj.id} value={proj.id}>{proj.name}</option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Receiver / Beneficiary Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Ali Ahmed / Hotel / Vendor"
+                value={receiverName}
+                onChange={(e) => setReceiverName(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Receiver Phone / Merchant Number</label>
+              <input
+                type="text"
+                placeholder="e.g. 061XXXXXXX or Merchant Till ID"
+                value={receiverPhone}
+                onChange={(e) => setReceiverPhone(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+              />
             </div>
           </div>
 

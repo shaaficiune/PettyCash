@@ -33,12 +33,25 @@ export class RequestsController {
     @Query('companyId') companyId?: string,
     @Query('status') status?: RequestStatus,
     @Query('priority') priority?: string,
+    @Query('regionId') regionId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('page') page = '1',
     @Query('pageSize') pageSize = '20'
   ) {
     const pageNum = parseInt(page as any, 10) || 1;
     const size = parseInt(pageSize as any, 10) || 20;
-    return this.requestsService.findAll(req.user, companyId, status, priority as any, pageNum, size);
+    return this.requestsService.findAll(
+      req.user,
+      companyId,
+      status,
+      priority as any,
+      regionId,
+      startDate,
+      endDate,
+      pageNum,
+      size
+    );
   }
 
   @Get(':id')
@@ -64,6 +77,6 @@ export class RequestsController {
   @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
   @ApiOperation({ summary: 'Approve, reject, or request correction on a petty cash request' })
   async review(@Param('id') id: string, @Request() req, @Body() dto: ReviewRequestDto) {
-    return this.requestsService.review(id, req.user.userId, dto);
+    return this.requestsService.review(id, req.user.userId, req.user.role, dto);
   }
 }

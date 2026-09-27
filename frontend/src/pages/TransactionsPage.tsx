@@ -150,8 +150,8 @@ export const TransactionsPage: React.FC = () => {
                     : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40 border-l-4 border-l-transparent';
                   return (
                     <tr key={t.id} className={`transition-colors ${rowClass}`}>
-                      <td className="py-4 px-6 whitespace-nowrap text-slate-500 dark:text-slate-400">
-                        {new Date(t.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                      <td className="py-4 px-6 whitespace-nowrap text-slate-600 dark:text-slate-300 font-semibold text-xs">
+                        {new Date(t.date || t.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
                       <td className="py-4 px-4 whitespace-nowrap">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${

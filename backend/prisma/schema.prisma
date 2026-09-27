@@ -232,6 +232,8 @@ model PettyCashRequest {
   costCenter      String?
   requestType     RequestType   @default(OTHER)
   vendorName      String?
+  receiverName    String?
+  receiverPhone   String?
   invoiceNumber   String?
   invoiceDate     DateTime?
   remarks         String?
