@@ -14,7 +14,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const secretOrKey = jwtSecret || 'somtel_bluekom_petty_cash_secret_key_2026_jwt';
 
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        ExtractJwt.fromUrlQueryParameter('token'),
+      ]),
       ignoreExpiration: false,
       secretOrKey,
     });

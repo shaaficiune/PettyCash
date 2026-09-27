@@ -196,7 +196,7 @@ export const RequestsListPage: React.FC = () => {
         <div className="flex items-baseline gap-2 min-w-0">
           <h2 className="text-base font-bold text-slate-800 dark:text-white whitespace-nowrap leading-none">Petty Cash Requests</h2>
           <span className="hidden sm:inline text-slate-300 dark:text-slate-600 text-xs">·</span>
-          <p className="hidden sm:block text-[11px] text-slate-400 truncate">Employee petty cash requests</p>
+          <p className="hidden sm:block text-[11px] text-slate-400 truncate">Manage and review petty cash requests</p>
         </div>
         
         <div className="flex flex-wrap gap-2 shrink-0">
@@ -240,7 +240,7 @@ export const RequestsListPage: React.FC = () => {
             </span>
             <input
               type="text"
-              placeholder="Search by #, purpose, receiver, employee, region..."
+              placeholder="Search requests..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
@@ -383,22 +383,22 @@ export const RequestsListPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider">
                   <th className="py-3 px-4">Request #</th>
                   <th className="py-3 px-3">Date</th>
                   <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Receiver / Merchant</th>
+                  <th className="py-3 px-4">Beneficiary</th>
                   <th className="py-3 px-3 hidden md:table-cell">Region</th>
                   <th className="py-3 px-3 hidden lg:table-cell">Category</th>
-                  <th className="py-3 px-3">Amount</th>
+                  <th className="py-3 px-3 text-right">Amount</th>
                   <th className="py-3 px-3 hidden xl:table-cell">Priority</th>
-                  <th className="py-3 px-3">Status</th>
+                  <th className="py-3 px-3 text-center">Status</th>
                   <th className="py-3 px-4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRequests.length === 0 ? (
-                  <tr className="border-l-4 border-l-transparent">
+                  <tr>
                     <td colSpan={10} className="text-center py-12 text-sm text-slate-400">
                       <div>No requests found matching your filters</div>
                       {datePreset === 'TODAY' && (
@@ -414,18 +414,10 @@ export const RequestsListPage: React.FC = () => {
                   </tr>
                 ) : (
                   filteredRequests.map((req) => {
-                    const isSomtel = req.company?.name === 'Somtel';
-                    const isBluekom = req.company?.name === 'Bluekom';
-                    const rowClass = isSomtel
-                      ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
-                      : isBluekom
-                      ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
-                      : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
-
                     return (
                       <tr
                         key={req.id}
-                        className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}
+                        className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                       >
                         <td className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">
                           {req.requestNumber}

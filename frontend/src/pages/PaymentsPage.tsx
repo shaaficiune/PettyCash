@@ -54,7 +54,7 @@ export const PaymentsPage: React.FC = () => {
               <input placeholder="User ID" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
-              <button onClick={() => loadPayments(1)} className="px-4 py-1.5 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer transition-all flex-1 sm:flex-initial text-center" style={{ backgroundColor: '#E8A020' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor='#D4911A')} onMouseLeave={e => (e.currentTarget.style.backgroundColor='#E8A020')}>Filter</button>
+              <button onClick={() => loadPayments(1)} className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer transition-all flex-1 sm:flex-initial text-center">Filter</button>
               <button onClick={() => exportCsv()} className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer transition-all flex-1 sm:flex-initial text-center">Export CSV</button>
             </div>
           </div>
@@ -68,8 +68,8 @@ export const PaymentsPage: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
+              <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                <tr>
                   <th className="py-3.5 px-6">Request #</th>
                   <th className="py-3.5 px-4 hidden sm:table-cell">Company</th>
                   <th className="py-3.5 px-4">Amount</th>
@@ -79,17 +79,12 @@ export const PaymentsPage: React.FC = () => {
                   <th className="py-3.5 px-6">Ref / Txn</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
                 {payments.map((p) => {
                   const isSomtel = p.request?.company?.name === 'Somtel';
                   const isBluekom = p.request?.company?.name === 'Bluekom';
-                  const rowClass = isSomtel
-                    ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
-                    : isBluekom
-                    ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
-                    : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
                   return (
-                    <tr key={p.id} className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}>
+                    <tr key={p.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-200">
                         <Link to={`/requests/${p.request?.id}`} className="hover:underline text-primary">{p.request?.requestNumber}</Link>
                       </td>

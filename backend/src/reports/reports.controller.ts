@@ -22,7 +22,7 @@ export class ReportsController {
   }
 
   @Get('breakdowns')
-  @ApiOperation({ summary: 'Get allocations and splits breakdown by department, company, employee' })
+  @ApiOperation({ summary: 'Get allocations and splits breakdown by region, company, employee' })
   async getExpenseBreakdowns(
     @Request() req,
     @Query('companyId') companyId?: string,
@@ -95,6 +95,81 @@ export class ReportsController {
     return res.status(200).send(excelXml);
   }
 
+  @Get('region-budget-heads')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get Region × Budget Head expenditure matrix (uses Region.monthlyBudget as cap)' })
+  async getRegionBudgetHeadReport(
+    @Request() req,
+    @Query('companyId') companyId?: string,
+    @Query('regionId') regionId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('statusScope') statusScope?: string
+  ) {
+    const targetCompanyId = req.user.role === RoleName.SUPER_ADMIN ? companyId : req.user.companyId;
+    return this.reportsService.getRegionBudgetHeadReport(
+      req.user,
+      targetCompanyId,
+      regionId,
+      startDate,
+      endDate,
+      statusScope
+    );
+  }
+
+  @Get('region-budget-heads/daily')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Daily spend trend per company/region for chart visualization' })
+  async getRegionBudgetHeadDaily(
+    @Request() req,
+    @Query('companyId') companyId?: string,
+    @Query('regionId') regionId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('statusScope') statusScope?: string
+  ) {
+    const targetCompanyId = req.user.role === RoleName.SUPER_ADMIN ? companyId : req.user.companyId;
+    return this.reportsService.getRegionBudgetHeadDaily(
+      req.user,
+      targetCompanyId,
+      regionId,
+      startDate,
+      endDate,
+      statusScope
+    );
+  }
+
+  @Get('table')
+  @ApiOperation({ summary: 'Get paginated tabular requests report with dashboard KPIs' })
+  async getTableReport(
+    @Request() req,
+    @Query('companyId') companyId?: string,
+    @Query('regionId') regionId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('status') status?: string,
+    @Query('budgetHeadId') budgetHeadId?: string,
+    @Query('search') search?: string,
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize: string = '25'
+  ) {
+    const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
+    return this.reportsService.getRequestsTableReport(
+      req.user,
+      targetCompanyId,
+      regionId,
+      startDate,
+      endDate,
+      status,
+      budgetHeadId,
+      search,
+      parseInt(page, 10) || 1,
+      parseInt(pageSize, 10) || 25
+    );
+  }
+
   @Get('export-excel')
   @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   @Header('Content-Disposition', 'attachment; filename="petty_cash_requests_export.xlsx"')
@@ -105,7 +180,10 @@ export class ReportsController {
     @Query('companyId') companyId?: string,
     @Query('regionId') regionId?: string,
     @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string
+    @Query('endDate') endDate?: string,
+    @Query('status') status?: string,
+    @Query('budgetHeadId') budgetHeadId?: string,
+    @Query('search') search?: string
   ) {
     const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
     const excelXml = await this.reportsService.exportRequestsExcel(
@@ -113,7 +191,10 @@ export class ReportsController {
       targetCompanyId,
       regionId,
       startDate,
-      endDate
+      endDate,
+      status,
+      budgetHeadId,
+      search
     );
     res.setHeader('Content-Type', 'application/vnd.ms-excel');
     res.setHeader('Content-Disposition', 'attachment; filename="petty_cash_requests.xls"');
@@ -128,7 +209,10 @@ export class ReportsController {
     @Query('companyId') companyId?: string,
     @Query('regionId') regionId?: string,
     @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string
+    @Query('endDate') endDate?: string,
+    @Query('status') status?: string,
+    @Query('budgetHeadId') budgetHeadId?: string,
+    @Query('search') search?: string
   ) {
     const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
     const htmlReport = await this.reportsService.exportRequestsPdfHtml(
@@ -136,7 +220,10 @@ export class ReportsController {
       targetCompanyId,
       regionId,
       startDate,
-      endDate
+      endDate,
+      status,
+      budgetHeadId,
+      search
     );
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.status(200).send(htmlReport);

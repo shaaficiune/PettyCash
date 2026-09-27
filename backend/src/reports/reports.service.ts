@@ -168,7 +168,7 @@ export class ReportsService {
       include: {
         user: { select: { fullName: true, phone: true } },
         company: { select: { name: true } },
-        department: { select: { name: true } },
+        region: { select: { name: true } },
       },
       orderBy: { createdAt: 'asc' },
       take: 20,
@@ -190,20 +190,20 @@ export class ReportsService {
     const requests = await this.prisma.pettyCashRequest.findMany({
       where,
       include: {
-        department: { select: { name: true } },
+        region: { select: { name: true } },
         company: { select: { name: true } },
         user: { select: { fullName: true } },
       },
     });
 
-    const departmentBreakdown: Record<string, number> = {};
+    const regionBreakdown: Record<string, number> = {};
     const companyBreakdown: Record<string, number> = {};
     const employeeBreakdown: Record<string, number> = {};
 
     requests.forEach(r => {
       const amount = Number(r.approvedAmount || r.requestedAmount || 0);
-      const deptName = r.department.name;
-      departmentBreakdown[deptName] = (departmentBreakdown[deptName] || 0) + amount;
+      const regName = r.region?.name || 'Unassigned';
+      regionBreakdown[regName] = (regionBreakdown[regName] || 0) + amount;
       const compName = r.company.name;
       companyBreakdown[compName] = (companyBreakdown[compName] || 0) + amount;
       const empName = r.user.fullName;
@@ -211,7 +211,7 @@ export class ReportsService {
     });
 
     return {
-      department: Object.entries(departmentBreakdown).map(([name, value]) => ({ name, value })),
+      region: Object.entries(regionBreakdown).map(([name, value]) => ({ name, value })),
       company: Object.entries(companyBreakdown).map(([name, value]) => ({ name, value })),
       employee: Object.entries(employeeBreakdown).map(([name, value]) => ({ name, value })),
     };
@@ -240,16 +240,36 @@ export class ReportsService {
     return [headerRow, ...rows].join('\n');
   }
 
-  private buildExportWhere(user: any, companyId?: string, regionId?: string, startDate?: string, endDate?: string) {
+  private buildExportWhere(
+    user: any,
+    companyId?: string,
+    regionId?: string,
+    startDate?: string,
+    endDate?: string,
+    status?: string,
+    budgetHeadId?: string,
+    search?: string
+  ) {
     const where: any = {};
     if (user.role === RoleName.EMPLOYEE) {
       where.userId = user.userId;
       where.companyId = user.companyId;
-    } else if (companyId) {
+    } else if (companyId && companyId !== 'ALL') {
       where.companyId = companyId;
     }
 
-    if (regionId) where.regionId = regionId;
+    if (regionId && regionId !== 'ALL') where.regionId = regionId;
+    if (budgetHeadId && budgetHeadId !== 'ALL') where.budgetHeadId = budgetHeadId;
+
+    if (status && status !== 'ALL') {
+      if (status === 'PAID_ONLY') {
+        where.status = { in: [RequestStatus.PAID, RequestStatus.COMPLETED] };
+      } else if (status === 'APPROVED_AND_PAID') {
+        where.status = { in: [RequestStatus.APPROVED, RequestStatus.PAYMENT_PROCESSING, RequestStatus.PAID, RequestStatus.COMPLETED] };
+      } else {
+        where.status = status;
+      }
+    }
 
     if (startDate || endDate) {
       where.requestDate = {};
@@ -265,18 +285,139 @@ export class ReportsService {
       }
     }
 
+    if (search && search.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { requestNumber: { contains: q, mode: 'insensitive' } },
+        { purpose: { contains: q, mode: 'insensitive' } },
+        { receiverName: { contains: q, mode: 'insensitive' } },
+        { user: { fullName: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
+
     return where;
   }
 
-  async exportRequestsExcel(user: any, companyId?: string, regionId?: string, startDate?: string, endDate?: string): Promise<string> {
-    const where = this.buildExportWhere(user, companyId, regionId, startDate, endDate);
+  async getRequestsTableReport(
+    user: any,
+    companyId?: string,
+    regionId?: string,
+    startDate?: string,
+    endDate?: string,
+    status?: string,
+    budgetHeadId?: string,
+    search?: string,
+    page: number = 1,
+    pageSize: number = 25
+  ) {
+    const where = this.buildExportWhere(user, companyId, regionId, startDate, endDate, status, budgetHeadId, search);
+
+    const allFiltered = await this.prisma.pettyCashRequest.findMany({
+      where,
+      select: {
+        requestedAmount: true,
+        approvedAmount: true,
+        status: true,
+        company: { select: { name: true } },
+      },
+    });
+
+    let totalRequested = 0;
+    let totalDisbursed = 0;
+    let somtelSpent = 0;
+    let bluekomSpent = 0;
+    let paidCount = 0;
+    let pendingCount = 0;
+
+    allFiltered.forEach((r) => {
+      const reqAmt = Number(r.requestedAmount || 0);
+      const appAmt = Number(r.approvedAmount || 0);
+      totalRequested += reqAmt;
+      const isPaid = r.status === RequestStatus.PAID || r.status === RequestStatus.COMPLETED;
+      const amountUsed = isPaid ? (appAmt || reqAmt) : appAmt;
+      if (isPaid) {
+        totalDisbursed += amountUsed;
+        paidCount++;
+        const cName = r.company?.name?.toLowerCase() || '';
+        if (cName.includes('somtel')) {
+          somtelSpent += amountUsed;
+        } else {
+          bluekomSpent += amountUsed;
+        }
+      }
+      if (r.status === RequestStatus.PENDING_APPROVAL || r.status === RequestStatus.ACCOUNTANT_REVIEW) {
+        pendingCount++;
+      }
+    });
+
+    const totalCount = allFiltered.length;
+    const safePage = Math.max(1, page);
+    const safePageSize = Math.max(1, Math.min(100, pageSize));
+    const skip = (safePage - 1) * safePageSize;
+
+    const items = await this.prisma.pettyCashRequest.findMany({
+      where,
+      include: {
+        user: { select: { fullName: true, username: true } },
+        company: { select: { id: true, name: true } },
+        region: { select: { id: true, name: true, monthlyBudget: true } },
+        budgetHead: { select: { id: true, name: true, code: true } },
+      },
+      orderBy: { requestDate: 'desc' },
+      skip,
+      take: safePageSize,
+    });
+
+    return {
+      summary: {
+        totalCount,
+        totalRequested: Number(totalRequested.toFixed(2)),
+        totalDisbursed: Number(totalDisbursed.toFixed(2)),
+        somtelSpent: Number(somtelSpent.toFixed(2)),
+        bluekomSpent: Number(bluekomSpent.toFixed(2)),
+        paidCount,
+        pendingCount,
+      },
+      total: totalCount,
+      page: safePage,
+      pageSize: safePageSize,
+      totalPages: Math.ceil(totalCount / safePageSize) || 1,
+      items: items.map((item) => ({
+        id: item.id,
+        requestNumber: item.requestNumber,
+        requestDate: item.requestDate,
+        purpose: item.purpose,
+        employeeName: item.user?.fullName || 'Unknown',
+        receiverName: item.receiverName,
+        companyName: item.company?.name || '-',
+        regionName: item.region?.name || '-',
+        budgetHeadName: item.budgetHead?.name || item.requestType || '-',
+        budgetHeadCode: item.budgetHead?.code || '',
+        requestedAmount: Number(item.requestedAmount),
+        approvedAmount: item.approvedAmount ? Number(item.approvedAmount) : null,
+        currency: item.currency,
+        status: item.status,
+      })),
+    };
+  }
+
+  async exportRequestsExcel(
+    user: any,
+    companyId?: string,
+    regionId?: string,
+    startDate?: string,
+    endDate?: string,
+    status?: string,
+    budgetHeadId?: string,
+    search?: string
+  ): Promise<string> {
+    const where = this.buildExportWhere(user, companyId, regionId, startDate, endDate, status, budgetHeadId, search);
 
     const requests = await this.prisma.pettyCashRequest.findMany({
       where,
       include: {
         user: { select: { fullName: true, phone: true } },
         company: { select: { name: true } },
-        department: { select: { name: true } },
         region: { select: { name: true } },
         budgetHead: { select: { name: true, code: true } },
       },
@@ -292,7 +433,6 @@ export class ReportsService {
         <Cell><Data ss:Type="String">${r.receiverName || '-'}</Data></Cell>
         <Cell><Data ss:Type="String">${r.receiverPhone || '-'}</Data></Cell>
         <Cell><Data ss:Type="String">${r.company.name}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.department.name}</Data></Cell>
         <Cell><Data ss:Type="String">${r.region?.name || '-'}</Data></Cell>
         <Cell><Data ss:Type="String">${r.budgetHead ? `${r.budgetHead.code} - ${r.budgetHead.name}` : (r.requestType || '-')}</Data></Cell>
         <Cell><Data ss:Type="String">${r.purpose.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Data></Cell>
@@ -325,7 +465,6 @@ export class ReportsService {
     <Cell><Data ss:Type="String">Receiver</Data></Cell>
     <Cell><Data ss:Type="String">Receiver Phone</Data></Cell>
     <Cell><Data ss:Type="String">Company</Data></Cell>
-    <Cell><Data ss:Type="String">Department</Data></Cell>
     <Cell><Data ss:Type="String">Region</Data></Cell>
     <Cell><Data ss:Type="String">Category</Data></Cell>
     <Cell><Data ss:Type="String">Purpose</Data></Cell>
@@ -341,15 +480,23 @@ export class ReportsService {
 </Workbook>`;
   }
 
-  async exportRequestsPdfHtml(user: any, companyId?: string, regionId?: string, startDate?: string, endDate?: string): Promise<string> {
-    const where = this.buildExportWhere(user, companyId, regionId, startDate, endDate);
+  async exportRequestsPdfHtml(
+    user: any,
+    companyId?: string,
+    regionId?: string,
+    startDate?: string,
+    endDate?: string,
+    status?: string,
+    budgetHeadId?: string,
+    search?: string
+  ): Promise<string> {
+    const where = this.buildExportWhere(user, companyId, regionId, startDate, endDate, status, budgetHeadId, search);
 
     const requests = await this.prisma.pettyCashRequest.findMany({
       where,
       include: {
         user: { select: { fullName: true, phone: true } },
         company: { select: { name: true } },
-        department: { select: { name: true } },
         region: { select: { name: true } },
         budgetHead: { select: { name: true, code: true } },
       },
@@ -741,6 +888,308 @@ export class ReportsService {
   </table>
 </body>
 </html>`;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Region × Budget Head Matrix Report
+  // Budget cap = Region.monthlyBudget (the enforced regional limit)
+  // ─────────────────────────────────────────────────────────────────────────
+  async getRegionBudgetHeadReport(
+    user: any,
+    companyId?: string,
+    regionId?: string,
+    startDate?: string,
+    endDate?: string,
+    statusScope: string = 'PAID_ONLY'
+  ) {
+    // Build region filter
+    const regionWhere: any = {};
+    if (user.role === RoleName.EMPLOYEE) {
+      regionWhere.companyId = user.companyId;
+    } else if (companyId) {
+      regionWhere.companyId = companyId;
+    }
+    if (regionId) regionWhere.id = regionId;
+
+    const regions = await this.prisma.region.findMany({
+      where: { ...regionWhere, status: 'ACTIVE' },
+      include: { company: { select: { id: true, name: true } } },
+      orderBy: [{ company: { name: 'asc' } }, { name: 'asc' }],
+    });
+
+    // Budget heads (all unique names across visible companies)
+    const bhWhere: any = {};
+    if (user.role === RoleName.EMPLOYEE) bhWhere.companyId = user.companyId;
+    else if (companyId) bhWhere.companyId = companyId;
+
+    const allBudgetHeads = await this.prisma.budgetHead.findMany({
+      where: bhWhere,
+      orderBy: { name: 'asc' },
+    });
+
+    // Unique category names (deduped across companies)
+    const categoryNames: string[] = [];
+    allBudgetHeads.forEach((bh) => {
+      if (!categoryNames.includes(bh.name)) categoryNames.push(bh.name);
+    });
+    categoryNames.sort();
+
+    // Build request filter
+    const reqWhere: any = {};
+    if (user.role === RoleName.EMPLOYEE) {
+      reqWhere.userId = user.userId;
+      reqWhere.companyId = user.companyId;
+    } else if (companyId) {
+      reqWhere.companyId = companyId;
+    }
+    if (regionId) reqWhere.regionId = regionId;
+
+    if (statusScope === 'APPROVED_AND_PAID') {
+      reqWhere.status = {
+        in: [RequestStatus.APPROVED, RequestStatus.PAYMENT_PROCESSING, RequestStatus.PAID, RequestStatus.COMPLETED],
+      };
+    } else {
+      reqWhere.status = { in: [RequestStatus.PAID, RequestStatus.COMPLETED] };
+    }
+
+    if (startDate || endDate) {
+      reqWhere.requestDate = {};
+      if (startDate) {
+        const s = new Date(startDate); s.setHours(0, 0, 0, 0);
+        reqWhere.requestDate.gte = s;
+      }
+      if (endDate) {
+        const e = new Date(endDate); e.setHours(23, 59, 59, 999);
+        reqWhere.requestDate.lte = e;
+      }
+    }
+
+    const requests = await this.prisma.pettyCashRequest.findMany({
+      where: reqWhere,
+      select: {
+        id: true,
+        requestNumber: true,
+        purpose: true,
+        approvedAmount: true,
+        requestedAmount: true,
+        status: true,
+        requestDate: true,
+        regionId: true,
+        companyId: true,
+        budgetHeadId: true,
+        user: { select: { fullName: true } },
+        receiverName: true,
+      },
+    });
+
+    // Index budget heads by id → name
+    const bhById: Record<string, string> = {};
+    allBudgetHeads.forEach((bh) => { bhById[bh.id] = bh.name; });
+
+    // Build per-region map
+    type RegionRow = {
+      regionId: string;
+      regionName: string;
+      companyId: string;
+      companyName: string;
+      regionBudget: number;
+      totalSpent: number;
+      byCategory: Record<string, { spent: number; count: number; requests: any[] }>;
+    };
+
+    const rowMap: Record<string, RegionRow> = {};
+    regions.forEach((r) => {
+      const emptyCategories: Record<string, { spent: number; count: number; requests: any[] }> = {};
+      categoryNames.forEach((cat) => {
+        emptyCategories[cat] = { spent: 0, count: 0, requests: [] };
+      });
+      emptyCategories['Uncategorized'] = { spent: 0, count: 0, requests: [] };
+
+      rowMap[r.id] = {
+        regionId: r.id,
+        regionName: r.name,
+        companyId: r.company.id,
+        companyName: r.company.name,
+        regionBudget: Number(r.monthlyBudget || 0),
+        totalSpent: 0,
+        byCategory: emptyCategories,
+      };
+    });
+
+    let grandSomtel = 0;
+    let grandBluekom = 0;
+
+    requests.forEach((req) => {
+      if (!req.regionId || !rowMap[req.regionId]) return; // skip if region not in scope
+      const amount = Number(req.approvedAmount || req.requestedAmount || 0);
+      const catName = req.budgetHeadId && bhById[req.budgetHeadId] ? bhById[req.budgetHeadId] : 'Uncategorized';
+      const row = rowMap[req.regionId];
+
+      if (!row.byCategory[catName]) {
+        row.byCategory[catName] = { spent: 0, count: 0, requests: [] };
+      }
+      row.byCategory[catName].spent += amount;
+      row.byCategory[catName].count += 1;
+      row.byCategory[catName].requests.push({
+        id: req.id,
+        requestNumber: req.requestNumber,
+        purpose: req.purpose,
+        amount,
+        status: req.status,
+        date: req.requestDate,
+        employee: req.user?.fullName,
+        receiver: req.receiverName,
+      });
+      row.totalSpent += amount;
+
+      const compName = row.companyName.toLowerCase();
+      if (compName.includes('somtel')) grandSomtel += amount;
+      else grandBluekom += amount;
+    });
+
+    const rows = Object.values(rowMap).map((row) => {
+      const pct = row.regionBudget > 0 ? (row.totalSpent / row.regionBudget) * 100 : 0;
+      let status: 'SAFE' | 'WARNING' | 'EXCEEDED' = 'SAFE';
+      if (pct >= 100) status = 'EXCEEDED';
+      else if (pct >= 80) status = 'WARNING';
+
+      // Serialize byCategory (drop requests for summary, keep counts)
+      const byCategorySummary: Record<string, { spent: number; count: number }> = {};
+      const byCategoryFull: Record<string, { spent: number; count: number; requests: any[] }> = {};
+      Object.entries(row.byCategory).forEach(([cat, data]) => {
+        byCategorySummary[cat] = { spent: Number(data.spent.toFixed(2)), count: data.count };
+        byCategoryFull[cat] = {
+          spent: Number(data.spent.toFixed(2)),
+          count: data.count,
+          requests: data.requests,
+        };
+      });
+
+      return {
+        regionId: row.regionId,
+        regionName: row.regionName,
+        companyId: row.companyId,
+        companyName: row.companyName,
+        regionBudget: row.regionBudget,
+        totalSpent: Number(row.totalSpent.toFixed(2)),
+        remainingBudget: Number(Math.max(0, row.regionBudget - row.totalSpent).toFixed(2)),
+        percentageUsed: Number(pct.toFixed(1)),
+        status,
+        byCategory: byCategoryFull,
+      };
+    });
+
+    const grandTotal = grandSomtel + grandBluekom;
+
+    return {
+      period: { startDate: startDate || null, endDate: endDate || null, statusScope },
+      summary: {
+        totalSpent: Number(grandTotal.toFixed(2)),
+        somtelSpent: Number(grandSomtel.toFixed(2)),
+        bluekomSpent: Number(grandBluekom.toFixed(2)),
+      },
+      categoryNames: [...categoryNames, 'Uncategorized'].filter(
+        (cat) => rows.some((r) => r.byCategory[cat]?.count > 0)
+      ),
+      rows,
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Daily Trend Report — spend per day per company
+  // ─────────────────────────────────────────────────────────────────────────
+  async getRegionBudgetHeadDaily(
+    user: any,
+    companyId?: string,
+    regionId?: string,
+    startDate?: string,
+    endDate?: string,
+    statusScope: string = 'PAID_ONLY'
+  ) {
+    const reqWhere: any = {};
+    if (user.role === RoleName.EMPLOYEE) {
+      reqWhere.userId = user.userId;
+      reqWhere.companyId = user.companyId;
+    } else if (companyId) {
+      reqWhere.companyId = companyId;
+    }
+    if (regionId) reqWhere.regionId = regionId;
+
+    if (statusScope === 'APPROVED_AND_PAID') {
+      reqWhere.status = { in: [RequestStatus.APPROVED, RequestStatus.PAYMENT_PROCESSING, RequestStatus.PAID, RequestStatus.COMPLETED] };
+    } else {
+      reqWhere.status = { in: [RequestStatus.PAID, RequestStatus.COMPLETED] };
+    }
+
+    // Default to current month if no dates given
+    const now = new Date();
+    const defaultStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const defaultEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    reqWhere.requestDate = {};
+    if (startDate) {
+      const s = new Date(startDate); s.setHours(0, 0, 0, 0);
+      reqWhere.requestDate.gte = s;
+    } else {
+      reqWhere.requestDate.gte = defaultStart;
+    }
+    if (endDate) {
+      const e = new Date(endDate); e.setHours(23, 59, 59, 999);
+      reqWhere.requestDate.lte = e;
+    } else {
+      reqWhere.requestDate.lte = defaultEnd;
+    }
+
+    const requests = await this.prisma.pettyCashRequest.findMany({
+      where: reqWhere,
+      select: {
+        requestDate: true,
+        approvedAmount: true,
+        requestedAmount: true,
+        companyId: true,
+        regionId: true,
+        company: { select: { name: true } },
+        region: { select: { name: true } },
+      },
+      orderBy: { requestDate: 'asc' },
+    });
+
+    // Group by date string
+    const dayMap: Record<string, { date: string; somtelSpent: number; bluekomSpent: number; totalSpent: number; byRegion: Record<string, { regionName: string; companyName: string; spent: number }> }> = {};
+
+    requests.forEach((req) => {
+      const dateStr = req.requestDate.toISOString().slice(0, 10);
+      const amount = Number(req.approvedAmount || req.requestedAmount || 0);
+      const compName = req.company?.name || '';
+      const isSomtel = compName.toLowerCase().includes('somtel');
+      const regionName = req.region?.name || 'No Region';
+      const regionKey = `${req.regionId || 'none'}-${compName}`;
+
+      if (!dayMap[dateStr]) {
+        dayMap[dateStr] = { date: dateStr, somtelSpent: 0, bluekomSpent: 0, totalSpent: 0, byRegion: {} };
+      }
+      dayMap[dateStr].totalSpent += amount;
+      if (isSomtel) dayMap[dateStr].somtelSpent += amount;
+      else dayMap[dateStr].bluekomSpent += amount;
+
+      if (!dayMap[dateStr].byRegion[regionKey]) {
+        dayMap[dateStr].byRegion[regionKey] = { regionName, companyName: compName, spent: 0 };
+      }
+      dayMap[dateStr].byRegion[regionKey].spent += amount;
+    });
+
+    const days = Object.values(dayMap).map((d) => ({
+      date: d.date,
+      somtelSpent: Number(d.somtelSpent.toFixed(2)),
+      bluekomSpent: Number(d.bluekomSpent.toFixed(2)),
+      totalSpent: Number(d.totalSpent.toFixed(2)),
+      byRegion: Object.values(d.byRegion).map((r) => ({
+        ...r,
+        spent: Number(r.spent.toFixed(2)),
+      })),
+    }));
+
+    return { days };
   }
 
 }

@@ -93,6 +93,13 @@ export class RequestsService {
       throw new BadRequestException('Petty Cash requests cannot exceed $50. For larger amounts, please use the formal procurement process.');
     }
 
+    // Enforce Budget Head is mandatory when submitting for approval (not required for drafts)
+    if (dto.status === RequestStatus.PENDING_APPROVAL && !dto.budgetHeadId) {
+      throw new BadRequestException(
+        'Budget Head is required. Please select a spending category before submitting your request for approval.'
+      );
+    }
+
     // Enforce Region Monthly Budget Limit (only when submitting, not drafting)
     if (dto.regionId && dto.status === RequestStatus.PENDING_APPROVAL) {
       await this.checkRegionBudget(dto.regionId, dto.requestedAmount);
@@ -294,6 +301,14 @@ export class RequestsService {
     const targetStatus = dto.status || request.status;
     const targetRegionId = dto.regionId !== undefined ? dto.regionId : request.regionId;
     const targetAmount = dto.requestedAmount !== undefined ? dto.requestedAmount : Number(request.requestedAmount);
+    const targetBudgetHeadId = dto.budgetHeadId !== undefined ? dto.budgetHeadId : request.budgetHeadId;
+
+    // Enforce Budget Head mandatory when submitting/resubmitting for approval
+    if (targetStatus === RequestStatus.PENDING_APPROVAL && !targetBudgetHeadId) {
+      throw new BadRequestException(
+        'Budget Head is required. Please select a spending category before submitting your request for approval.'
+      );
+    }
 
     if (targetRegionId && targetStatus === RequestStatus.PENDING_APPROVAL) {
       await this.checkRegionBudget(targetRegionId, targetAmount, request.id);

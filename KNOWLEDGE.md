@@ -471,3 +471,35 @@ lockoutStage         Int       @default(0)   // 0=none 1=1h 2=6h 3=DISABLED
 - `backend/src/users/users.service.ts` — resetPassword() clears lockout
 
 > **Status:** ✅ Code complete. Deployed to server via `update-server.sh` which runs `prisma db push` automatically.
+
+---
+
+## 12. 📊 REPORTS OVERHAUL & ENTERPRISE UI STANDARDIZATION (2026-09-27)
+
+### Overview
+1. **Reports Module Modernization:**
+   - Deprecated and removed legacy `Department` references from reports backend services, controllers, database queries, and export formats.
+   - Tied budget and expense reporting to operational **Regions** and **Budget Heads** (aligned with the system's Regional Budget Limits model).
+   - Replaced complex matrix charts with standard enterprise data tables, top summary KPI cards, comprehensive multi-attribute filters (Date range, Company, Region, Budget Head, Status, Min/Max amount), and direct **Excel** (`.xlsx`) and **PDF** export options.
+   - Clean, audit-friendly columns: Date, Request #, Company, Region, Requester, Receiver, Budget Head, Amount, Status, Paid Date.
+
+2. **Enterprise SaaS UI & Consistency Overhaul:**
+   - **Table Theming:** Standardized all table headers across the application (`DashboardPage`, `RequestsListPage`, `TransactionsPage`, `PaymentsPage`, `SettlementsPendingPage`, `UserManagementPage`) to clean enterprise SaaS borders and backgrounds (`bg-slate-50 dark:bg-slate-800/60`, font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400).
+   - **Row Styling:** Removed non-standard thick colored left row borders (`border-l-4 border-l-orange-500` / `border-l-blue-600`) and amber background tints. Company identity is cleanly represented via standard badges/pills in the Company column (Orange for Somtel, Blue for Bluekom).
+   - **Professional Copy & Placeholders:** Replaced verbose AI-generated marketing copy, repetitive subtitles, and wordy input placeholder text with concise, industry-standard developer terminology (`Search requests...`, `Search transactions...`, `Search users...`, `Search records...`, `Expense purpose`, `Additional details (optional)...`).
+   - **Navigation:** Standardized sidebar navigation item label from `System Analytics` to `Reports`.
+
+### Deployment Checklist for Server:
+When pulling changes onto the production Ubuntu server:
+```bash
+cd ~/app  # or repository root
+git pull origin main
+cd backend
+npm run build
+pm2 restart petty-cash-api  # or npm run start:prod
+cd ../frontend
+npm run build
+# Nginx automatically serves the updated dist/ folder
+```
+No database schema changes were required for this update (`prisma db push` not needed, existing data completely safe).
+

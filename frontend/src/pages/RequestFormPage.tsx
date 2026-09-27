@@ -282,7 +282,7 @@ export const RequestFormPage: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Purpose *</label>
               <input
                 type="text"
-                placeholder="Purchase office stationery"
+                placeholder="Expense purpose"
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
@@ -320,16 +320,16 @@ export const RequestFormPage: React.FC = () => {
               {numAmount > 50 && (
                 <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-1.5 flex items-center gap-1">
                   <AlertTriangle className="h-3.5 w-3.5 inline shrink-0" />
-                  Petty Cash requests cannot exceed $50.00. For amounts over $50, please use the procurement process.
+                  Amount exceeds the $50.00 limit.
                 </p>
               )}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Detailed Description</label>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Description</label>
             <textarea
-              placeholder="Provide breakdown justification..."
+              placeholder="Additional details (optional)..."
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -339,7 +339,7 @@ export const RequestFormPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Priority Level</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Priority</label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
@@ -364,7 +364,7 @@ export const RequestFormPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Project (Optional)</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Project</label>
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
@@ -380,10 +380,10 @@ export const RequestFormPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Receiver / Beneficiary Name *</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Beneficiary Name *</label>
               <input
                 type="text"
-                placeholder="e.g. Ali Ahmed / Hotel / Vendor"
+                placeholder="Beneficiary or vendor name"
                 value={receiverName}
                 onChange={(e) => setReceiverName(e.target.value)}
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
@@ -391,10 +391,10 @@ export const RequestFormPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Receiver Account / Phone Number *</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Account / Phone Number *</label>
               <input
                 type="text"
-                placeholder="e.g. 061XXXXXXX or Merchant Till ID"
+                placeholder="Account or phone number"
                 value={receiverPhone}
                 onChange={(e) => setReceiverPhone(e.target.value)}
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
@@ -404,17 +404,26 @@ export const RequestFormPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Budget Head *</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Budget Head <span className="text-rose-500">*</span>
+              </label>
               <select
                 value={budgetHeadId}
                 onChange={(e) => setBudgetHeadId(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none cursor-pointer"
+                className={`w-full bg-slate-50 dark:bg-slate-800/50 border rounded-lg px-3 py-2 text-xs focus:outline-none cursor-pointer transition-all ${
+                  !budgetHeadId
+                    ? 'border-rose-400 dark:border-rose-600 ring-1 ring-rose-400/50 text-slate-400 dark:text-slate-500'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 focus:ring-1 focus:ring-primary focus:border-primary'
+                }`}
               >
-                <option value="">Select Budget Head</option>
+                <option value="">Select spending category...</option>
                 {budgetHeads.map((bh) => (
                   <option key={bh.id} value={bh.id}>{bh.code} – {bh.name}</option>
                 ))}
               </select>
+              {!budgetHeadId && (
+                <p className="text-[10px] text-rose-500 mt-1 font-medium">Required to submit for approval</p>
+              )}
             </div>
 
             {(user as any)?.region?.name && (
@@ -477,9 +486,11 @@ export const RequestFormPage: React.FC = () => {
 
             <button
               type="button"
-              disabled={submitting || (fundAvailability !== null && !fundAvailability.available) || numAmount > 50 || isOverBudget}
+              disabled={submitting || (fundAvailability !== null && !fundAvailability.available) || numAmount > 50 || isOverBudget || !budgetHeadId}
               title={
-                numAmount > 50
+                !budgetHeadId
+                  ? 'Please select a Budget Head before submitting'
+                  : numAmount > 50
                   ? 'Request amount cannot exceed $50.00'
                   : fundAvailability && !fundAvailability.available
                   ? fundAvailability.message

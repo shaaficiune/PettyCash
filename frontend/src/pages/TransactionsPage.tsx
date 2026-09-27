@@ -75,7 +75,7 @@ export const TransactionsPage: React.FC = () => {
           className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer"
         >
           <RefreshCw className="h-4 w-4" />
-          Refresh Ledger
+          Refresh
         </button>
       </div>
 
@@ -87,7 +87,7 @@ export const TransactionsPage: React.FC = () => {
           </span>
           <input
             type="text"
-            placeholder="Search description, reference #..."
+            placeholder="Search transactions..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
@@ -127,15 +127,15 @@ export const TransactionsPage: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#0a2e2e] dark:bg-slate-950">
-                <tr className="border-l-4 border-l-transparent">
-                  <th className="py-3.5 px-6 text-[11px] font-bold uppercase tracking-wider text-white whitespace-nowrap">Date</th>
-                  <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-white whitespace-nowrap">Company</th>
-                  <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-white whitespace-nowrap">Type</th>
-                  <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-white hidden md:table-cell">Description</th>
-                  <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-white text-right whitespace-nowrap">Debit</th>
-                  <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-white text-right whitespace-nowrap">Credit</th>
-                  <th className="py-3.5 px-6 text-[11px] font-bold uppercase tracking-wider text-white text-right whitespace-nowrap">Balance</th>
+              <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                <tr>
+                  <th className="py-3.5 px-6 whitespace-nowrap">Date</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Company</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Type</th>
+                  <th className="py-3.5 px-4 hidden md:table-cell">Description</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">Debit</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">Credit</th>
+                  <th className="py-3.5 px-6 text-right whitespace-nowrap">Balance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
@@ -143,13 +143,8 @@ export const TransactionsPage: React.FC = () => {
                   const isDebit = Boolean(t.debit);
                   const isSomtel = t.company?.name === 'Somtel';
                   const isBluekom = t.company?.name === 'Bluekom';
-                  const rowClass = isSomtel
-                    ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
-                    : isBluekom
-                    ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
-                    : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40 border-l-4 border-l-transparent';
                   return (
-                    <tr key={t.id} className={`transition-colors ${rowClass}`}>
+                    <tr key={t.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="py-4 px-6 whitespace-nowrap text-slate-600 dark:text-slate-300 font-semibold text-xs">
                         {new Date(t.date || t.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>

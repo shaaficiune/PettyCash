@@ -158,7 +158,7 @@ export const DashboardLayout: React.FC = () => {
     { label: 'Transaction Ledger', path: '/transactions', icon: Coins, roles: ['SUPER_ADMIN', 'ACCOUNTANT'] },
     { label: 'Settlement Audits', path: '/settlements/pending', icon: FileCheck, roles: ['ACCOUNTANT', 'SUPER_ADMIN'] },
     { label: 'User Directory', path: '/users', icon: Users, roles: ['SUPER_ADMIN'] },
-    { label: 'System Analytics', path: '/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'ACCOUNTANT'] },
+    { label: 'Reports', path: '/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'ACCOUNTANT'] },
   ];
 
 

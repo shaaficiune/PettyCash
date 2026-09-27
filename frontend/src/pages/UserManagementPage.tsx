@@ -568,7 +568,7 @@ export const UserManagementPage: React.FC = () => {
                 </span>
                 <input
                   type="text"
-                  placeholder="Search by name, username, or phone..."
+                  placeholder="Search users..."
                   value={searchUser}
                   onChange={(e) => setSearchUser(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
@@ -651,8 +651,8 @@ export const UserManagementPage: React.FC = () => {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
+                    <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                      <tr>
                         <th className="py-3.5 px-6">Employee</th>
                         <th className="py-3.5 px-4">Company</th>
                         <th className="py-3.5 px-4 hidden lg:table-cell">Region</th>
@@ -661,27 +661,19 @@ export const UserManagementPage: React.FC = () => {
                         <th className="py-3.5 px-6 text-center">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
                       {filteredUsers.length === 0 ? (
-                        <tr className="border-l-4 border-l-transparent">
+                        <tr>
                           <td colSpan={6} className="text-center py-12 text-sm text-slate-400">
                             No employees found matching your filters
                           </td>
                         </tr>
                       ) : (
                         filteredUsers.map((u) => {
-                          const isSomtel = u.company?.name === 'Somtel';
-                          const isBluekom = u.company?.name === 'Bluekom';
-                          const rowClass = isSomtel
-                            ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
-                            : isBluekom
-                            ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
-                            : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
-
                           return (
                             <tr
                               key={u.id}
-                              className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}
+                              className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                             >
                               <td className="py-4 px-6">
                                 <div>
@@ -902,8 +894,8 @@ export const UserManagementPage: React.FC = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
+              <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                <tr>
                   <th className="py-3.5 px-6">Region Name</th>
                   <th className="py-3.5 px-4">Company</th>
                   <th className="py-3.5 px-4 hidden sm:table-cell">Assigned Users</th>
@@ -912,20 +904,12 @@ export const UserManagementPage: React.FC = () => {
                   <th className="py-3.5 px-6 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
                 {regions
                   .filter(r => !regionCompanyFilter || r.companyId === regionCompanyFilter || r.company?.id === regionCompanyFilter)
                   .map((region) => {
-                  const isSomtel = region.company?.name === 'Somtel';
-                  const isBluekom = region.company?.name === 'Bluekom';
-                  const rowClass = isSomtel
-                    ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
-                    : isBluekom
-                    ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
-                    : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
-
                   return (
-                    <tr key={region.id} className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}>
+                    <tr key={region.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-200">
                         <div className="flex items-center gap-2">
                           <span className="inline-block w-2 h-2 rounded-full bg-primary"></span>
@@ -1035,26 +1019,18 @@ export const UserManagementPage: React.FC = () => {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
+                <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  <tr>
                     <th className="py-3.5 px-6">Region Name</th>
                     <th className="py-3.5 px-4">Company</th>
                     <th className="py-3.5 px-4">Requests</th>
                     <th className="py-3.5 px-6 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
                   {regions.map((r) => {
-                    const isSomtel = r.company?.name === 'Somtel';
-                    const isBluekom = r.company?.name === 'Bluekom';
-                    const rowClass = isSomtel
-                      ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
-                      : isBluekom
-                      ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
-                      : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
-
                     return (
-                      <tr key={r.id} className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}>
+                      <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="py-4 px-6">
                           {editingRegionId === r.id ? (
                             <input value={editingRegionName} onChange={(e) => setEditingRegionName(e.target.value)}
@@ -1131,7 +1107,7 @@ export const UserManagementPage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1.5">Description (Optional)</label>
-                <input type="text" placeholder="Brief description of this budget category" value={newBhDescription} onChange={(e) => setNewBhDescription(e.target.value)}
+                <input type="text" placeholder="Description (optional)" value={newBhDescription} onChange={(e) => setNewBhDescription(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
               <div>
@@ -1163,8 +1139,8 @@ export const UserManagementPage: React.FC = () => {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
+                <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  <tr>
                     <th className="py-3.5 px-6">Code</th>
                     <th className="py-3.5 px-4">Name</th>
                     <th className="py-3.5 px-4 hidden md:table-cell">Description</th>
@@ -1173,18 +1149,10 @@ export const UserManagementPage: React.FC = () => {
                     <th className="py-3.5 px-6 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
                   {budgetHeads.map((bh) => {
-                    const isSomtel = bh.company?.name === 'Somtel';
-                    const isBluekom = bh.company?.name === 'Bluekom';
-                    const rowClass = isSomtel
-                      ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
-                      : isBluekom
-                      ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
-                      : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
-
                     return (
-                      <tr key={bh.id} className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}>
+                      <tr key={bh.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="py-4 px-6">
                         {editingBhId === bh.id ? (
                           <input value={editingBhCode} onChange={(e) => setEditingBhCode(e.target.value)}

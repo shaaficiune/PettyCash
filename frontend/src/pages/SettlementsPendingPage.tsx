@@ -49,8 +49,8 @@ export const SettlementsPendingPage: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-[#0a2e2e] text-white font-bold text-[11px] uppercase tracking-wider border-l-4 border-l-transparent">
+              <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                <tr>
                   <th className="py-3.5 px-6">Request #</th>
                   <th className="py-3.5 px-4">Employee</th>
                   <th className="py-3.5 px-4 hidden sm:table-cell">Company</th>
@@ -60,19 +60,12 @@ export const SettlementsPendingPage: React.FC = () => {
                   <th className="py-3.5 px-6 text-center">Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
                 {settlements.map((st) => {
-                  const isSomtel = st.request?.company?.name === 'Somtel';
-                  const isBluekom = st.request?.company?.name === 'Bluekom';
-                  const rowClass = isSomtel
-                    ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-4 border-l-orange-500'
-                    : isBluekom
-                    ? 'bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 border-l-4 border-l-blue-600'
-                    : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent';
                   return (
                     <tr
                       key={st.id}
-                      className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors ${rowClass}`}
+                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                     >
                     <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-200">
                       {st.request?.requestNumber}
@@ -106,7 +99,7 @@ export const SettlementsPendingPage: React.FC = () => {
                     <td className="py-4 px-6 text-center">
                       <Link
                         to={`/requests/${st.request?.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#E8A020] hover:bg-[#D4911A] text-white rounded text-xs font-semibold transition-all shadow-xs cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         Audit
