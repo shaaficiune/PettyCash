@@ -49,6 +49,52 @@ export class ReportsController {
     return this.reportsService.getAuditLogs();
   }
 
+  @Get('budget-heads')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get comparative Budget Head expenditure matrix across companies' })
+  async getBudgetHeadReport(
+    @Request() req,
+    @Query('companyId') companyId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('statusScope') statusScope?: string
+  ) {
+    const targetCompanyId = req.user.role === RoleName.SUPER_ADMIN ? companyId : req.user.companyId;
+    return this.reportsService.getBudgetHeadReport(
+      req.user,
+      targetCompanyId,
+      startDate,
+      endDate,
+      statusScope
+    );
+  }
+
+  @Get('export-budget-heads-excel')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Export Budget Head matrix report as Excel' })
+  async exportBudgetHeadsExcel(
+    @Request() req,
+    @Response() res,
+    @Query('companyId') companyId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('statusScope') statusScope?: string
+  ) {
+    const targetCompanyId = req.user.role === RoleName.SUPER_ADMIN ? companyId : req.user.companyId;
+    const excelXml = await this.reportsService.exportBudgetHeadsExcel(
+      req.user,
+      targetCompanyId,
+      startDate,
+      endDate,
+      statusScope
+    );
+    res.setHeader('Content-Type', 'application/vnd.ms-excel');
+    res.setHeader('Content-Disposition', 'attachment; filename="budget_heads_report.xls"');
+    return res.status(200).send(excelXml);
+  }
+
   @Get('export-excel')
   @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   @Header('Content-Disposition', 'attachment; filename="petty_cash_requests_export.xlsx"')

@@ -446,4 +446,301 @@ export class ReportsService {
 </body>
 </html>`;
   }
+
+  async getBudgetHeadReport(
+    user: any,
+    companyId?: string,
+    startDate?: string,
+    endDate?: string,
+    statusScope: string = 'PAID_ONLY'
+  ) {
+    const companies = await this.prisma.company.findMany({
+      where: companyId ? { id: companyId } : {},
+      orderBy: { name: 'asc' },
+    });
+
+    const budgetHeads = await this.prisma.budgetHead.findMany({
+      where: companyId ? { companyId } : {},
+      include: {
+        company: { select: { id: true, name: true } },
+      },
+      orderBy: [{ name: 'asc' }, { code: 'asc' }],
+    });
+
+    const where: any = {};
+    if (user.role === RoleName.EMPLOYEE) {
+      where.userId = user.userId;
+      where.companyId = user.companyId;
+    } else if (companyId) {
+      where.companyId = companyId;
+    }
+
+    if (statusScope === 'APPROVED_AND_PAID') {
+      where.status = {
+        in: [
+          RequestStatus.APPROVED,
+          RequestStatus.PAYMENT_PROCESSING,
+          RequestStatus.PAID,
+          RequestStatus.COMPLETED,
+        ],
+      };
+    } else {
+      where.status = { in: [RequestStatus.PAID, RequestStatus.COMPLETED] };
+    }
+
+    if (startDate || endDate) {
+      where.requestDate = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        where.requestDate.gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.requestDate.lte = end;
+      }
+    }
+
+    const requests = await this.prisma.pettyCashRequest.findMany({
+      where,
+      select: {
+        id: true,
+        requestNumber: true,
+        purpose: true,
+        requestedAmount: true,
+        approvedAmount: true,
+        status: true,
+        requestDate: true,
+        companyId: true,
+        budgetHeadId: true,
+        user: { select: { fullName: true } },
+        receiverName: true,
+        receiverPhone: true,
+      },
+    });
+
+    const categoryMap: Record<
+      string,
+      {
+        categoryName: string;
+        somtelSpent: number;
+        somtelCount: number;
+        somtelBudget: number;
+        bluekomSpent: number;
+        bluekomCount: number;
+        bluekomBudget: number;
+        otherSpent: number;
+        otherBudget: number;
+        totalBudget: number;
+        requests: any[];
+      }
+    > = {};
+
+    budgetHeads.forEach((bh) => {
+      const cat = bh.name.trim();
+      if (!categoryMap[cat]) {
+        categoryMap[cat] = {
+          categoryName: cat,
+          somtelSpent: 0,
+          somtelCount: 0,
+          somtelBudget: 0,
+          bluekomSpent: 0,
+          bluekomCount: 0,
+          bluekomBudget: 0,
+          otherSpent: 0,
+          otherBudget: 0,
+          totalBudget: 0,
+          requests: [],
+        };
+      }
+      const limit = Number(bh.monthlyLimit || 0);
+      categoryMap[cat].totalBudget += limit;
+      if (bh.company.name.toLowerCase().includes('somtel')) {
+        categoryMap[cat].somtelBudget += limit;
+      } else if (bh.company.name.toLowerCase().includes('bluekom')) {
+        categoryMap[cat].bluekomBudget += limit;
+      } else {
+        categoryMap[cat].otherBudget += limit;
+      }
+    });
+
+    const budgetHeadById: Record<string, any> = {};
+    budgetHeads.forEach((bh) => {
+      budgetHeadById[bh.id] = bh;
+    });
+
+    let grandSomtel = 0;
+    let grandBluekom = 0;
+    let grandOther = 0;
+
+    requests.forEach((req) => {
+      const bh = req.budgetHeadId ? budgetHeadById[req.budgetHeadId] : null;
+      const cat = bh ? bh.name.trim() : 'Miscellaneous expenses';
+      if (!categoryMap[cat]) {
+        categoryMap[cat] = {
+          categoryName: cat,
+          somtelSpent: 0,
+          somtelCount: 0,
+          somtelBudget: 0,
+          bluekomSpent: 0,
+          bluekomCount: 0,
+          bluekomBudget: 0,
+          otherSpent: 0,
+          otherBudget: 0,
+          totalBudget: 0,
+          requests: [],
+        };
+      }
+
+      const amount = Number(req.approvedAmount || req.requestedAmount || 0);
+      const comp = companies.find((c) => c.id === req.companyId);
+      const isSomtel = comp?.name.toLowerCase().includes('somtel');
+      const isBluekom = comp?.name.toLowerCase().includes('bluekom');
+
+      if (isSomtel) {
+        categoryMap[cat].somtelSpent += amount;
+        categoryMap[cat].somtelCount += 1;
+        grandSomtel += amount;
+      } else if (isBluekom) {
+        categoryMap[cat].bluekomSpent += amount;
+        categoryMap[cat].bluekomCount += 1;
+        grandBluekom += amount;
+      } else {
+        categoryMap[cat].otherSpent += amount;
+        grandOther += amount;
+      }
+
+      categoryMap[cat].requests.push({
+        id: req.id,
+        requestNumber: req.requestNumber,
+        purpose: req.purpose,
+        amount,
+        status: req.status,
+        date: req.requestDate,
+        employee: req.user?.fullName,
+        receiver: req.receiverName || req.receiverPhone,
+        companyName: comp?.name || 'N/A',
+      });
+    });
+
+    const categories = Object.values(categoryMap).map((c) => {
+      const totalSpent = c.somtelSpent + c.bluekomSpent + c.otherSpent;
+      const remaining = Math.max(0, c.totalBudget - totalSpent);
+      const pct = c.totalBudget > 0 ? (totalSpent / c.totalBudget) * 100 : 0;
+      let status: 'SAFE' | 'WARNING' | 'EXCEEDED' = 'SAFE';
+      if (pct >= 100) status = 'EXCEEDED';
+      else if (pct >= 80) status = 'WARNING';
+
+      return {
+        categoryName: c.categoryName,
+        somtelSpent: Number(c.somtelSpent.toFixed(2)),
+        somtelCount: c.somtelCount,
+        somtelBudget: Number(c.somtelBudget.toFixed(2)),
+        bluekomSpent: Number(c.bluekomSpent.toFixed(2)),
+        bluekomCount: c.bluekomCount,
+        bluekomBudget: Number(c.bluekomBudget.toFixed(2)),
+        totalSpent: Number(totalSpent.toFixed(2)),
+        totalBudget: Number(c.totalBudget.toFixed(2)),
+        remainingBudget: Number(remaining.toFixed(2)),
+        percentageUsed: Number(pct.toFixed(1)),
+        status,
+        requestsCount: c.requests.length,
+        requests: c.requests,
+      };
+    });
+
+    const totalBudget = categories.reduce((sum, c) => sum + c.totalBudget, 0);
+    const grandTotalSpent = grandSomtel + grandBluekom + grandOther;
+    const remainingBudget = Math.max(0, totalBudget - grandTotalSpent);
+    const percentageUsed = totalBudget > 0 ? (grandTotalSpent / totalBudget) * 100 : 0;
+
+    return {
+      period: {
+        startDate: startDate || null,
+        endDate: endDate || null,
+        statusScope,
+      },
+      summary: {
+        totalBudget: Number(totalBudget.toFixed(2)),
+        somtelSpent: Number(grandSomtel.toFixed(2)),
+        bluekomSpent: Number(grandBluekom.toFixed(2)),
+        grandTotalSpent: Number(grandTotalSpent.toFixed(2)),
+        remainingBudget: Number(remainingBudget.toFixed(2)),
+        percentageUsed: Number(percentageUsed.toFixed(1)),
+      },
+      categories,
+    };
+  }
+
+  async exportBudgetHeadsExcel(
+    user: any,
+    companyId?: string,
+    startDate?: string,
+    endDate?: string,
+    statusScope: string = 'PAID_ONLY'
+  ): Promise<string> {
+    const data = await this.getBudgetHeadReport(user, companyId, startDate, endDate, statusScope);
+
+    const rows = data.categories
+      .map(
+        (c) => `
+      <tr>
+        <td style="font-weight:bold; border:1px solid #cbd5e1; padding:8px;">${c.categoryName}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#c2410c;">$${c.somtelSpent.toFixed(2)}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#1d4ed8;">$${c.bluekomSpent.toFixed(2)}</td>
+        <td style="text-align:right; font-weight:bold; border:1px solid #cbd5e1; padding:8px;">$${c.totalSpent.toFixed(2)}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#64748b;">$${c.totalBudget.toFixed(2)}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px;">$${c.remainingBudget.toFixed(2)}</td>
+        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${c.percentageUsed}%</td>
+        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${c.status}</td>
+      </tr>`
+      )
+      .join('');
+
+    return `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Calibri, sans-serif; font-size: 11pt; }
+    th { background-color: #0a2e2e; color: #ffffff; padding: 10px; font-weight: bold; }
+    .header { font-size: 16pt; font-weight: bold; color: #0a2e2e; }
+    .subheader { font-size: 10pt; color: #64748b; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">Petty Cash Budget Head Expenditure Report</div>
+  <div class="subheader">Somtel &amp; Bluekom Integrated Financial System | Generated: ${new Date().toLocaleString()}</div>
+  <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%;">
+    <thead>
+      <tr>
+        <th>Budget Head Category</th>
+        <th style="background-color:#c2410c;">Somtel Spent (USD)</th>
+        <th style="background-color:#1d4ed8;">Bluekom Spent (USD)</th>
+        <th style="background-color:#0f766e;">Combined Total (USD)</th>
+        <th>Budget Limit (USD)</th>
+        <th>Remaining Budget</th>
+        <th>% Utilized</th>
+        <th>Health</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+      <tr style="background-color:#f1f5f9; font-weight:bold;">
+        <td style="padding:10px;">GRAND TOTAL</td>
+        <td style="text-align:right; padding:10px; color:#c2410c;">$${data.summary.somtelSpent.toFixed(2)}</td>
+        <td style="text-align:right; padding:10px; color:#1d4ed8;">$${data.summary.bluekomSpent.toFixed(2)}</td>
+        <td style="text-align:right; padding:10px; color:#0f766e;">$${data.summary.grandTotalSpent.toFixed(2)}</td>
+        <td style="text-align:right; padding:10px;">$${data.summary.totalBudget.toFixed(2)}</td>
+        <td style="text-align:right; padding:10px;">$${data.summary.remainingBudget.toFixed(2)}</td>
+        <td style="text-align:center; padding:10px;">${data.summary.percentageUsed}%</td>
+        <td style="text-align:center; padding:10px;">-</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>`;
+  }
+
 }
