@@ -2,18 +2,11 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { 
   ArrowUpRight, ArrowDownLeft, RefreshCw, Filter, DollarSign, Search,
-  Calendar, MapPin, FileSpreadsheet, Printer, Eye, X, TrendingUp, TrendingDown,
-  Building2, User, Phone, Tag, CheckCircle2, AlertCircle
+  Calendar, MapPin, FileSpreadsheet, Printer, Eye, X
 } from 'lucide-react';
 
 export const TransactionsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [summary, setSummary] = useState<{ totalDebit: number; totalCredit: number; netBalance: number; totalCount: number }>({
-    totalDebit: 0,
-    totalCredit: 0,
-    netBalance: 0,
-    totalCount: 0,
-  });
   const [regions, setRegions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportingExcel, setExportingExcel] = useState(false);
@@ -31,7 +24,7 @@ export const TransactionsPage: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Fetch Regions for dropdown
+  // Fetch Regions for dropdown grouped by company
   useEffect(() => {
     const fetchRegions = async () => {
       try {
@@ -65,9 +58,6 @@ export const TransactionsPage: React.FC = () => {
       if (res.data && res.data.items) {
         setTransactions(res.data.items);
         setTotal(res.data.total || 0);
-        if (res.data.summary) {
-          setSummary(res.data.summary);
-        }
       } else {
         setTransactions(res.data || []);
       }
@@ -179,7 +169,7 @@ export const TransactionsPage: React.FC = () => {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-5 font-sans">
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -188,7 +178,7 @@ export const TransactionsPage: React.FC = () => {
             Transactions Ledger
           </h2>
           <p className="text-xs text-slate-500">
-            Real-time petty cash allocations, disbursements, payments, and financial movements
+            Chronological log of petty cash allocations, disbursements, payments, and financial movements
           </p>
         </div>
 
@@ -197,7 +187,7 @@ export const TransactionsPage: React.FC = () => {
           <button
             onClick={handleExportExcel}
             disabled={exportingExcel}
-            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
             {exportingExcel ? 'Exporting...' : 'Export Excel'}
@@ -207,7 +197,7 @@ export const TransactionsPage: React.FC = () => {
           <button
             onClick={handleExportPdf}
             disabled={exportingPdf}
-            className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+            className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
           >
             <Printer className="h-3.5 w-3.5" />
             {exportingPdf ? 'Preparing...' : 'Export PDF'}
@@ -224,67 +214,8 @@ export const TransactionsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* SUMMARY KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Debit / Outflow */}
-        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Debit (Outflow)</p>
-            <h3 className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">
-              -${Number(summary.totalDebit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-            <p className="text-[10px] text-slate-400 mt-0.5">Disbursements & Expenses</p>
-          </div>
-          <div className="p-2.5 bg-rose-50 dark:bg-rose-950/30 text-rose-600 rounded-xl">
-            <TrendingDown className="h-5 w-5" />
-          </div>
-        </div>
-
-        {/* Total Credit / Inflow */}
-        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Credit (Inflow)</p>
-            <h3 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-              +${Number(summary.totalCredit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-            <p className="text-[10px] text-slate-400 mt-0.5">Allocations & Transfers In</p>
-          </div>
-          <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 rounded-xl">
-            <TrendingUp className="h-5 w-5" />
-          </div>
-        </div>
-
-        {/* Net Movement */}
-        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Net Movement</p>
-            <h3 className={`text-xl font-bold mt-1 ${summary.netBalance >= 0 ? 'text-primary' : 'text-amber-600 dark:text-amber-400'}`}>
-              ${Number(summary.netBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-            <p className="text-[10px] text-slate-400 mt-0.5">Inflow minus Outflow</p>
-          </div>
-          <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
-            <DollarSign className="h-5 w-5" />
-          </div>
-        </div>
-
-        {/* Total Transactions */}
-        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Transactions Count</p>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white mt-1">
-              {total.toLocaleString()}
-            </h3>
-            <p className="text-[10px] text-slate-400 mt-0.5">Filtered Records</p>
-          </div>
-          <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl">
-            <CheckCircle2 className="h-5 w-5" />
-          </div>
-        </div>
-      </div>
-
       {/* FILTER HUB */}
-      <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs flex flex-col gap-3 transition-colors">
+      <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs flex flex-col gap-3 transition-colors">
         <div className="flex flex-col md:flex-row gap-3 items-center">
           {/* SEARCH BAR */}
           <div className="relative flex-1 w-full">
@@ -293,7 +224,7 @@ export const TransactionsPage: React.FC = () => {
             </span>
             <input
               type="text"
-              placeholder="Search by request #, employee, beneficiary, description, or ref..."
+              placeholder="Search by request #, employee, recipient, description, or ref..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
@@ -317,8 +248,8 @@ export const TransactionsPage: React.FC = () => {
               </select>
             </div>
 
-            {/* REGION FILTER */}
-            <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
+            {/* REGION FILTER - GROUPED BY COMPANY */}
+            <div className="flex items-center gap-1.5 min-w-[150px] flex-1 sm:flex-initial">
               <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
               <select
                 value={regionFilter}
@@ -329,9 +260,29 @@ export const TransactionsPage: React.FC = () => {
                 className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none cursor-pointer w-full"
               >
                 <option value="">All Regions</option>
-                {regions.map((r) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
+                {(() => {
+                  const groups: { [key: string]: any[] } = {};
+                  regions.forEach((r) => {
+                    const cName = r.company?.name || 'Other';
+                    if (!groups[cName]) groups[cName] = [];
+                    groups[cName].push(r);
+                  });
+                  const compKeys = Object.keys(groups);
+                  if (compKeys.length <= 1) {
+                    return regions.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ));
+                  }
+                  return compKeys.map((cName) => (
+                    <optgroup key={cName} label={`── ${cName} ──`}>
+                      {groups[cName].map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ));
+                })()}
               </select>
             </div>
 
@@ -439,18 +390,18 @@ export const TransactionsPage: React.FC = () => {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 <tr>
-                  <th className="py-3.5 px-4 whitespace-nowrap">Date</th>
-                  <th className="py-3.5 px-3 whitespace-nowrap">Company</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">Ref / Req #</th>
-                  <th className="py-3.5 px-4">Employee</th>
-                  <th className="py-3.5 px-4">Beneficiary</th>
-                  <th className="py-3.5 px-3 hidden md:table-cell">Region</th>
-                  <th className="py-3.5 px-3 hidden lg:table-cell">Category</th>
-                  <th className="py-3.5 px-3 whitespace-nowrap">Type</th>
-                  <th className="py-3.5 px-3 text-right whitespace-nowrap">Debit</th>
-                  <th className="py-3.5 px-3 text-right whitespace-nowrap">Credit</th>
-                  <th className="py-3.5 px-4 text-right whitespace-nowrap">Balance</th>
-                  <th className="py-3.5 px-3 text-center whitespace-nowrap">Detail</th>
+                  <th className="py-3 px-4 whitespace-nowrap">Date</th>
+                  <th className="py-3 px-3 whitespace-nowrap">Company</th>
+                  <th className="py-3 px-4 whitespace-nowrap">Ref / Req #</th>
+                  <th className="py-3 px-4">Employee</th>
+                  <th className="py-3 px-4">Recipient</th>
+                  <th className="py-3 px-3 hidden md:table-cell">Region</th>
+                  <th className="py-3 px-3 hidden lg:table-cell">Category</th>
+                  <th className="py-3 px-3 whitespace-nowrap">Type</th>
+                  <th className="py-3 px-3 text-right whitespace-nowrap">Debit</th>
+                  <th className="py-3 px-3 text-right whitespace-nowrap">Credit</th>
+                  <th className="py-3 px-4 text-right whitespace-nowrap">Balance</th>
+                  <th className="py-3 px-3 text-center whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
@@ -458,8 +409,8 @@ export const TransactionsPage: React.FC = () => {
                   const isDebit = Boolean(t.debit && Number(t.debit) > 0);
                   const isSomtel = t.company?.name === 'Somtel';
                   const employeeName = t.employee?.fullName || t.request?.user?.fullName || '—';
-                  const beneficiaryName = t.request?.receiverName || t.request?.vendorName || '—';
-                  const beneficiaryPhone = t.request?.receiverPhone;
+                  const recipientName = t.request?.receiverName || t.request?.vendorName || '—';
+                  const recipientPhone = t.request?.receiverPhone;
                   const regionName = t.request?.region?.name;
                   const categoryName = t.request?.budgetHead ? t.request.budgetHead.name : null;
 
@@ -469,12 +420,12 @@ export const TransactionsPage: React.FC = () => {
                       className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
                     >
                       {/* Date */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-slate-600 dark:text-slate-300 font-semibold text-xs">
+                      <td className="py-3 px-4 whitespace-nowrap text-slate-600 dark:text-slate-300 font-semibold text-xs">
                         {new Date(t.date || t.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
 
                       {/* Company */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
+                      <td className="py-3 px-3 whitespace-nowrap">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                           isSomtel
                             ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
@@ -485,7 +436,7 @@ export const TransactionsPage: React.FC = () => {
                       </td>
 
                       {/* Ref / Request # */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         {t.request?.requestNumber ? (
                           <span className="font-semibold text-primary text-xs">
                             #{t.request.requestNumber}
@@ -500,26 +451,26 @@ export const TransactionsPage: React.FC = () => {
                       </td>
 
                       {/* Employee */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-4">
                         <div className="font-medium text-slate-800 dark:text-slate-200 text-xs">
                           {employeeName}
                         </div>
                       </td>
 
-                      {/* Beneficiary */}
-                      <td className="py-3.5 px-4">
+                      {/* Recipient */}
+                      <td className="py-3 px-4">
                         <div>
                           <p className="font-medium text-slate-800 dark:text-slate-200 text-xs">
-                            {beneficiaryName}
+                            {recipientName}
                           </p>
-                          {beneficiaryPhone && (
-                            <p className="text-[10px] text-slate-400 font-mono">{beneficiaryPhone}</p>
+                          {recipientPhone && (
+                            <p className="text-[10px] text-slate-400 font-mono">{recipientPhone}</p>
                           )}
                         </div>
                       </td>
 
                       {/* Region */}
-                      <td className="py-3.5 px-3 text-slate-500 dark:text-slate-400 hidden md:table-cell text-xs whitespace-nowrap">
+                      <td className="py-3 px-3 text-slate-500 dark:text-slate-400 hidden md:table-cell text-xs whitespace-nowrap">
                         {regionName ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
                             {regionName}
@@ -530,12 +481,12 @@ export const TransactionsPage: React.FC = () => {
                       </td>
 
                       {/* Category */}
-                      <td className="py-3.5 px-3 text-slate-600 dark:text-slate-400 hidden lg:table-cell text-xs">
+                      <td className="py-3 px-3 text-slate-600 dark:text-slate-400 hidden lg:table-cell text-xs">
                         {categoryName || <span className="text-slate-400">—</span>}
                       </td>
 
                       {/* Movement Type */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
+                      <td className="py-3 px-3 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                           t.transactionType === 'PAYMENT' 
                             ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
@@ -549,22 +500,22 @@ export const TransactionsPage: React.FC = () => {
                       </td>
 
                       {/* Debit */}
-                      <td className="py-3.5 px-3 text-right text-rose-600 dark:text-rose-400 font-bold whitespace-nowrap text-xs">
+                      <td className="py-3 px-3 text-right text-rose-600 dark:text-rose-400 font-bold whitespace-nowrap text-xs">
                         {t.debit && Number(t.debit) > 0 ? `-$${Number(t.debit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                       </td>
 
                       {/* Credit */}
-                      <td className="py-3.5 px-3 text-right text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap text-xs">
+                      <td className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap text-xs">
                         {t.credit && Number(t.credit) > 0 ? `+$${Number(t.credit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                       </td>
 
                       {/* Balance */}
-                      <td className="py-3.5 px-4 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap text-xs">
+                      <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap text-xs">
                         ${Number(t.balanceAfter || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
 
                       {/* Action Detail View */}
-                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
                         <button
                           onClick={() => setSelectedTx(t)}
                           className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
@@ -665,7 +616,7 @@ export const TransactionsPage: React.FC = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Beneficiary / Merchant</span>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Recipient / Merchant</span>
                   <span className="font-medium text-slate-800 dark:text-slate-200">
                     {selectedTx.request?.receiverName || selectedTx.request?.vendorName || '—'}
                     {selectedTx.request?.receiverPhone && ` (${selectedTx.request.receiverPhone})`}

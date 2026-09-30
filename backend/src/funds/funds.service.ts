@@ -618,7 +618,7 @@ export class FundsService {
           },
         },
       },
-      orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
@@ -684,7 +684,7 @@ export class FundsService {
           },
         },
       },
-      orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
     });
 
     const rows = transactions.map((t: any) => {
@@ -736,7 +736,7 @@ export class FundsService {
     <Cell><Data ss:Type="String">Reference / Request #</Data></Cell>
     <Cell><Data ss:Type="String">Type</Data></Cell>
     <Cell><Data ss:Type="String">Employee</Data></Cell>
-    <Cell><Data ss:Type="String">Beneficiary / Merchant</Data></Cell>
+    <Cell><Data ss:Type="String">Recipient / Merchant</Data></Cell>
     <Cell><Data ss:Type="String">Region</Data></Cell>
     <Cell><Data ss:Type="String">Category</Data></Cell>
     <Cell><Data ss:Type="String">Description</Data></Cell>
@@ -785,7 +785,7 @@ export class FundsService {
           },
         },
       },
-      orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
     });
 
     let totalDebit = 0;
@@ -878,7 +878,7 @@ export class FundsService {
         <th>Ref / Request #</th>
         <th>Type</th>
         <th>Employee</th>
-        <th>Beneficiary / Merchant</th>
+        <th>Recipient / Merchant</th>
         <th>Region</th>
         <th>Category</th>
         <th>Description</th>
