@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+if [ ! -f backend/.env ]; then
+  echo "backend/.env is required. Create it from backend/.env.example and configure the secrets first."
+  exit 1
+fi
+
 echo "🚀 Starting Ubuntu PM2 + Nginx Deployment for Petty Cash App..."
 
 mkdir -p logs
@@ -15,8 +20,9 @@ fi
 echo "📦 Setting up Backend..."
 cd backend
 npm install
+node scripts/ensure-jwt-secrets.js
 npx prisma generate
-npx prisma db push
+node scripts/init-db.js
 npm run build
 cd ..
 

@@ -63,18 +63,11 @@ Hadafka tusalahan waa in uu kuusoo saaro habka ugu habboon uguna fudud ee aad **
 
 ## 🗄️ Tallaabada 3-aad: Habaynta Database-ka (PostgreSQL)
 
-1. **U badal Password-ka postgres user-ka ah & Abuur Database**:
-   ```bash
-   sudo -u postgres psql
-   ```
-   Gudaha PostgreSQL (`psql`), ka dhex curi amarradan:
-   ```sql
-   ALTER USER postgres PASSWORD 'Somtel@PL';
-   CREATE DATABASE petty_cash_db;
-   \q
-   ```
+1. `setup.sh` wuxuu abuuraa database iyo user cusub, wuxuuna u sameeyaa password iyo JWT secrets random ah. Haddii database hore u jiro, script-ku wuu istaagayaa si aanu xogta u beddelin.
 
-2. **Hadii aad hayso Data hore (`database_dump.sql`), Ku shub Database-ka**:
+2. `database_dump.sql`-ka repo-ga ku jira wuxuu bixiyaa schema iyo xog tixraac oo keliya; kuma jiraan users, sessions ama transactions. Ha u isticmaalin inuu beddelo production backup. Production backups si sir ah ugu kaydi meel ka baxsan Git, halkaasna ka soo celi.
+
+   Haddii aad u baahan tahay schema tijaabo ah, dump-ka ku shub database madhan oo tijaabo ah:
    ```bash
    sudo -u postgres psql petty_cash_db < /path/to/database_dump.sql
    ```
@@ -92,16 +85,13 @@ Hadafka tusalahan waa in uu kuusoo saaro habka ugu habboon uguna fudud ee aad **
    git clone https://github.com/shaaficiune/PettyCash.git .
    ```
 
-2. **Hubi Environment Files (`.env`)**:
-   Faylashan horay ayaa loogu diyaariyay production (`localhost` DB URL & `/api` frontend path).
-   - Backend `.env`: `backend/.env`
-   - Frontend `.env`: `frontend/.env`
-   - Root `.env`: `.env`
+2. **Deji environment-ka si ammaan ah**:
+   `.env.example`-yada waa templates madhan; ma wataan furayaal shaqaynaya. Production-ka ka bilow `setup.sh`, kaas oo abuura `backend/.env` oo leh secrets cusub, kadibna ku xaddid `ALLOWED_ORIGINS` domain-ka frontend-kaaga.
 
 3. **Kexeey Script-ka Otomaatigga ah ee Deploy-ga**:
    ```bash
-   chmod +x deploy-ubuntu.sh
-   ./deploy-ubuntu.sh
+   chmod +x setup.sh
+   ./setup.sh
    ```
 
 4. **Khabaynta Nginx Server Proxy**:

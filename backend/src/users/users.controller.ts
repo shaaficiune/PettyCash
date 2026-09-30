@@ -40,9 +40,9 @@ export class UsersController {
   }
 
   @Post(':id/reset-password')
-  @ApiOperation({ summary: 'Reset user password to default temporary password' })
-  async resetPassword(@Param('id') id: string, @Body('temporaryPassword') tempPassword?: string) {
-    return this.usersService.resetPassword(id, tempPassword);
+  @ApiOperation({ summary: 'Reset user password to a unique one-time password' })
+  async resetPassword(@Param('id') id: string) {
+    return this.usersService.resetPassword(id);
   }
 
   @Delete(':id')

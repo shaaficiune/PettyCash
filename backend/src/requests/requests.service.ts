@@ -14,6 +14,8 @@ export class RequestsService {
   ) {}
 
   async create(userId: string, companyId: string, departmentId: string, dto: CreateRequestDto) {
+    await this.validateDimensionCompany(companyId, dto.projectId, dto.regionId, dto.budgetHeadId);
+
     // Generate Request Number
     const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const prefix = `PC-${todayStr}-`;
@@ -45,6 +47,7 @@ export class RequestsService {
     if (dto.attachments && dto.attachments.length > 10) {
       throw new BadRequestException('You cannot upload more than 10 attachments');
     }
+    this.validateOwnedUploads(userId, dto.attachments);
 
     // Fund Availability Check: block PENDING_APPROVAL submissions when no active fund exists
     // Employees can still save as DRAFT — this only blocks actual submission for review.
@@ -148,11 +151,15 @@ export class RequestsService {
     });
 
     if (initialStatus === RequestStatus.PENDING_APPROVAL) {
-      await this.notifyAccountants(
-        `New request submitted: ${requestNumber}`,
-        `Employee ${request.user.fullName} created request ${requestNumber} for ${request.currency} ${request.requestedAmount}.`,
-        companyId
-      );
+      try {
+        await this.notifyAccountants(
+          `New request submitted: ${requestNumber}`,
+          `Employee ${request.user.fullName} created request ${requestNumber} for ${request.currency} ${request.requestedAmount}.`,
+          companyId,
+        );
+      } catch (error) {
+        console.error('Request submission notification failed:', error);
+      }
     }
 
     return request;
@@ -278,6 +285,7 @@ export class RequestsService {
 
     // Build update data
     const data: any = {};
+    let wasResubmitted = false;
     if (dto.projectId !== undefined) data.projectId = dto.projectId || null;
     if (dto.regionId !== undefined) data.regionId = dto.regionId || null;
     if (dto.budgetHeadId !== undefined) data.budgetHeadId = dto.budgetHeadId || null;
@@ -303,6 +311,13 @@ export class RequestsService {
     const targetAmount = dto.requestedAmount !== undefined ? dto.requestedAmount : Number(request.requestedAmount);
     const targetBudgetHeadId = dto.budgetHeadId !== undefined ? dto.budgetHeadId : request.budgetHeadId;
 
+    await this.validateDimensionCompany(
+      request.companyId,
+      dto.projectId !== undefined ? dto.projectId : request.projectId,
+      targetRegionId,
+      targetBudgetHeadId,
+    );
+
     // Enforce Budget Head mandatory when submitting/resubmitting for approval
     if (targetStatus === RequestStatus.PENDING_APPROVAL && !targetBudgetHeadId) {
       throw new BadRequestException(
@@ -314,9 +329,9 @@ export class RequestsService {
       await this.checkRegionBudget(targetRegionId, targetAmount, request.id);
     }
 
-    // If status is updated (e.g. employee resubmitting correction request)
-    if (dto.status) {
-      if (request.status === RequestStatus.CORRECTION_REQUIRED && dto.status === RequestStatus.PENDING_APPROVAL) {
+    // Employees may submit drafts or corrected requests, but cannot set review/payment states.
+    if (dto.status && dto.status !== request.status) {
+      if (dto.status === RequestStatus.PENDING_APPROVAL) {
         // Fund check on resubmission
         const now = new Date();
         const currentMonth = now.getMonth() + 1;
@@ -339,15 +354,12 @@ export class RequestsService {
         }
 
         data.status = RequestStatus.PENDING_APPROVAL;
-        data.correctionNotes = null; // Clear correction notes on resubmission
-        
-        await this.notifyAccountants(
-          `Resubmitted request: ${request.requestNumber}`,
-          `Employee resubmitted corrected request ${request.requestNumber} for review.`,
-          request.companyId
-        );
+        wasResubmitted = true;
+        if (request.status === RequestStatus.CORRECTION_REQUIRED) {
+          data.correctionNotes = null;
+        }
       } else {
-        data.status = dto.status;
+        throw new BadRequestException('Employees may only submit a draft or corrected request for approval');
       }
     }
 
@@ -356,6 +368,11 @@ export class RequestsService {
       if (dto.attachments.length > 10) {
         throw new BadRequestException('You cannot upload more than 10 attachments');
       }
+      this.validateOwnedUploads(
+        userId,
+        dto.attachments,
+        request.attachments.map((attachment) => attachment.fileUrl),
+      );
       
       // Delete old attachments and replace
       await this.prisma.pettyCashAttachment.deleteMany({
@@ -372,11 +389,23 @@ export class RequestsService {
       };
     }
 
-    return this.prisma.pettyCashRequest.update({
+    const updatedRequest = await this.prisma.pettyCashRequest.update({
       where: { id },
       data,
       include: { attachments: true },
     });
+    if (wasResubmitted) {
+      try {
+        await this.notifyAccountants(
+          `Resubmitted request: ${request.requestNumber}`,
+          `Employee resubmitted corrected request ${request.requestNumber} for review.`,
+          request.companyId,
+        );
+      } catch (error) {
+        console.error('Request resubmission notification failed:', error);
+      }
+    }
+    return updatedRequest;
   }
 
   async delete(id: string, userId: string) {
@@ -426,26 +455,25 @@ export class RequestsService {
     const data: any = {};
 
     // -- REJECT � allowed at any reviewable stage ---------------------------
+    let notification: { title: string; message: string } | null = null;
     if (newStatus === 'REJECTED') {
       data.status = RequestStatus.REJECTED;
       data.correctionNotes = dto.comments || `Rejected by ${reviewerRole}`;
 
-      await this.notifications.create(
-        request.userId,
-        `Request Rejected: ${request.requestNumber}`,
-        `Your petty cash request ${request.requestNumber} has been rejected. Reason: ${dto.comments || 'No comment'}`
-      );
+      notification = {
+        title: `Request Rejected: ${request.requestNumber}`,
+        message: `Your petty cash request ${request.requestNumber} has been rejected. Reason: ${dto.comments || 'No comment'}`,
+      };
 
     // -- CORRECTION_REQUIRED � allowed at any reviewable stage --------------
     } else if (newStatus === 'CORRECTION_REQUIRED') {
       data.status = RequestStatus.CORRECTION_REQUIRED;
       data.correctionNotes = dto.comments || 'Correction required';
 
-      await this.notifications.create(
-        request.userId,
-        `Correction Required: ${request.requestNumber}`,
-        `Correction requested for ${request.requestNumber}. Comments: ${dto.comments || 'No comment'}`
-      );
+      notification = {
+        title: `Correction Required: ${request.requestNumber}`,
+        message: `Correction requested for ${request.requestNumber}. Comments: ${dto.comments || 'No comment'}`,
+      };
 
     // -- STAGE 1: PENDING_APPROVAL ? ACCOUNTANT_REVIEW --------------------
     } else if (newStatus === 'ACCOUNTANT_REVIEW') {
@@ -460,41 +488,78 @@ export class RequestsService {
         data.approvedAmount = dto.approvedAmount;
       }
 
-      await this.notifications.create(
-        request.userId,
-        `Accountant Reviewed: ${request.requestNumber}`,
-        `Your petty cash request ${request.requestNumber} was reviewed by the Accountant and is now awaiting Finance/CFO Approval.`
-      );
+      notification = {
+        title: `Accountant Reviewed: ${request.requestNumber}`,
+        message: `Your petty cash request ${request.requestNumber} was reviewed by the Accountant and is now awaiting Finance/CFO Approval.`,
+      };
 
     // -- STAGE 2: ? APPROVED (CFO/Finance final, or SUPER_ADMIN direct) ----
     // Accepts from ACCOUNTANT_REVIEW (normal) or PENDING_APPROVAL (SUPER_ADMIN bypass)
     } else if (newStatus === 'APPROVED') {
-      data.status = RequestStatus.APPROVED;
-      data.approvedAmount = dto.approvedAmount !== undefined
-        ? dto.approvedAmount
-        : (request.approvedAmount || request.requestedAmount);
-
-      if (Number(data.approvedAmount) > 50) {
-        throw new BadRequestException('Approved amount cannot exceed the maximum petty cash limit of $50.');
+      if (currentStatus === 'PENDING_APPROVAL' && reviewerRole !== RoleName.SUPER_ADMIN) {
+        throw new BadRequestException('An accountant must forward this request for final review before approval');
       }
 
-      // Reserve approved amount in petty cash fund; throws if insufficient
-      await this.fundsService.recordApproval(request.companyId, Number(data.approvedAmount));
+      const fund = await this.fundsService.getOrCreateCurrentMonthFund(request.companyId);
+      const approvedRequest = await this.prisma.$transaction(async (tx) => {
+        await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', id);
+        const latestRequest = await (tx as any).pettyCashRequest.findUnique({ where: { id } });
+        if (!latestRequest || !['PENDING_APPROVAL', 'ACCOUNTANT_REVIEW'].includes(String(latestRequest.status))) {
+          throw new BadRequestException('Request is no longer in a reviewable state');
+        }
+        if (latestRequest.status === RequestStatus.PENDING_APPROVAL && reviewerRole !== RoleName.SUPER_ADMIN) {
+          throw new BadRequestException('An accountant must forward this request for final review before approval');
+        }
 
-      await this.notifications.create(
-        request.userId,
-        `Request Approved: ${request.requestNumber}`,
-        `Your petty cash request ${request.requestNumber} has received final approval for ${request.currency} ${data.approvedAmount}.`
-      );
+        const approvedAmount = dto.approvedAmount !== undefined
+          ? Number(dto.approvedAmount)
+          : Number(latestRequest.approvedAmount || latestRequest.requestedAmount);
+        if (approvedAmount <= 0 || approvedAmount > 50) {
+          throw new BadRequestException('Approved amount must be greater than zero and cannot exceed $50.');
+        }
+
+        await this.fundsService.recordApprovalInTransaction(tx, fund.id, approvedAmount);
+        return (tx as any).pettyCashRequest.update({
+          where: { id },
+          data: { status: RequestStatus.APPROVED, approvedAmount },
+        });
+      });
+
+      try {
+        await this.notifications.create(
+          request.userId,
+          `Request Approved: ${request.requestNumber}`,
+          `Your petty cash request ${request.requestNumber} has received final approval for ${request.currency} ${approvedRequest.approvedAmount}.`,
+        );
+      } catch (error) {
+        console.error('Request approval notification failed:', error);
+      }
+      return approvedRequest;
 
     } else {
       throw new BadRequestException(`Invalid status transition: cannot change to '${newStatus}'`);
     }
 
-    return this.prisma.pettyCashRequest.update({
-      where: { id },
-      data,
+    const updatedRequest = await this.prisma.$transaction(async (tx) => {
+      await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', id);
+      const latestRequest = await (tx as any).pettyCashRequest.findUnique({ where: { id } });
+      if (!latestRequest || !['PENDING_APPROVAL', 'ACCOUNTANT_REVIEW'].includes(String(latestRequest.status))) {
+        throw new BadRequestException('Request is no longer in a reviewable state');
+      }
+      if (newStatus === 'ACCOUNTANT_REVIEW' && latestRequest.status !== RequestStatus.PENDING_APPROVAL) {
+        throw new BadRequestException('Request must be in Pending Approval to forward to CFO review.');
+      }
+      return (tx as any).pettyCashRequest.update({ where: { id }, data });
     });
+
+    if (notification) {
+      try {
+        await this.notifications.create(request.userId, notification.title, notification.message);
+      } catch (error) {
+        console.error('Request review notification failed:', error);
+      }
+    }
+    return updatedRequest;
   }
 
   private async checkRegionBudget(regionId: string, requestedAmount: number, excludeRequestId?: string) {
@@ -510,7 +575,7 @@ export class RequestsService {
     const whereCondition: any = {
       regionId,
       createdAt: { gte: startOfMonth, lte: endOfMonth },
-      status: { in: [RequestStatus.PENDING_APPROVAL, RequestStatus.APPROVED, RequestStatus.PAID, RequestStatus.COMPLETED] },
+      status: { in: [RequestStatus.PENDING_APPROVAL, RequestStatus.APPROVED, RequestStatus.PAYMENT_PROCESSING, RequestStatus.PAID, RequestStatus.COMPLETED] },
     };
 
     if (excludeRequestId) {
@@ -533,6 +598,51 @@ export class RequestsService {
     }
   }
 
+  private async validateDimensionCompany(
+    companyId: string,
+    projectId?: string | null,
+    regionId?: string | null,
+    budgetHeadId?: string | null,
+  ) {
+    const [project, region, budgetHead] = await Promise.all([
+      projectId ? (this.prisma as any).project.findUnique({ where: { id: projectId }, select: { companyId: true } }) : null,
+      regionId ? (this.prisma as any).region.findUnique({ where: { id: regionId }, select: { companyId: true } }) : null,
+      budgetHeadId ? (this.prisma as any).budgetHead.findUnique({ where: { id: budgetHeadId }, select: { companyId: true } }) : null,
+    ]);
+
+    if ((projectId && (!project || project.companyId !== companyId)) ||
+        (regionId && (!region || region.companyId !== companyId)) ||
+        (budgetHeadId && (!budgetHead || budgetHead.companyId !== companyId))) {
+      throw new BadRequestException('Project, region, and budget head must belong to your company');
+    }
+  }
+
+  private validateOwnedUploads(userId: string, attachments?: any[], existingUrls: string[] = []) {
+    if (!attachments) return;
+    const bucket = process.env.MINIO_BUCKET || 'petty-cash-attachments';
+
+    for (const attachment of attachments) {
+      let parts: string[];
+      try {
+        const pathname = decodeURIComponent(new URL(attachment.fileUrl, 'http://local').pathname);
+        parts = pathname.split('/').filter(Boolean);
+      } catch {
+        throw new BadRequestException('Attachment must come from your authenticated upload session');
+      }
+
+      const isNewLocalUpload = parts.length === 3 && parts[0] === 'uploads' && parts[1] === userId;
+      const isNewMinioUpload = parts.length === 3 && parts[0] === bucket && parts[1] === userId;
+      const isExistingLegacyFile = existingUrls.includes(attachment.fileUrl) &&
+        ((parts.length === 2 && parts[0] === 'uploads') || (parts.length === 2 && parts[0] === bucket));
+
+      if ((!isNewLocalUpload && !isNewMinioUpload && !isExistingLegacyFile) ||
+          parts.some((part) => part === '.' || part === '..') ||
+          !parts[parts.length - 1]) {
+        throw new BadRequestException('Attachment must come from your authenticated upload session');
+      }
+    }
+  }
+
   private async notifyAccountants(title: string, message: string, companyId?: string) {
     // Fetch accountants filtered by companyId to prevent cross-tenant notification leaks
     const where: any = {
@@ -549,4 +659,3 @@ export class RequestsService {
     }
   }
 }
-

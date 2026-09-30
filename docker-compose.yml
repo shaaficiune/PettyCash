@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Somtel@PL}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD to a random URL-safe value in .env}
       POSTGRES_DB: ${POSTGRES_DB:-petty_cash_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -30,8 +30,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
     volumes:
       - minio_data:/data
     ports:
@@ -62,19 +62,24 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOST: 0.0.0.0
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Somtel%40PL}@postgres:5432/${POSTGRES_DB:-petty_cash_db}?schema=public
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD to a random URL-safe value in .env}@postgres:5432/${POSTGRES_DB:-petty_cash_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env}
       JWT_ACCESS_EXPIRES: ${JWT_ACCESS_EXPIRES:-15m}
       JWT_REFRESH_EXPIRES: ${JWT_REFRESH_EXPIRES:-7d}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:?Set a unique INITIAL_ADMIN_PASSWORD in .env}
+      INITIAL_ACCOUNTANT_PASSWORD: ${INITIAL_ACCOUNTANT_PASSWORD:?Set a unique INITIAL_ACCOUNTANT_PASSWORD in .env}
+      INITIAL_EMPLOYEE_PASSWORD: ${INITIAL_EMPLOYEE_PASSWORD:?Set a unique INITIAL_EMPLOYEE_PASSWORD in .env}
+      INITIAL_BLUEKOM_EMPLOYEE_PASSWORD: ${INITIAL_BLUEKOM_EMPLOYEE_PASSWORD:?Set a unique INITIAL_BLUEKOM_EMPLOYEE_PASSWORD in .env}
       STORAGE_TYPE: ${STORAGE_TYPE:-local}
       UPLOAD_DEST: ./uploads
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
       MINIO_BUCKET: ${MINIO_BUCKET:-petty-cash-attachments}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://10.35.70.248}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost}
     volumes:
       - backend_uploads:/app/uploads
     ports:

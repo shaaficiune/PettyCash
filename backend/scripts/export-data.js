@@ -26,7 +26,14 @@ async function main() {
     { name: 'role',            fn: () => prisma.role.findMany() },
     { name: 'department',      fn: () => prisma.department.findMany() },
     { name: 'region',          fn: () => (prisma).region.findMany() },
-    { name: 'user',            fn: () => prisma.user.findMany() },
+    // Never export password hashes or session/lockout data.
+    { name: 'user',            fn: () => prisma.user.findMany({
+      select: {
+        id: true, fullName: true, username: true, email: true, phone: true, jobTitle: true,
+        companyId: true, departmentId: true, regionId: true, roleId: true, status: true,
+        createdAt: true, updatedAt: true,
+      },
+    }).then(users => users.map(user => ({ ...user, resetPasswordRequired: true }))) },
     { name: 'project',         fn: () => (prisma).project?.findMany?.() },
     { name: 'budgetHead',      fn: () => (prisma).budgetHead?.findMany?.() },
     { name: 'pettyCashFund',   fn: () => (prisma).pettyCashFund.findMany() },
@@ -36,10 +43,13 @@ async function main() {
     { name: 'settlement',      fn: () => (prisma).settlement?.findMany?.() },
     { name: 'pettyCashLedger', fn: () => (prisma).pettyCashLedger?.findMany?.() },
     { name: 'notification',    fn: () => prisma.notification.findMany() },
-    { name: 'refreshToken',    fn: () => prisma.refreshToken.findMany() },
   ];
 
   let totalRecords = 0;
+
+  // Remove stale session exports left by older versions of this script.
+  const oldRefreshTokenFile = path.join(OUTPUT_DIR, 'refreshToken.json');
+  if (fs.existsSync(oldRefreshTokenFile)) fs.unlinkSync(oldRefreshTokenFile);
 
   for (const table of tables) {
     try {
@@ -47,6 +57,7 @@ async function main() {
       if (data && data.length > 0) {
         const filePath = path.join(OUTPUT_DIR, `${table.name}.json`);
         fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+        try { fs.chmodSync(filePath, 0o600); } catch { /* Windows uses inherited ACLs. */ }
         console.log(`  ✅ ${table.name}: ${data.length} records → ${table.name}.json`);
         totalRecords += data.length;
       } else {
@@ -58,7 +69,7 @@ async function main() {
   }
 
   console.log(`\n✅ Export complete! ${totalRecords} total records saved to scripts/data/`);
-  console.log('📁 Files ready to be imported on the server.');
+  console.log('Store the exported records securely. Never commit or share these files.');
 }
 
 main()

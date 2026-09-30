@@ -8,83 +8,82 @@ export class FundsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async initFund(dto: InitFundDto) {
-    const existing = await (this.prisma as any).pettyCashFund.findUnique({
-      where: {
-        companyId_month_year: {
+    return this.prisma.$transaction(async (tx) => {
+      // Serialize initial allocations and top-ups for this company/month,
+      // including the case where the fund row has not been created yet.
+      await (tx as any).$queryRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))',
+        dto.companyId,
+        `${dto.month}-${dto.year}`,
+      );
+      const key = { companyId_month_year: { companyId: dto.companyId, month: dto.month, year: dto.year } };
+      const existing = await (tx as any).pettyCashFund.findUnique({ where: key });
+
+      if (existing) {
+        await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', existing.id);
+        const lockedFund = await (tx as any).pettyCashFund.findUnique({ where: { id: existing.id } });
+        if (lockedFund.status !== 'OPEN') throw new BadRequestException('This fund is already closed');
+
+        const topUpAmount = Number(dto.additionalFunding || dto.openingBalance || 0);
+        const newTotalAvailable = Number(lockedFund.totalAvailable) + topUpAmount;
+        const newRemaining = Number(lockedFund.remainingBalance) + topUpAmount;
+        const updated = await (tx as any).pettyCashFund.update({
+          where: { id: lockedFund.id },
+          data: {
+            additionalFunding: Number(lockedFund.additionalFunding) + topUpAmount,
+            totalAvailable: newTotalAvailable,
+            remainingBalance: newRemaining,
+            closingBalance: newRemaining,
+          },
+        });
+
+        if (topUpAmount > 0) {
+          await (tx as any).pettyCashLedger.create({
+            data: {
+              fundId: lockedFund.id,
+              companyId: dto.companyId,
+              transactionType: 'ALLOCATION',
+              description: 'Petty cash fund top-up / injection',
+              credit: topUpAmount,
+              balanceAfter: newRemaining,
+              remarks: `Fund top-up: +$${topUpAmount.toLocaleString()}`,
+            },
+          });
+        }
+        return updated;
+      }
+
+      const openingBalance = Number(dto.openingBalance || 0);
+      const additionalFunding = Number(dto.additionalFunding || 0);
+      const totalAvailable = openingBalance + additionalFunding;
+      const newFund = await (tx as any).pettyCashFund.create({
+        data: {
           companyId: dto.companyId,
           month: dto.month,
           year: dto.year,
-        },
-      },
-    });
-
-    if (existing) {
-      // Top up existing fund for this month
-      const topUpAmount = Number(dto.additionalFunding || dto.openingBalance || 0);
-      const newTotalAvailable = Number(existing.totalAvailable) + topUpAmount;
-      const newRemaining = Number(existing.remainingBalance) + topUpAmount;
-
-      const updated = await (this.prisma as any).pettyCashFund.update({
-        where: { id: existing.id },
-        data: {
-          additionalFunding: Number(existing.additionalFunding) + topUpAmount,
-          totalAvailable: newTotalAvailable,
-          remainingBalance: newRemaining,
-          closingBalance: newRemaining,
+          openingBalance,
+          additionalFunding,
+          totalAvailable,
+          remainingBalance: totalAvailable,
+          closingBalance: totalAvailable,
         },
       });
 
-      if (topUpAmount > 0) {
-        await (this.prisma as any).pettyCashLedger.create({
+      if (totalAvailable > 0) {
+        await (tx as any).pettyCashLedger.create({
           data: {
-            fundId: existing.id,
+            fundId: newFund.id,
             companyId: dto.companyId,
             transactionType: 'ALLOCATION',
-            description: `Petty cash fund top-up / injection`,
-            credit: topUpAmount,
-            debit: null,
-            balanceAfter: newRemaining,
-            remarks: `Fund top-up: +$${topUpAmount.toLocaleString()}`,
+            description: `Initial petty cash fund allocation for ${dto.month}/${dto.year}`,
+            credit: totalAvailable,
+            balanceAfter: totalAvailable,
+            remarks: `Initial Allocation: $${totalAvailable.toLocaleString()}`,
           },
         });
       }
-
-      return updated;
-    }
-
-    const openingBalance = Number(dto.openingBalance || 0);
-    const additionalFunding = Number(dto.additionalFunding || 0);
-    const totalAvailable = openingBalance + additionalFunding;
-
-    const newFund = await (this.prisma as any).pettyCashFund.create({
-      data: {
-        companyId: dto.companyId,
-        month: dto.month,
-        year: dto.year,
-        openingBalance,
-        additionalFunding,
-        totalAvailable,
-        remainingBalance: totalAvailable,
-        closingBalance: totalAvailable,
-      },
+      return newFund;
     });
-
-    if (totalAvailable > 0) {
-      await (this.prisma as any).pettyCashLedger.create({
-        data: {
-          fundId: newFund.id,
-          companyId: dto.companyId,
-          transactionType: 'ALLOCATION',
-          description: `Initial petty cash fund allocation for ${dto.month}/${dto.year}`,
-          credit: totalAvailable,
-          debit: null,
-          balanceAfter: totalAvailable,
-          remarks: `Initial Allocation: $${totalAvailable.toLocaleString()}`,
-        },
-      });
-    }
-
-    return newFund;
   }
 
   async checkFundAvailability(companyId: string) {
@@ -135,78 +134,133 @@ export class FundsService {
 
   async closeMonth(companyId: string, month: number, year: number, dto: CloseFundDto) {
     const fund = await this.getFund(companyId, month, year);
-
-    if (fund.status !== 'OPEN') {
-      throw new BadRequestException('This fund is already closed');
-    }
-
     const nextMonth = month === 12 ? 1 : month + 1;
     const nextYear = month === 12 ? year + 1 : year;
-    const closingBalance = Number(fund.remainingBalance) + Number(dto.additionalFunding || 0);
+    const additionalFunding = Number(dto.additionalFunding || 0);
 
-    await (this.prisma as any).pettyCashFund.update({
-      where: { id: fund.id },
-      data: {
-        status: 'CLOSED',
-        additionalFunding: Number(fund.additionalFunding) + Number(dto.additionalFunding || 0),
-        closingBalance,
-        remainingBalance: closingBalance,
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fund.id);
+      const currentFund = await (tx as any).pettyCashFund.findUnique({ where: { id: fund.id } });
+      if (!currentFund || currentFund.status !== 'OPEN') {
+        throw new BadRequestException('This fund is already closed');
+      }
 
-    const nextFund = await (this.prisma as any).pettyCashFund.upsert({
-      where: {
-        companyId_month_year: {
-          companyId,
-          month: nextMonth,
-          year: nextYear,
-        },
-      },
-      update: {
-        openingBalance: closingBalance,
-        remainingBalance: closingBalance,
-        totalAvailable: closingBalance + (dto.additionalFunding || 0),
-      },
-      create: {
+      const carryForward = Number(currentFund.remainingBalance);
+      const closedFund = await (tx as any).pettyCashFund.update({
+        where: { id: currentFund.id },
+        data: { status: 'CLOSED', closingBalance: carryForward },
+      });
+
+      await (tx as any).$queryRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))',
         companyId,
-        month: nextMonth,
-        year: nextYear,
-        openingBalance: closingBalance,
-        additionalFunding: dto.additionalFunding || 0,
-        totalAvailable: closingBalance + (dto.additionalFunding || 0),
-        remainingBalance: closingBalance + (dto.additionalFunding || 0),
-        closingBalance: closingBalance + (dto.additionalFunding || 0),
-      },
-    });
+        `${nextMonth}-${nextYear}`,
+      );
+      const nextWhere = { companyId_month_year: { companyId, month: nextMonth, year: nextYear } };
+      let existingNextFund = await (tx as any).pettyCashFund.findUnique({ where: nextWhere });
+      if (existingNextFund) {
+        await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', existingNextFund.id);
+        existingNextFund = await (tx as any).pettyCashFund.findUnique({ where: { id: existingNextFund.id } });
+      }
+      let nextFund: any;
 
-    return {
-      closed: fund,
-      nextMonthFund: nextFund,
-    };
+      if (existingNextFund) {
+        if (existingNextFund.status !== 'OPEN') {
+          throw new BadRequestException('The next month fund is already closed');
+        }
+        const carryAdjustment = carryForward - Number(existingNextFund.openingBalance);
+        const balanceAdjustment = carryAdjustment + additionalFunding;
+        const newTotalAvailable = Number(existingNextFund.totalAvailable) + balanceAdjustment;
+        const newRemainingBalance = Number(existingNextFund.remainingBalance) + balanceAdjustment;
+        const afterCarryAdjustment = Number(existingNextFund.remainingBalance) + carryAdjustment;
+        if (newTotalAvailable < 0 || newRemainingBalance < 0) {
+          throw new BadRequestException('The next month fund cannot cover the closing balance adjustment');
+        }
+
+        nextFund = await (tx as any).pettyCashFund.update({
+          where: { id: existingNextFund.id },
+          data: {
+            openingBalance: carryForward,
+            additionalFunding: Number(existingNextFund.additionalFunding) + additionalFunding,
+            totalAvailable: newTotalAvailable,
+            remainingBalance: newRemainingBalance,
+            closingBalance: Number(existingNextFund.closingBalance ?? existingNextFund.remainingBalance) + balanceAdjustment,
+          },
+        });
+
+        if (carryAdjustment !== 0) {
+          await (tx as any).pettyCashLedger.create({
+            data: {
+              fundId: existingNextFund.id,
+              companyId,
+              transactionType: 'ROLLOVER_ADJUSTMENT',
+              description: `Month-end carry-forward adjustment from ${month}/${year}`,
+              debit: carryAdjustment < 0 ? Math.abs(carryAdjustment) : null,
+              credit: carryAdjustment > 0 ? carryAdjustment : null,
+              balanceAfter: afterCarryAdjustment,
+            },
+          });
+        }
+        if (additionalFunding > 0) {
+          await (tx as any).pettyCashLedger.create({
+            data: {
+              fundId: existingNextFund.id,
+              companyId,
+              transactionType: 'ALLOCATION',
+              description: 'Additional funding for the new month',
+              credit: additionalFunding,
+              balanceAfter: newRemainingBalance,
+            },
+          });
+        }
+      } else {
+        const nextAvailable = carryForward + additionalFunding;
+        nextFund = await (tx as any).pettyCashFund.create({
+          data: {
+            companyId,
+            month: nextMonth,
+            year: nextYear,
+            openingBalance: carryForward,
+            additionalFunding,
+            totalAvailable: nextAvailable,
+            remainingBalance: nextAvailable,
+            closingBalance: nextAvailable,
+          },
+        });
+
+        if (carryForward > 0) {
+          await (tx as any).pettyCashLedger.create({
+            data: {
+              fundId: nextFund.id,
+              companyId,
+              transactionType: 'CARRY_FORWARD',
+              description: `Month-end carry-forward from ${month}/${year}`,
+              credit: carryForward,
+              balanceAfter: carryForward,
+            },
+          });
+        }
+        if (additionalFunding > 0) {
+          await (tx as any).pettyCashLedger.create({
+            data: {
+              fundId: nextFund.id,
+              companyId,
+              transactionType: 'ALLOCATION',
+              description: 'Additional funding for the new month',
+              credit: additionalFunding,
+              balanceAfter: nextAvailable,
+            },
+          });
+        }
+      }
+
+      return { closed: closedFund, nextMonthFund: nextFund };
+    });
   }
 
   async recordApprovedPayment(companyId: string, requestId: string, approvedAmount: number) {
     const fund = await this.getOrCreateCurrentMonthFund(companyId);
-
-    const totalAvailable = Number(fund.totalAvailable);
-    const currentApproved = Number(fund.approvedAmount || 0);
-    const newApprovedAmount = currentApproved + Number(approvedAmount);
-    const remainingBalance = totalAvailable - newApprovedAmount;
-
-    if (remainingBalance < 0) {
-      throw new BadRequestException(
-        `Insufficient Petty Cash Balance. Available: $${Number(fund.remainingBalance).toLocaleString()} USD, Requested Approval: $${Number(approvedAmount).toLocaleString()} USD. Please top up your company's Petty Cash Fund.`
-      );
-    }
-
-    return (this.prisma as any).pettyCashFund.update({
-      where: { id: fund.id },
-      data: {
-        approvedAmount: newApprovedAmount,
-        remainingBalance,
-        closingBalance: remainingBalance,
-      },
-    });
+    return this.prisma.$transaction((tx) => this.recordApprovalInTransaction(tx, fund.id, approvedAmount));
   }
 
   // Backwards-compatible wrapper used by RequestsService
@@ -214,69 +268,124 @@ export class FundsService {
     return this.recordApprovedPayment(companyId, null as any, approvedAmount);
   }
 
+  async recordApprovalInTransaction(tx: any, fundId: string, approvedAmount: number) {
+    await tx.$queryRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
+    const fund = await tx.pettyCashFund.findUnique({ where: { id: fundId } });
+    if (!fund || fund.status !== 'OPEN') {
+      throw new BadRequestException('The petty cash fund is not open for approvals');
+    }
+
+    const totalAvailable = Number(fund.totalAvailable);
+    const alreadyCommitted = await this.getCommittedAmount(tx, fund);
+    const newApprovedAmount = alreadyCommitted + Number(approvedAmount);
+    const remainingBalance = totalAvailable - newApprovedAmount;
+    if (remainingBalance < 0) {
+      throw new BadRequestException(
+        `Insufficient Petty Cash Balance. Available: $${Number(fund.remainingBalance).toLocaleString()} USD, Requested Approval: $${Number(approvedAmount).toLocaleString()} USD. Please top up your company's Petty Cash Fund.`,
+      );
+    }
+
+    return tx.pettyCashFund.update({
+      where: { id: fund.id },
+      data: { approvedAmount: newApprovedAmount, remainingBalance, closingBalance: remainingBalance },
+    });
+  }
+
   // Record an actual payment and create a ledger entry (atomic to prevent race conditions)
   async recordPayment(companyId: string, requestId: string, amountPaid: number, paidById: string, referenceNumber?: string | null, notes?: string) {
     const fund = await this.getOrCreateCurrentMonthFund(companyId);
+    return this.prisma.$transaction((tx) => this.recordPaymentInTransaction(
+      tx, fund.id, companyId, requestId, amountPaid, paidById, referenceNumber, notes,
+    ));
+  }
 
-    // Use transaction for the entire balance check + update to prevent race conditions
-    // (two accountants paying simultaneously won't cause lost updates)
-    const updated = await this.prisma.$transaction(async (tx) => {
-      // Re-read the fund inside the transaction to get the latest locked values
-      const lockedFund = await (tx as any).pettyCashFund.findUnique({
-        where: { id: fund.id },
-      });
+  async recordPaymentInTransaction(
+    tx: any,
+    fundId: string,
+    companyId: string,
+    requestId: string,
+    amountPaid: number,
+    paidById: string,
+    referenceNumber?: string | null,
+    notes?: string,
+  ) {
+    await tx.$queryRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
+    const lockedFund = await tx.pettyCashFund.findUnique({ where: { id: fundId } });
+    if (!lockedFund || lockedFund.status !== 'OPEN') {
+      throw new BadRequestException('The petty cash fund is not open for payments');
+    }
 
-      const totalAvailable = Number(lockedFund.totalAvailable);
-      const currentPaid = Number(lockedFund.paidAmount || 0);
-      const newPaid = currentPaid + Number(amountPaid);
-      const remainingBalance = totalAvailable - newPaid;
+    const totalAvailable = Number(lockedFund.totalAvailable);
+    const periodStart = new Date(lockedFund.year, lockedFund.month - 1, 1);
+    const nextPeriodStart = new Date(lockedFund.year, lockedFund.month, 1);
+    const paidAggregate = await tx.payment.aggregate({
+      where: {
+        companyId,
+        request: { createdAt: { gte: periodStart, lt: nextPeriodStart } },
+      },
+      _sum: { amountPaid: true },
+    });
+    const paidSoFar = Math.max(
+      Number(lockedFund.paidAmount || 0),
+      Number(paidAggregate._sum.amountPaid || 0),
+    );
+    const newPaid = paidSoFar + Number(amountPaid);
+    if (newPaid > totalAvailable) {
+      throw new BadRequestException(
+        `Insufficient Petty Cash Balance. Available: $${Number(lockedFund.remainingBalance).toLocaleString()} USD, Requested Payout: $${Number(amountPaid).toLocaleString()} USD. Please top up your company's Petty Cash Fund.`,
+      );
+    }
 
-      if (remainingBalance < 0) {
-        throw new BadRequestException(
-          `Insufficient Petty Cash Balance. Available: $${Number(lockedFund.remainingBalance).toLocaleString()} USD, Requested Payout: $${Number(amountPaid).toLocaleString()} USD. Please top up your company's Petty Cash Fund.`
-        );
-      }
+    // Approved requests reserve funds before payout. Paying one must not release
+    // the unpaid portion of another request's reservation.
+    const committedAmount = await this.getCommittedAmount(tx, lockedFund);
+    const remainingBalance = totalAvailable - committedAmount;
+    if (remainingBalance < 0) {
+      throw new BadRequestException('Committed requests exceed the available fund balance');
+    }
 
-      const updatedFund = await (tx as any).pettyCashFund.update({
-        where: { id: fund.id },
-        data: {
-          paidAmount: newPaid,
-          remainingBalance,
-          closingBalance: remainingBalance,
-        },
-      });
+    const updatedFund = await tx.pettyCashFund.update({
+      where: { id: fundId },
+      data: { paidAmount: newPaid, remainingBalance, closingBalance: remainingBalance },
+    });
+    const request = requestId ? await tx.pettyCashRequest.findUnique({
+      where: { id: requestId },
+      select: { purpose: true },
+    }) : null;
+    const ledger = await tx.pettyCashLedger.create({
+      data: {
+        fundId,
+        companyId,
+        referenceNumber: referenceNumber || undefined,
+        transactionType: 'PAYMENT',
+        employeeId: paidById,
+        requestId: requestId || undefined,
+        description: notes || request?.purpose || 'Payment',
+        debit: Number(amountPaid),
+        credit: null,
+        balanceAfter: totalAvailable - newPaid,
+        remarks: notes || undefined,
+      },
+    });
+    return { updatedFund, ledger };
+  }
 
-      let defaultDesc = `Payment`;
-      if (requestId) {
-        const reqObj = await (tx as any).pettyCashRequest.findUnique({
-          where: { id: requestId },
-          select: { requestNumber: true, purpose: true },
-        });
-        if (reqObj) {
-          defaultDesc = reqObj.purpose || 'Payment';
-        }
-      }
-
-      const ledger = await (tx as any).pettyCashLedger.create({
-        data: {
-          fundId: fund.id,
-          companyId,
-          referenceNumber: referenceNumber || undefined,
-          transactionType: 'PAYMENT',
-          employeeId: paidById,
-          requestId: requestId,
-          description: notes || defaultDesc,
-          debit: Number(amountPaid),
-          credit: null,
-          balanceAfter: remainingBalance,
-          remarks: notes || undefined,
-        },
-      });
-
-      return { updatedFund, ledger };
+  private async getCommittedAmount(tx: any, fund: any): Promise<number> {
+    const periodStart = new Date(fund.year, fund.month - 1, 1);
+    const nextPeriodStart = new Date(fund.year, fund.month, 1);
+    const committedRequests = await tx.pettyCashRequest.findMany({
+      where: {
+        companyId: fund.companyId,
+        status: { in: ['APPROVED', 'PAYMENT_PROCESSING', 'PAID', 'COMPLETED'] },
+        createdAt: { gte: periodStart, lt: nextPeriodStart },
+      },
+      select: { approvedAmount: true, requestedAmount: true },
     });
 
-    return updated;
+    return committedRequests.reduce(
+      (total: number, request: any) => total + Number(request.approvedAmount ?? request.requestedAmount),
+      0,
+    );
   }
 
   async getMonthlySummary(companyId: string, month: number, year: number) {

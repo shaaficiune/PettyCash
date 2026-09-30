@@ -5,6 +5,8 @@ dist
 coverage
 *.log
 uploads/
+scripts/data/*.json
+*.env
 .git
 .gitignore
 README.md

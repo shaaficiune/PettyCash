@@ -4,10 +4,15 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error('DATABASE_URL environment variable is required');
+    }
+
     super({
       datasources: {
         db: {
-          url: process.env.DATABASE_URL || 'postgresql://postgres:Somtel%40PL@localhost:5432/petty_cash_db?schema=public',
+          url: databaseUrl,
         },
       },
     });

@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UsersService {
@@ -32,9 +33,12 @@ export class UsersService {
       throw new BadRequestException('Role not found');
     }
 
-    // Hash default initial password
-    const defaultPassword = 'Welcome@2026';
-    const passwordHash = await bcrypt.hash(defaultPassword, 10);
+    const company = await this.prisma.company.findUnique({ where: { id: dto.companyId }, select: { id: true } });
+    if (!company) throw new BadRequestException('Company not found');
+
+    // Create a unique one-time password and return it only in this admin response.
+    const temporaryPassword = randomBytes(24).toString('base64url');
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
 
     let departmentId = dto.departmentId;
     if (!departmentId) {
@@ -45,8 +49,19 @@ export class UsersService {
         departmentId = defaultDept.id;
       }
     }
+    if (!departmentId) throw new BadRequestException('A department is required for this company');
+    const department = await this.prisma.department.findUnique({ where: { id: departmentId }, select: { companyId: true } });
+    if (!department || department.companyId !== dto.companyId) {
+      throw new BadRequestException('Department must belong to the selected company');
+    }
+    if (dto.regionId) {
+      const region = await (this.prisma as any).region.findUnique({ where: { id: dto.regionId }, select: { companyId: true } });
+      if (!region || region.companyId !== dto.companyId) {
+        throw new BadRequestException('Region must belong to the selected company');
+      }
+    }
 
-    return this.prisma.user.create({
+    const createdUser = await this.prisma.user.create({
       data: {
         fullName: dto.fullName,
         username: dto.username,
@@ -76,6 +91,8 @@ export class UsersService {
         createdAt: true,
       },
     });
+
+    return { ...createdUser, temporaryPassword };
   }
 
   async findAll(companyId?: string) {
@@ -120,6 +137,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
     return user;
   }
 
@@ -127,6 +145,19 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    if (dto.departmentId) {
+      const department = await this.prisma.department.findUnique({ where: { id: dto.departmentId }, select: { companyId: true } });
+      if (!department || department.companyId !== user.companyId) {
+        throw new BadRequestException('Department must belong to the user\'s company');
+      }
+    }
+    if (dto.regionId) {
+      const region = await (this.prisma as any).region.findUnique({ where: { id: dto.regionId }, select: { companyId: true } });
+      if (!region || region.companyId !== user.companyId) {
+        throw new BadRequestException('Region must belong to the user\'s company');
+      }
     }
 
     const data: any = {};
@@ -153,7 +184,7 @@ export class UsersService {
       data.roleId = roleObj.id;
     }
 
-    return this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id },
       data,
       select: {
@@ -166,15 +197,21 @@ export class UsersService {
         status: true,
       },
     });
+
+    if (dto.status === 'DISABLED') {
+      await this.prisma.refreshToken.deleteMany({ where: { userId: id } });
+    }
+
+    return updatedUser;
   }
 
-  async resetPassword(id: string, tempPassword?: string) {
+  async resetPassword(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const pass = tempPassword || 'Welcome@2026';
+    const pass = randomBytes(24).toString('base64url');
     const passwordHash = await bcrypt.hash(pass, 10);
 
     await this.prisma.user.update({
@@ -196,7 +233,11 @@ export class UsersService {
       where: { userId: id },
     });
 
-    return { success: true, message: `Password reset to temporary password: ${pass}` };
+    return {
+      success: true,
+      message: 'Password reset. Share the one-time password with the user through a secure channel.',
+      temporaryPassword: pass,
+    };
   }
 
   async remove(id: string) {

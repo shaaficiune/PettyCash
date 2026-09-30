@@ -14,16 +14,12 @@ export class PaymentsService {
   ) {}
 
   async recordPayment(paidById: string, dto: RecordPaymentDto) {
-    const request = await this.prisma.pettyCashRequest.findUnique({
+    const requestSnapshot = await this.prisma.pettyCashRequest.findUnique({
       where: { id: dto.requestId },
     });
 
-    if (!request) {
+    if (!requestSnapshot) {
       throw new NotFoundException('Petty cash request not found');
-    }
-
-    if (request.status !== RequestStatus.APPROVED && request.status !== RequestStatus.PAYMENT_PROCESSING) {
-      throw new BadRequestException('Payment can only be processed for approved requests');
     }
 
     if (!dto.amountPaid || dto.amountPaid <= 0) {
@@ -38,70 +34,82 @@ export class PaymentsService {
     const actor = await this.prisma.user.findUnique({ where: { id: paidById }, include: { role: true } });
     if (!actor) throw new ForbiddenException('Actor account not found');
     const isCrossCompanyRole = actor.role?.name === 'SUPER_ADMIN' || actor.role?.name === 'ACCOUNTANT';
-    if (!isCrossCompanyRole && actor.companyId !== request.companyId) {
+    if (!isCrossCompanyRole && actor.companyId !== requestSnapshot.companyId) {
       throw new ForbiddenException('Not allowed to record payments for this company');
     }
 
-    // Compute existing total paid for request to support partial payments
-    const paidAgg = await this.prisma.payment.aggregate({
-      where: { requestId: dto.requestId },
-      _sum: { amountPaid: true },
-    });
-    const alreadyPaid = Number(paidAgg._sum.amountPaid || 0);
-    const newTotalPaid = alreadyPaid + Number(dto.amountPaid);
-    const approvedAmount = Number(request.approvedAmount ?? request.requestedAmount);
+    const fund = await this.fundsService.getOrCreateCurrentMonthFund(requestSnapshot.companyId);
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Serialize payments for this request, then re-read its state and paid total.
+      await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', dto.requestId);
+      const request = await (tx as any).pettyCashRequest.findUnique({ where: { id: dto.requestId } });
+      if (!request) throw new NotFoundException('Petty cash request not found');
+      if (request.status !== RequestStatus.APPROVED && request.status !== RequestStatus.PAYMENT_PROCESSING) {
+        throw new BadRequestException('Payment can only be processed for approved requests');
+      }
 
-    // Overpayment Guard: prevent disbursements exceeding the approved amount
-    if (newTotalPaid > approvedAmount) {
-      const remaining = approvedAmount - alreadyPaid;
-      throw new BadRequestException(
-        `Overpayment prevented: approved amount is ${request.currency} ${approvedAmount.toLocaleString()}, ` +
-        `already paid ${request.currency} ${alreadyPaid.toLocaleString()}, ` +
-        `remaining balance is ${request.currency} ${remaining.toLocaleString()}.`
+      const paidAgg = await (tx as any).payment.aggregate({
+        where: { requestId: dto.requestId },
+        _sum: { amountPaid: true },
+      });
+      const alreadyPaid = Number(paidAgg._sum.amountPaid || 0);
+      const newTotalPaid = alreadyPaid + Number(dto.amountPaid);
+      const approvedAmount = Number(request.approvedAmount ?? request.requestedAmount);
+      if (newTotalPaid > approvedAmount) {
+        const remaining = approvedAmount - alreadyPaid;
+        throw new BadRequestException(
+          `Overpayment prevented: approved amount is ${request.currency} ${approvedAmount.toLocaleString()}, ` +
+          `already paid ${request.currency} ${alreadyPaid.toLocaleString()}, ` +
+          `remaining balance is ${request.currency} ${remaining.toLocaleString()}.`,
+        );
+      }
+
+      await this.fundsService.recordPaymentInTransaction(
+        tx,
+        fund.id,
+        request.companyId,
+        dto.requestId,
+        Number(dto.amountPaid),
+        paidById,
+        dto.referenceNumber || null,
+        dto.notes || '',
       );
-    }
 
-    // Create payment entry
-    const payment = await this.prisma.payment.create({
-      data: {
-        requestId: dto.requestId,
-        companyId: request.companyId,
-        amountPaid: dto.amountPaid,
-        paymentMethod: dto.paymentMethod,
-        transactionId: dto.transactionId || null,
-        referenceNumber: dto.referenceNumber || null,
-        paidById: paidById,
-        notes: dto.notes || '',
-        paymentDate: dto.paymentDate ? new Date(dto.paymentDate) : new Date(),
-      },
-    });
+      const payment = await (tx as any).payment.create({
+        data: {
+          requestId: dto.requestId,
+          companyId: request.companyId,
+          amountPaid: dto.amountPaid,
+          paymentMethod: dto.paymentMethod,
+          transactionId: dto.transactionId || null,
+          referenceNumber: dto.referenceNumber || null,
+          paidById,
+          notes: dto.notes || '',
+          paymentDate: dto.paymentDate ? new Date(dto.paymentDate) : new Date(),
+        },
+      });
 
-    // Update fund and ledger. If fund update fails, roll back created payment.
-    try {
-      await this.fundsService.recordPayment(request.companyId, dto.requestId, Number(dto.amountPaid), paidById, dto.referenceNumber || null, dto.notes || '');
-    } catch (e) {
-      // rollback created payment to keep consistency
-      try { await this.prisma.payment.delete({ where: { id: payment.id } }); } catch (_) {}
-      throw e;
-    }
-
-    // Update request status depending on cumulative paid amount
-    const newStatus = newTotalPaid >= approvedAmount ? RequestStatus.PAID : RequestStatus.PAYMENT_PROCESSING;
-    await this.prisma.pettyCashRequest.update({
-      where: { id: dto.requestId },
-      data: {
-        status: newStatus,
-      },
+      const newStatus = newTotalPaid >= approvedAmount ? RequestStatus.PAID : RequestStatus.PAYMENT_PROCESSING;
+      await (tx as any).pettyCashRequest.update({
+        where: { id: request.id },
+        data: { status: newStatus },
+      });
+      return { payment, request };
     });
 
     // Notify employee
-    await this.notifications.create(
-      request.userId,
-      `Payment Disbursed: ${request.requestNumber}`,
-      `A payment of ${request.currency} ${dto.amountPaid} has been disbursed for request ${request.requestNumber} via ${dto.paymentMethod}.`
-    );
+    try {
+      await this.notifications.create(
+        result.request.userId,
+        `Payment Disbursed: ${result.request.requestNumber}`,
+        `A payment of ${result.request.currency} ${dto.amountPaid} has been disbursed for request ${result.request.requestNumber} via ${dto.paymentMethod}.`,
+      );
+    } catch (error) {
+      // A notification failure must not undo or misreport a committed payment.
+      console.error('Payment notification failed:', error);
+    }
 
-    return payment;
+    return result.payment;
   }
 
   async listPayments(filters: {

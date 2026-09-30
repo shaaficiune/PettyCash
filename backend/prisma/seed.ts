@@ -1,9 +1,36 @@
 import { PrismaClient, RoleName, Priority, RequestStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 const prisma = new PrismaClient();
 
 async function main() {
+  const seedUsernames = ['admin', 'accountant', 'employee', 'employee_bk'];
+  const existingSeedUsers = new Set((await prisma.user.findMany({
+    where: { username: { in: seedUsernames } },
+    select: { username: true },
+  })).map((user) => user.username));
+
+  const seedPassword = (key: string, username: string) => {
+    if (existingSeedUsers.has(username)) return randomBytes(24).toString('base64url');
+    const configured = process.env[key];
+    if (configured) {
+      if (configured.length < 16) throw new Error(`${key} must be at least 16 characters`);
+      return configured;
+    }
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`${key} is required when seeding production users`);
+    }
+    return randomBytes(24).toString('base64url');
+  };
+
+  const seedPasswords = {
+    admin: seedPassword('INITIAL_ADMIN_PASSWORD', 'admin'),
+    accountant: seedPassword('INITIAL_ACCOUNTANT_PASSWORD', 'accountant'),
+    employee: seedPassword('INITIAL_EMPLOYEE_PASSWORD', 'employee'),
+    employee_bk: seedPassword('INITIAL_BLUEKOM_EMPLOYEE_PASSWORD', 'employee_bk'),
+  };
+
   console.log('Seeding database...');
 
   // 1. Create Companies
@@ -264,7 +291,9 @@ async function main() {
   console.log('Budget Heads seeded.');
 
   // 6. Create Seed Users
-  const defaultPasswordHash = bcrypt.hashSync('Welcome@2026', 10);
+  const seedPasswordHashes = Object.fromEntries(
+    Object.entries(seedPasswords).map(([username, password]) => [username, bcrypt.hashSync(password, 10)]),
+  );
 
   // Fetch seeded regions for user assignment
   const bdrRegion = await (prisma as any).region.findFirst({ where: { companyId: somtel.id, name: { contains: 'Banaadir' } } });
@@ -273,11 +302,11 @@ async function main() {
   // Super Admin: admin (belongs to Somtel Finance)
   await prisma.user.upsert({
     where: { username: 'admin' },
-    update: { regionId: bdrRegion?.id },
+    update: {},
     create: {
       fullName: 'System Administrator',
       username: 'admin',
-      passwordHash: defaultPasswordHash,
+      passwordHash: seedPasswordHashes.admin,
       email: 'admin@somtel.com',
       phone: '+252610000001',
       companyId: somtel.id,
@@ -293,11 +322,11 @@ async function main() {
   // Accountant: accountant (belongs to Somtel Finance, manages cross-company approvals)
   await prisma.user.upsert({
     where: { username: 'accountant' },
-    update: { regionId: bdrRegion?.id },
+    update: {},
     create: {
       fullName: 'Lead Accountant',
       username: 'accountant',
-      passwordHash: defaultPasswordHash,
+      passwordHash: seedPasswordHashes.accountant,
       email: 'accountant@somtel.com',
       phone: '+252610000002',
       companyId: somtel.id,
@@ -312,11 +341,11 @@ async function main() {
   // Somtel Employee: employee
   await prisma.user.upsert({
     where: { username: 'employee' },
-    update: { regionId: bdrRegion?.id },
+    update: {},
     create: {
       fullName: 'Somtel Field Engineer',
       username: 'employee',
-      passwordHash: defaultPasswordHash,
+      passwordHash: seedPasswordHashes.employee,
       email: 'employee@somtel.com',
       phone: '+252610000003',
       companyId: somtel.id,
@@ -331,11 +360,11 @@ async function main() {
   // Bluekom Employee: employee_bk
   await prisma.user.upsert({
     where: { username: 'employee_bk' },
-    update: { regionId: hqRegion?.id },
+    update: {},
     create: {
       fullName: 'Bluekom Lead Developer',
       username: 'employee_bk',
-      passwordHash: defaultPasswordHash,
+      passwordHash: seedPasswordHashes.employee_bk,
       email: 'dev@bluekom.com',
       phone: '+252610000004',
       companyId: bluekom.id,
@@ -346,6 +375,14 @@ async function main() {
       resetPasswordRequired: true,
     },
   });
+
+  if (process.env.NODE_ENV !== 'production') {
+    for (const [username, password] of Object.entries(seedPasswords)) {
+      if (!existingSeedUsers.has(username)) {
+        console.log(`One-time development seed password for ${username}: ${password}`);
+      }
+    }
+  }
 
   // 7. Seed System Settings
   const settings = [

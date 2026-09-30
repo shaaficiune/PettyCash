@@ -1,100 +1,105 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "=========================================="
-echo "🚀 PETTY CASH ALL-IN-ONE UBUNTU SETUP"
-echo "=========================================="
-
-# 0. Fix Ubuntu 24.04 mirror if regional mirror (like so.archive) has connection issues
-if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-    sudo sed -i 's|http://so.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list.d/ubuntu.sources
-fi
-if [ -f /etc/apt/sources.list ]; then
-    sudo sed -i 's|http://so.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list
+if [[ ! -f backend/package.json ]]; then
+  echo "Run this script from the repository root."
+  exit 1
 fi
 
-# Ensure node and npm are installed cleanly
-if ! command -v npm &> /dev/null; then
-    echo "📦 Node.js / npm not found. Installing Node.js 20 LTS..."
-    sudo apt update --fix-missing
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-    sudo apt install -y nodejs nginx postgresql postgresql-contrib
+if [[ -e backend/.env ]]; then
+  echo "backend/.env already exists. Keeping it unchanged; use update-server.sh for routine updates."
+  exit 1
 fi
 
-# Also ensure postgresql and nginx are installed
-if ! command -v nginx &> /dev/null; then
-    sudo apt install -y nginx
-fi
-if ! command -v psql &> /dev/null; then
-    sudo apt install -y postgresql postgresql-contrib
+if ! command -v sudo >/dev/null || ! command -v openssl >/dev/null; then
+  echo "This setup requires sudo and openssl."
+  exit 1
 fi
 
-# 1. Install PM2
-echo "📦 Installing PM2..."
+if ! command -v npm >/dev/null; then
+  sudo apt-get update
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+fi
+
+sudo apt-get update
+sudo apt-get install -y nginx postgresql postgresql-contrib
+sudo systemctl start postgresql
 sudo npm install -g pm2
 
-# 2. Setup PostgreSQL Database and User
-echo "🗄️ Setting up PostgreSQL database..."
-sudo systemctl start postgresql
-sudo -u postgres psql -c "CREATE DATABASE petty_cash_db;" 2>/dev/null || true
-sudo -u postgres psql -c "CREATE USER petty_user WITH ENCRYPTED PASSWORD 'PettyCashPass2026!';" 2>/dev/null || true
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE petty_cash_db TO petty_user;" 2>/dev/null || true
-sudo -u postgres psql -c "ALTER DATABASE petty_cash_db OWNER TO petty_user;" 2>/dev/null || true
+if sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='petty_user'" | grep -q 1; then
+  echo "Database role petty_user already exists. Refusing to replace its password."
+  exit 1
+fi
+if sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='petty_cash_db'" | grep -q 1; then
+  echo "Database petty_cash_db already exists. Refusing to alter existing data."
+  exit 1
+fi
 
-# 3. Create backend .env
-echo "⚙️ Creating backend .env file..."
-cat << 'EOF' > backend/.env
+DB_PASSWORD="$(openssl rand -hex 32)"
+JWT_SECRET="$(openssl rand -hex 64)"
+JWT_REFRESH_SECRET="$(openssl rand -hex 64)"
+INITIAL_ADMIN_PASSWORD="$(openssl rand -hex 24)"
+INITIAL_ACCOUNTANT_PASSWORD="$(openssl rand -hex 24)"
+INITIAL_EMPLOYEE_PASSWORD="$(openssl rand -hex 24)"
+INITIAL_BLUEKOM_EMPLOYEE_PASSWORD="$(openssl rand -hex 24)"
+
+printf "CREATE ROLE petty_user LOGIN ENCRYPTED PASSWORD '%s';\n" "$DB_PASSWORD" | sudo -u postgres psql --set=ON_ERROR_STOP=1
+sudo -u postgres createdb --owner=petty_user petty_cash_db
+
+umask 077
+cat > backend/.env <<EOF
 NODE_ENV=production
 PORT=3000
 HOST=127.0.0.1
-DATABASE_URL="postgresql://petty_user:PettyCashPass2026!@localhost:5432/petty_cash_db?schema=public"
-JWT_SECRET="super-secure-production-jwt-secret-key-2026"
-JWT_EXPIRATION="8h"
-JWT_REFRESH_SECRET="super-secure-production-refresh-secret-2026"
-JWT_REFRESH_EXPIRATION="7d"
-ALLOWED_ORIGINS="*"
-ENABLE_SWAGGER="false"
+DATABASE_URL=postgresql://petty_user:${DB_PASSWORD}@localhost:5432/petty_cash_db?schema=public
+JWT_SECRET=${JWT_SECRET}
+JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+JWT_ACCESS_EXPIRES=15m
+JWT_REFRESH_EXPIRES=7d
+INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD}
+INITIAL_ACCOUNTANT_PASSWORD=${INITIAL_ACCOUNTANT_PASSWORD}
+INITIAL_EMPLOYEE_PASSWORD=${INITIAL_EMPLOYEE_PASSWORD}
+INITIAL_BLUEKOM_EMPLOYEE_PASSWORD=${INITIAL_BLUEKOM_EMPLOYEE_PASSWORD}
+ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://pettycash.bluekompl.com}
+ENABLE_SWAGGER=false
 EOF
+chmod 600 backend/.env
 
-# 4. Install backend dependencies & build
-echo "📦 Building Backend..."
+echo "Installing backend dependencies and preparing the database..."
 cd backend
 npm install
 npx prisma generate
-npx prisma db push
+node scripts/init-db.js
+set -a
+source .env
+set +a
+npm run prisma:seed
+sed -i '/^INITIAL_.*_PASSWORD=/d' .env
 npm run build
 cd ..
 
-# 5. Install frontend dependencies & build
-echo "🎨 Building Frontend..."
+echo "Building frontend..."
 cd frontend
 npm install
 npm run build
 cd ..
 
-# 6. Configure Nginx
-echo "🌐 Configuring Nginx..."
-CURRENT_DIR=$(pwd)
-sudo tee /etc/nginx/sites-available/petty-cash > /dev/null << EOF
+APP_DIR="$(pwd)"
+sudo tee /etc/nginx/sites-available/petty-cash > /dev/null <<EOF
 server {
     listen 80 default_server;
     server_name _;
 
-    root $CURRENT_DIR/frontend/dist;
+    root ${APP_DIR}/frontend/dist;
     index index.html;
 
     location /api/ {
         proxy_pass http://127.0.0.1:3000/api/;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
         proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-        client_max_body_size 50M;
-    }
-
-    location /uploads/ {
-        proxy_pass http://127.0.0.1:3000/uploads/;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         client_max_body_size 50M;
     }
 
@@ -104,21 +109,20 @@ server {
 }
 EOF
 
-sudo ln -sf /etc/nginx/sites-available/petty-cash /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/petty-cash /etc/nginx/sites-enabled/petty-cash
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl restart nginx
 
-# 7. Start Backend with PM2
-echo "⚡ Starting PM2 process..."
 mkdir -p logs
-pm2 delete petty-cash-backend 2>/dev/null || true
 pm2 start ecosystem.config.js
 pm2 save
 
-echo ""
-echo "=========================================="
-echo "✅ SETUP COMPLETED SUCCESSFULLY!"
-echo "📍 Test locally: curl http://localhost"
-echo "🌐 Next step: Connect Cloudflare Tunnel!"
-echo "=========================================="
+cat <<EOF
+
+Setup completed. Save these one-time passwords and have each user change theirs at first login:
+admin: ${INITIAL_ADMIN_PASSWORD}
+accountant: ${INITIAL_ACCOUNTANT_PASSWORD}
+employee: ${INITIAL_EMPLOYEE_PASSWORD}
+employee_bk: ${INITIAL_BLUEKOM_EMPLOYEE_PASSWORD}
+EOF

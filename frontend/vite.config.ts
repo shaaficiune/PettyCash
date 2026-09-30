@@ -20,10 +20,6 @@ export default defineConfig(({ mode }) => {
           target: backendTarget,
           changeOrigin: true,
         },
-        '/uploads': {
-          target: backendTarget,
-          changeOrigin: true,
-        },
       },
     },
   };

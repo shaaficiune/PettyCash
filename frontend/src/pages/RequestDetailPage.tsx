@@ -29,6 +29,25 @@ export const RequestDetailPage: React.FC = () => {
   const [remainingBalance, setRemainingBalance] = useState('');
   const [settlementNotes, setSettlementNotes] = useState('');
 
+  const openAttachment = async (event: React.MouseEvent<HTMLAnchorElement>, attachment: any) => {
+    event.preventDefault();
+    const previewWindow = window.open('about:blank', '_blank');
+    if (!previewWindow) {
+      alert('Please allow popups to view this attachment.');
+      return;
+    }
+
+    try {
+      const response = await api.get(`/attachments/${attachment.id}/file`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(response.data);
+      previewWindow.location.href = url;
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      previewWindow.close();
+      alert('The attachment could not be opened.');
+    }
+  };
+
   const loadRequestDetails = async () => {
     setLoading(true);
     try {
@@ -311,9 +330,10 @@ export const RequestDetailPage: React.FC = () => {
                   request.attachments.map((att: any) => (
                     <a
                       key={att.id}
-                      href={att.fileUrl}
+                      href="#"
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(event) => void openAttachment(event, att)}
                       className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-700 text-xs transition-colors"
                     >
                       <span className="truncate max-w-[200px] font-medium">{att.fileName}</span>

@@ -26,10 +26,8 @@ export class AuthController {
     return this.authService.refresh(refreshToken);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout user session' })
   async logout(@Body('refreshToken') refreshToken: string) {
     return this.authService.logout(refreshToken);

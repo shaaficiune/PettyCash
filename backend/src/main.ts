@@ -3,8 +3,6 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
-import * as express from 'express';
-import { join } from 'path';
 
 import { NestExpressApplication } from '@nestjs/platform-express';
 
@@ -67,9 +65,6 @@ async function bootstrap() {
       transform: true, // Auto-transforms payloads to DTO instances
     }),
   );
-
-  // Static files configuration to download attachments
-  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   // Swagger Documentation Setup (only enabled in dev or when explicitly set)
   if (process.env.ENABLE_SWAGGER === 'true' || process.env.NODE_ENV !== 'production') {

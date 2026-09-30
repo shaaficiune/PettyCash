@@ -255,7 +255,7 @@ export const UserManagementPage: React.FC = () => {
 
     setError(null);
     try {
-      await api.post('/users', {
+      const response = await api.post('/users', {
         fullName,
         username,
         email: email || undefined,
@@ -274,6 +274,8 @@ export const UserManagementPage: React.FC = () => {
       setUserRegionId('');
       setRole('EMPLOYEE');
       setFormOpen(false);
+
+      alert(`User created. One-time password: ${response.data.temporaryPassword}\nShare it with the user through a secure channel.`);
 
       // Reload
       loadUsersAndFilters();
@@ -301,10 +303,10 @@ export const UserManagementPage: React.FC = () => {
 
   // Reset password
   const handleResetPassword = async (userId: string) => {
-    if (!window.confirm('Reset user password to default temporary password (Welcome@2026)?')) return;
+    if (!window.confirm('Generate a new one-time password for this user?')) return;
     try {
       const res = await api.post(`/users/${userId}/reset-password`);
-      alert(res.data.message);
+      alert(`${res.data.message}\nOne-time password: ${res.data.temporaryPassword}`);
     } catch (e) {
       console.error('Password reset failed', e);
     }

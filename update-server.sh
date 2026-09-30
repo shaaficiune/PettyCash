@@ -19,11 +19,12 @@ git pull origin main
 echo "📦 [2/5] Installing backend dependencies..."
 cd backend
 npm install
+node scripts/ensure-jwt-secrets.js
 
 # 3. Apply any new schema changes to the existing database
 echo "🗄️  [3/5] Applying database schema changes..."
 npx prisma generate
-npx prisma db push
+node scripts/init-db.js
 
 # 4. Build backend
 echo "🔨 [4/5] Building backend..."

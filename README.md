@@ -12,7 +12,7 @@
 - [Project Structure](#project-structure)
 - [Quick Start (Local Development)](#quick-start-local-development)
 - [Docker Deployment](#docker-deployment)
-- [Default Credentials](#default-credentials)
+- [Initial Accounts](#initial-accounts)
 - [API Documentation](#api-documentation)
 - [Database Schema](#database-schema)
 - [Security Notes](#security-notes)
@@ -126,14 +126,15 @@ cd backend
 # Install dependencies
 npm install
 
-# Copy environment file
-copy .env .env.local    # Windows
-# cp .env .env.local    # Linux/Mac
+# Create backend/.env from the template and configure DATABASE_URL plus two
+# separate random JWT secrets (at least 64 characters each).
+copy .env.example .env    # Windows
+# cp .env.example .env     # Linux/Mac
 
-# Create database & push schema
+# Create the PostgreSQL database first, then apply the schema
 node scripts/init-db.js
 
-# Seed initial data (companies, roles, test users)
+# Seed initial data (Prisma loads .env; development generates one-time passwords)
 npx prisma db seed
 
 # Start development server
@@ -157,7 +158,7 @@ npm run dev
 
 Frontend will be available at: **http://localhost:5173**
 
-> The Vite dev server proxies `/api` and `/uploads` to `http://localhost:3000` automatically.
+> The Vite dev server proxies authenticated API requests to `http://localhost:3000` automatically.
 
 ---
 
@@ -174,6 +175,10 @@ Frontend will be available at: **http://localhost:5173**
 cd "D:/Petty Cash App"
 
 # Build and start all services
+copy .env.example .env    # Windows; then fill in the required random secrets
+# cp .env.example .env    # Linux/Mac
+# Generate distinct values for every secret with `openssl rand -hex 32`.
+# Set all four INITIAL_* passwords to different values of at least 16 characters.
 docker compose up --build -d
 
 # View logs
@@ -196,17 +201,9 @@ After launch, open **http://localhost** in your browser.
 
 ---
 
-## Default Credentials
+## Initial Accounts
 
-> ⚠️ **All seeded accounts require a password reset on first login.**  
-> After logging in with the temporary password, you will be redirected to the password reset page.
-
-| Username     | Temporary Password | Role        | Company  |
-|--------------|--------------------|-------------|----------|
-| `admin`      | `Welcome@2026`     | Super Admin | Somtel   |
-| `accountant` | `Welcome@2026`     | Accountant  | Somtel   |
-| `employee`   | `Welcome@2026`     | Employee    | Somtel   |
-| `employee_bk`| `Welcome@2026`     | Employee    | Bluekom  |
+There are no shared default passwords. In development, seeding generates unique one-time passwords and prints them in the local terminal. Production seeding requires distinct values of at least 16 characters for `INITIAL_ADMIN_PASSWORD`, `INITIAL_ACCOUNTANT_PASSWORD`, `INITIAL_EMPLOYEE_PASSWORD`, and `INITIAL_BLUEKOM_EMPLOYEE_PASSWORD`. Keep these values out of source control and share them only through a secure channel. The setup script generates per-user temporary passwords and requires a change at first login.
 
 ---
 

@@ -79,6 +79,17 @@ export class CompanyIsolationGuard implements CanActivate {
           throw new ForbiddenException('Access denied: project belongs to another company');
         }
       }
+
+      // Enforce region isolation for region-level budget statistics.
+      if (urlPath.includes('/regions')) {
+        const region = await (this.prisma as any).region.findUnique({
+          where: { id: resourceId },
+          select: { companyId: true },
+        });
+        if (region && region.companyId !== employeeCompanyId) {
+          throw new ForbiddenException('Access denied: region belongs to another company');
+        }
+      }
     }
 
     return true;

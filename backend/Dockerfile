@@ -40,8 +40,8 @@ COPY package*.json ./
 # Install production-only dependencies
 RUN npm ci --only=production
 
-# Install prisma CLI explicitly for migration commands at runtime
-RUN npm install prisma --save-dev --ignore-scripts
+# Install Prisma CLI and TypeScript seed runtime for schema setup and first-run seeding.
+RUN npm install --no-save --package-lock=false --ignore-scripts prisma@6.2.1 ts-node@10.9.2 typescript@5.7.3
 
 # Copy built artifacts from builder
 COPY --from=builder /app/dist ./dist
@@ -49,7 +49,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Copy db init and seed scripts
-COPY scripts ./scripts
+COPY scripts/init-db.js ./scripts/init-db.js
 
 # Create uploads directory
 RUN mkdir -p uploads
@@ -57,8 +57,6 @@ RUN mkdir -p uploads
 # Expose backend port
 EXPOSE 3000
 
-# Entrypoint:
-#   1. Ensure database exists (init-db.js)
-#   2. Run schema migrations safely (migrate deploy — never drops data)
-#   3. Start the application
-CMD node scripts/init-db.js && npx prisma migrate deploy && node dist/src/main
+# Entrypoint applies non-destructive schema changes, seeds missing initial data,
+# then starts the application. Existing seed users are never reset.
+CMD node scripts/init-db.js && npx prisma db seed && node dist/src/main

@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, ChangePasswordDto, FirstLoginResetDto } from './dto/auth.dto';
 import * as bcrypt from 'bcryptjs';
@@ -140,8 +141,13 @@ export class AuthService {
 
 
   async refresh(token: string) {
+    if (typeof token !== 'string' || token.length === 0 || token.length > 4096) {
+      throw new UnauthorizedException('Session expired. Please login again.');
+    }
+
+    const tokenHash = this.hashRefreshToken(token);
     const dbToken = await this.prisma.refreshToken.findUnique({
-      where: { token },
+      where: { token: tokenHash },
       include: {
         user: {
           include: {
@@ -154,32 +160,38 @@ export class AuthService {
       },
     });
 
-    if (!dbToken || dbToken.expiresAt < new Date()) {
-      if (dbToken) {
-        await this.prisma.refreshToken.delete({ where: { id: dbToken.id } });
-      }
+    if (!dbToken) {
+      // Tokens saved in plaintext by older releases are invalidated and removed
+      // on first use after this security update.
+      await this.prisma.refreshToken.deleteMany({ where: { token } });
       throw new UnauthorizedException('Session expired. Please login again.');
     }
 
-    // Generate new tokens
-    const tokens = await this.generateTokens(dbToken.user);
+    if (dbToken.expiresAt < new Date() || dbToken.user.status !== 'ACTIVE') {
+      await this.prisma.refreshToken.deleteMany({ where: { id: dbToken.id } });
+      throw new UnauthorizedException('Session expired. Please login again.');
+    }
 
-    // Delete old token
-    await this.prisma.refreshToken.delete({ where: { id: dbToken.id } });
-
-    return tokens;
+    // Consume the old refresh token and save its replacement atomically. If two
+    // requests race, only the request that deletes one row can rotate the token.
+    return this.prisma.$transaction(async (tx) => {
+      const consumed = await tx.refreshToken.deleteMany({
+        where: { id: dbToken.id, userId: dbToken.userId, expiresAt: { gt: new Date() } },
+      });
+      if (consumed.count !== 1) {
+        throw new UnauthorizedException('Session expired. Please login again.');
+      }
+      return this.generateTokens(dbToken.user, tx);
+    });
   }
 
   async logout(token: string) {
-    try {
-      await this.prisma.refreshToken.delete({
-        where: { token },
+    if (typeof token === 'string' && token.length > 0) {
+      await this.prisma.refreshToken.deleteMany({
+        where: { token: { in: [this.hashRefreshToken(token), token] } },
       });
-      return { success: true, message: 'Logged out successfully' };
-    } catch (e) {
-      // Token might not exist, ignore
-      return { success: true };
     }
+    return { success: true, message: 'Logged out successfully' };
   }
 
   async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
@@ -246,10 +258,13 @@ export class AuthService {
       },
     });
 
+    // Revoke the temporary-password session before issuing the new session.
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
+
     return this.generateTokens(updatedUser);
   }
 
-  private async generateTokens(user: any) {
+  private async generateTokens(user: any, prisma: any = this.prisma) {
     const payload = {
       username: user.username,
       sub: user.id,
@@ -260,27 +275,27 @@ export class AuthService {
     };
 
     const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret && process.env.NODE_ENV === 'production') {
-      throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is not defined in production!');
-    }
-    const secret = jwtSecret || 'somtel_bluekom_petty_cash_secret_key_2026_jwt';
-
     const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
-    if (!jwtRefreshSecret && process.env.NODE_ENV === 'production') {
-      throw new Error('CRITICAL SECURITY ERROR: JWT_REFRESH_SECRET environment variable is not defined in production!');
+    if (!jwtSecret || jwtSecret.length < 64) {
+      throw new Error('JWT_SECRET must be configured with at least 64 characters');
     }
-    const refreshSecret = jwtRefreshSecret || 'somtel_bluekom_petty_cash_refresh_secret_key_2026_jwt';
+    if (!jwtRefreshSecret || jwtRefreshSecret.length < 64) {
+      throw new Error('JWT_REFRESH_SECRET must be configured with at least 64 characters');
+    }
+    if (jwtSecret === jwtRefreshSecret) {
+      throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be different values');
+    }
 
     const accessToken = this.jwtService.sign(payload, {
-      secret,
+      secret: jwtSecret,
       // cast to any to satisfy type definitions for flexible env formats (e.g., '15m')
       expiresIn: process.env.JWT_ACCESS_EXPIRES as any || '15m',
     });
 
     const refreshTokenString = this.jwtService.sign(
-      { sub: user.id },
+      { sub: user.id, jti: randomUUID() },
       {
-        secret: refreshSecret,
+        secret: jwtRefreshSecret,
         expiresIn: process.env.JWT_REFRESH_EXPIRES as any || '7d',
       },
     );
@@ -290,9 +305,9 @@ export class AuthService {
     // Default 7 days
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    await this.prisma.refreshToken.create({
+    await prisma.refreshToken.create({
       data: {
-        token: refreshTokenString,
+        token: this.hashRefreshToken(refreshTokenString),
         userId: user.id,
         expiresAt,
       },
@@ -358,5 +373,9 @@ export class AuthService {
         region: updated.region ? { id: updated.region.id, name: updated.region.name } : null,
       },
     };
+  }
+
+  private hashRefreshToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 }

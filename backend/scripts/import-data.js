@@ -7,6 +7,8 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+const { randomBytes } = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -41,10 +43,22 @@ async function importTable(modelName, data, upsertKey = 'id') {
   let count = 0;
   for (const record of records) {
     try {
+      const createData = { ...record };
+      const updateData = { ...record };
+      if (modelName === 'user') {
+        // Never restore a password hash from a snapshot. New accounts get an
+        // unknown random password and every imported account must reset it.
+        delete createData.passwordHash;
+        delete updateData.passwordHash;
+        createData.passwordHash = await bcrypt.hash(randomBytes(32).toString('base64url'), 10);
+        createData.resetPasswordRequired = true;
+        updateData.resetPasswordRequired = true;
+        await prisma.refreshToken.deleteMany({ where: { userId: record.id } });
+      }
       await prisma[modelName].upsert({
         where: { [upsertKey]: record[upsertKey] },
-        update: record,
-        create: record,
+        update: updateData,
+        create: createData,
       });
       count++;
     } catch (err) {
@@ -117,7 +131,7 @@ async function main() {
   // 11. Notifications
   await importTable('notification', readJSON('notification'), 'id');
 
-  // Skip refreshToken — sessions not needed on new server
+  // Refresh tokens are never exported or imported; users must start new sessions.
 
   console.log('');
   console.log('==============================================');

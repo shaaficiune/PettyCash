@@ -78,6 +78,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     const refreshToken = localStorage.getItem('refreshToken');
+    const accessToken = localStorage.getItem('accessToken');
+    const logoutRequest = refreshToken
+      ? api.post('/auth/logout', { refreshToken }, accessToken
+          ? { headers: { Authorization: `Bearer ${accessToken}` } }
+          : undefined).catch(() => {})
+      : Promise.resolve();
+
     // Clear session immediately so UI reacts instantly
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
@@ -85,14 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     // ProtectedRoute will detect isAuthenticated=false and redirect to /login
     // via React Router — no hard page reload needed.
-    try {
-      if (refreshToken) {
-        // Fire-and-forget: tell server to invalidate token
-        api.post('/auth/logout', { refreshToken }).catch(() => {});
-      }
-    } catch (e) {
-      // ignore
-    }
+    await logoutRequest;
   };
 
   const updateUserContext = (updatedFields: Partial<UserProfile>) => {

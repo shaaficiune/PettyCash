@@ -158,7 +158,7 @@ export const RequestsListPage: React.FC = () => {
     }
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
     const params = new URLSearchParams();
     if (companyFilter !== 'ALL') params.append('companyId', companyFilter);
@@ -166,13 +166,20 @@ export const RequestsListPage: React.FC = () => {
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
 
-    const token = localStorage.getItem('accessToken');
-    const pdfUrl = `${api.defaults.baseURL || '/api'}/reports/export-pdf?${params.toString()}`;
-    
-    // Open printable HTML window
-    const printWindow = window.open(pdfUrl, '_blank');
+    const printWindow = window.open('about:blank', '_blank');
     if (!printWindow) {
       alert('Please allow popups to view and print the PDF report.');
+      return;
+    }
+
+    try {
+      const res = await api.get(`/reports/export-pdf?${params.toString()}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(res.data);
+      printWindow.location.href = url;
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      printWindow.close();
+      console.error('PDF export failed', e);
     }
   };
 

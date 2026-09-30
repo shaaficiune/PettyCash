@@ -7,10 +7,6 @@ import {
   Search,
   RefreshCw,
   Printer,
-  Calendar,
-  Building2,
-  MapPin,
-  Tag,
   DollarSign,
   ChevronLeft,
   ChevronRight,
@@ -296,8 +292,6 @@ export const ReportsPage: React.FC = () => {
     setExportingExcel(true);
     try {
       const params = buildParams();
-      const token = localStorage.getItem('accessToken') || '';
-      params.set('token', token);
       
       const res = await api.get(`/reports/export-excel?${params.toString()}`, {
         responseType: 'blob',
@@ -323,15 +317,17 @@ export const ReportsPage: React.FC = () => {
     setExportingPdf(true);
     try {
       const params = buildParams();
-      const token = localStorage.getItem('accessToken') || '';
-      params.set('token', token);
-
+      const printWindow = window.open('about:blank', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to view and print the report.');
+        return;
+      }
       const res = await api.get(`/reports/export-pdf?${params.toString()}`, {
         responseType: 'blob',
       });
-      const blob = new Blob([res.data], { type: 'text/html' });
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const url = window.URL.createObjectURL(res.data);
+      printWindow.location.href = url;
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
     } catch (err) {
       console.error('PDF export error:', err);
     } finally {

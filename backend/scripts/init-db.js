@@ -1,66 +1,32 @@
-const { Client } = require('pg');
 const { execSync } = require('child_process');
 require('dotenv').config();
 
-const connectionString = process.env.DATABASE_URL;
-
-if (!connectionString) {
-  console.error('DATABASE_URL is not set in environment variables');
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL is required. Create the database before applying the Prisma schema.');
   process.exit(1);
 }
 
-// Extract database name and base connection details
-// e.g., postgresql://postgres:password@localhost:5432/petty_cash_db?schema=public
-const matches = connectionString.match(/postgresql:\/\/([^:]+):([^@]+)@([^/]+)\/([^?]+)/);
-
-if (!matches) {
-  console.error('DATABASE_URL is not in a recognized PostgreSQL format');
-  process.exit(1);
-}
-
-const [_, user, password, hostPort, dbName] = matches;
-
-async function run() {
-  console.log(`Checking if database "${dbName}" exists...`);
-  
-  // Connect to the default 'postgres' database to check/create the target database
-  const defaultUrl = `postgresql://${user}:${password}@${hostPort}/postgres`;
-  const client = new Client({ connectionString: defaultUrl });
-
+async function main() {
   try {
-    await client.connect();
-    
-    // Check if the database exists
-    const res = await client.query(
-      "SELECT 1 FROM pg_database WHERE datname = $1",
-      [dbName]
-    );
+    // Refuse destructive schema changes. Review and migrate them explicitly instead.
+    execSync('npx prisma db push', { stdio: 'inherit' });
 
-    if (res.rowCount === 0) {
-      console.log(`Database "${dbName}" does not exist. Creating...`);
-      // Run CREATE DATABASE. Note: database names cannot be parameterized in this context, 
-      // but since dbName is parsed from our own verified config, it is safe.
-      await client.query(`CREATE DATABASE "${dbName}"`);
-      console.log(`Database "${dbName}" created successfully.`);
-    } else {
-      console.log(`Database "${dbName}" already exists.`);
+    // Previous releases stored signed refresh JWTs as plaintext. New releases
+    // store hashes, so revoke the legacy JWT-shaped rows during deployment.
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    try {
+      const count = await prisma.$executeRawUnsafe(
+        'DELETE FROM "RefreshToken" WHERE "token" LIKE \'%.%.%\'',
+      );
+      console.log(`Revoked ${count} legacy plaintext refresh session(s).`);
+    } finally {
+      await prisma.$disconnect();
     }
-  } catch (err) {
-    console.error('Error checking/creating database:', err.message);
-    process.exit(1);
-  } finally {
-    await client.end();
-  }
-
-  // Database is verified to exist. Run Prisma migrations or db push.
-  try {
-    console.log('Running Prisma schema push (db push)...');
-    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
-    console.log('Prisma schema synchronized successfully.');
-  } catch (err) {
-    console.error('Prisma schema synchronization failed:', err.message);
-    process.exit(1);
+  } catch (error) {
+    console.error('Database initialization failed. No data-loss override was used.');
+    process.exitCode = error.status || 1;
   }
 }
 
-run();
+main();

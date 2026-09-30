@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { existsSync } from 'fs';
-import { join } from 'path';
 
 @Injectable()
 export class StorageService {
@@ -13,42 +12,40 @@ export class StorageService {
     this.bucket = process.env.MINIO_BUCKET || 'petty-cash-attachments';
 
     if (storageType === 'minio') {
-      try {
-        // Load MinIO client dynamically to avoid hard dependency if not installed
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const MinioClient = require('minio').Client;
-        const endPoint = process.env.MINIO_ENDPOINT || 'localhost';
-        const port = parseInt(process.env.MINIO_PORT || '9000', 10);
-        const accessKey = process.env.MINIO_ACCESS_KEY || 'minioadmin';
-        const secretKey = process.env.MINIO_SECRET_KEY || 'minioadmin';
-
-        this.client = new MinioClient({
-          endPoint,
-          port,
-          useSSL: false,
-          accessKey,
-          secretKey,
-        });
-
-        // Ensure bucket exists
-        this.client.bucketExists(this.bucket, (err, exists) => {
-          if (err) {
-            this.logger.error(`MinIO bucket check failed: ${err.message}`);
-            return;
-          }
-          if (!exists) {
-            this.client!.makeBucket(this.bucket, '', (mkErr) => {
-              if (mkErr) return this.logger.error(`Failed to create bucket: ${mkErr.message}`);
-              this.logger.log(`Created MinIO bucket: ${this.bucket}`);
-            });
-          } else {
-            this.logger.log(`MinIO bucket exists: ${this.bucket}`);
-          }
-        });
-      } catch (err) {
-        this.logger.warn('MinIO client not installed; continuing with local storage');
-        this.client = null;
+      const endPoint = process.env.MINIO_ENDPOINT;
+      const accessKey = process.env.MINIO_ACCESS_KEY;
+      const secretKey = process.env.MINIO_SECRET_KEY;
+      if (!endPoint || !accessKey || !secretKey) {
+        throw new Error('MINIO_ENDPOINT, MINIO_ACCESS_KEY, and MINIO_SECRET_KEY are required when STORAGE_TYPE=minio');
       }
+
+      // Load MinIO client dynamically to avoid a hard dependency for local storage.
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const MinioClient = require('minio').Client;
+      const port = parseInt(process.env.MINIO_PORT || '9000', 10);
+
+      this.client = new MinioClient({
+        endPoint,
+        port,
+        useSSL: process.env.MINIO_USE_SSL === 'true',
+        accessKey,
+        secretKey,
+      });
+
+      this.client.bucketExists(this.bucket, (err, exists) => {
+        if (err) {
+          this.logger.error(`MinIO bucket check failed: ${err.message}`);
+          return;
+        }
+        if (!exists) {
+          this.client!.makeBucket(this.bucket, '', (mkErr) => {
+            if (mkErr) return this.logger.error(`Failed to create bucket: ${mkErr.message}`);
+            this.logger.log(`Created MinIO bucket: ${this.bucket}`);
+          });
+        } else {
+          this.logger.log(`MinIO bucket exists: ${this.bucket}`);
+        }
+      });
     }
   }
 
@@ -70,7 +67,7 @@ export class StorageService {
       });
     }
 
-    // Default: return local file path (served by static middleware)
+    // Local attachments are delivered through the authenticated attachment API.
     return Promise.resolve(`/uploads/${fileName}`);
   }
 

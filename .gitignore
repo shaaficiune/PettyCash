@@ -24,9 +24,9 @@ frontend/.env
 backend/prisma/dev.db
 
 # ─── Scripts ──────────────────────────────────────────────────────────────────
-# Exclude debug scripts but ALLOW data exports and import/export tools
+# Exclude debug scripts; exported data may contain personal and financial information.
 backend/scripts/enable-admin.js
-# DO commit: backend/scripts/export-data.js, import-data.js, scripts/data/
+backend/scripts/data/*.json
 
 # ─── Uploads ──────────────────────────────────────────────────────────────────
 backend/uploads/

@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestStatus, RoleName } from '@prisma/client';
 
+const escapeHtml = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+}[char] as string));
+
 @Injectable()
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -427,20 +435,20 @@ export class ReportsService {
     // Native Excel-compatible XML format with full styling
     const rows = requests.map(r => `
       <Row>
-        <Cell><Data ss:Type="String">${r.requestNumber}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.requestNumber)}</Data></Cell>
         <Cell><Data ss:Type="String">${r.requestDate.toISOString().slice(0, 10)}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.user.fullName}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.receiverName || '-'}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.receiverPhone || '-'}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.company.name}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.region?.name || '-'}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.budgetHead ? `${r.budgetHead.code} - ${r.budgetHead.name}` : (r.requestType || '-')}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.purpose.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.user.fullName)}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.receiverName || '-')}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.receiverPhone || '-')}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.company.name)}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.region?.name || '-')}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.budgetHead ? `${r.budgetHead.code} - ${r.budgetHead.name}` : (r.requestType || '-'))}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.purpose)}</Data></Cell>
         <Cell><Data ss:Type="Number">${r.requestedAmount}</Data></Cell>
         <Cell><Data ss:Type="Number">${r.approvedAmount || 0}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.currency}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.status}</Data></Cell>
-        <Cell><Data ss:Type="String">${r.priority}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.currency)}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.status)}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeHtml(r.priority)}</Data></Cell>
       </Row>`).join('');
 
     return `<?xml version="1.0"?>
@@ -505,16 +513,16 @@ export class ReportsService {
 
     const rows = requests.map(r => `
       <tr>
-        <td style="font-weight:600; color:#0B3333;">${r.requestNumber}</td>
+        <td style="font-weight:600; color:#0B3333;">${escapeHtml(r.requestNumber)}</td>
         <td>${r.requestDate.toISOString().slice(0, 10)}</td>
-        <td>${r.user.fullName}</td>
-        <td>${r.receiverName ? `${r.receiverName}${r.receiverPhone ? ` (${r.receiverPhone})` : ''}` : '-'}</td>
-        <td>${r.region?.name || '-'}</td>
-        <td>${r.budgetHead ? r.budgetHead.name : r.requestType}</td>
-        <td style="max-width:200px; word-break:break-word;">${r.purpose}</td>
+        <td>${escapeHtml(r.user.fullName)}</td>
+        <td>${escapeHtml(r.receiverName ? `${r.receiverName}${r.receiverPhone ? ` (${r.receiverPhone})` : ''}` : '-')}</td>
+        <td>${escapeHtml(r.region?.name || '-')}</td>
+        <td>${escapeHtml(r.budgetHead ? r.budgetHead.name : r.requestType)}</td>
+        <td style="max-width:200px; word-break:break-word;">${escapeHtml(r.purpose)}</td>
         <td style="text-align:right; font-weight:600;">$${Number(r.requestedAmount).toFixed(2)}</td>
         <td style="text-align:right;">${r.approvedAmount ? `$${Number(r.approvedAmount).toFixed(2)}` : '-'}</td>
-        <td><span class="badge badge-${r.status.toLowerCase()}">${r.status.replace(/_/g, ' ')}</span></td>
+        <td><span class="badge badge-${escapeHtml(r.status.toLowerCase())}">${escapeHtml(r.status.replace(/_/g, ' '))}</span></td>
       </tr>
     `).join('');
 
