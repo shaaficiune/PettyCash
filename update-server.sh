@@ -25,6 +25,7 @@ node scripts/ensure-jwt-secrets.js
 echo "🗄️  [3/5] Applying database schema changes..."
 npx prisma generate
 node scripts/init-db.js
+node scripts/unlock-admin.js
 
 # 4. Build backend
 echo "🔨 [4/5] Building backend..."
@@ -41,7 +42,7 @@ cd ..
 # 6. Restart PM2 backend service
 echo "⚡ Restarting backend service..."
 if pm2 list | grep -q "petty-cash-backend"; then
-  pm2 restart petty-cash-backend
+  pm2 restart petty-cash-backend --update-env
 else
   pm2 start ecosystem.config.js
 fi
