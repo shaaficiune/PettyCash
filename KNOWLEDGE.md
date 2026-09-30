@@ -545,3 +545,37 @@ Now does two things:
 - `backend/src/auth/express-user.d.ts` — TypeScript declaration for `req.user.userId` in Multer upload callback
 
 > **Status:** ✅ Committed to `main`, pushed to GitHub (`6695550`). Server deploy: run `bash update-server.sh` on Ubuntu.
+
+---
+
+## 15. TRANSACTION LEDGER UPGRADE & ENHANCEMENTS (2026-09-30)
+
+### Overview
+The Transaction Ledger (`TransactionsPage.tsx`, `funds.controller.ts`, `funds.service.ts`) was significantly enhanced to provide full transparency, advanced reporting, and audit capabilities matching the Requests list view, with zero breaking database schema changes.
+
+### Key Features Added
+1. **Chronological Sorting (Ascending):**
+   - Transactions are ordered oldest first (`orderBy: [{ date: 'asc' }, { createdAt: 'asc' }]`), allowing users to follow chronological ledger balances naturally from earlier dates (e.g. Sept 25) onward.
+2. **Rich Row Columns (Sida Request List):**
+   - **Date:** Formatted transaction timestamp.
+   - **Company:** Distinct Somtel / Bluekom badge.
+   - **Ref / Request #:** Direct request tracking (`#PC-YYYYMMDD-XXXX`) or ledger reference.
+   - **Employee:** Full name of initiator or employee associated.
+   - **Recipient:** Name and contact phone of the payment recipient or merchant.
+   - **Region:** Geographic region pill associated with the request.
+   - **Category:** Budget head name and accounting category.
+   - **Type:** Color-coded movement badge (`PAYMENT`, `ALLOCATION`, `CARRY_FORWARD`, `TRANSFER_IN`, `TRANSFER_OUT`, `ADJUSTMENT`).
+   - **Debit / Credit / Balance:** Clearly distinguished red negative outflow, green positive inflow, and running balance.
+   - **Detail Modal:** Interactive eye icon opening a full popup card with all request details, remarks, and complete financial movement breakdown.
+3. **Date Filtering & Presets:**
+   - Quick presets: `All Dates`, `Today`, `This Week`, `This Month`, and `Custom Range...` with `From` and `To` date pickers.
+4. **Company-Grouped Region Filter:**
+   - The region dropdown cleanly groups regions under their respective company (`Somtel` / `Bluekom`) using `<optgroup>` to prevent confusion between identical region names across companies.
+5. **Exports (Excel & PDF):**
+   - **Export Excel (`.xls`):** Direct styled native spreadsheet download via `/api/funds/transactions/export-excel`.
+   - **Export PDF:** Printable branded report view with summary totals and print dialog via `/api/funds/transactions/export-pdf`.
+6. **Backend Enhancements:**
+   - Database queries include nested request details (`user`, `receiverName`, `receiverPhone`, `region`, `budgetHead`, `department`).
+   - Case-insensitive multi-field search across descriptions, reference numbers, remarks, employees, and request metadata.
+   - Zero changes to Prisma schema (safe for live database and backward compatible).
+
