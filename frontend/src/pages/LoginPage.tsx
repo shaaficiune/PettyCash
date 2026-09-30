@@ -24,7 +24,17 @@ export const LoginPage: React.FC = () => {
         navigate(userObj.resetPasswordRequired ? '/first-login-reset' : '/');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid username or password');
+      const status = err.response?.status;
+      const msg = err.response?.data?.message;
+      if (status === 502 || status === 503) {
+        setError('Server is currently offline or restarting (502 Bad Gateway). Please wait a moment.');
+      } else if (status === 500) {
+        setError('Internal server error (500). Please check backend logs.');
+      } else if (msg) {
+        setError(Array.isArray(msg) ? msg.join(', ') : msg);
+      } else {
+        setError('Invalid username or password');
+      }
     } finally {
       setLoading(false);
     }
