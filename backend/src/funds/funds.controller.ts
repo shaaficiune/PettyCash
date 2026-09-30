@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards, Request, Response } from '@nestjs/common';
 import { FundsService } from './funds.service';
 import { InitFundDto, CloseFundDto } from './dto/fund.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -50,19 +50,83 @@ export class FundsController {
     return this.fundsService.getMonthlySummary(companyId, targetMonth, targetYear);
   }
 
+  @Get('transactions/export-excel')
+  @ApiOperation({ summary: 'Download Excel spreadsheet of petty cash ledger transactions' })
+  async exportTransactionsExcel(
+    @Request() req: any,
+    @Response() res: any,
+    @Query('companyId') companyId?: string,
+    @Query('transactionType') transactionType?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('regionId') regionId?: string,
+    @Query('search') search?: string
+  ) {
+    const effectiveCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
+    const excelXml = await this.fundsService.exportTransactionsExcel(
+      effectiveCompanyId,
+      transactionType,
+      startDate,
+      endDate,
+      search,
+      regionId
+    );
+    res.setHeader('Content-Type', 'application/vnd.ms-excel');
+    res.setHeader('Content-Disposition', 'attachment; filename="petty_cash_ledger.xls"');
+    return res.status(200).send(excelXml);
+  }
+
+  @Get('transactions/export-pdf')
+  @ApiOperation({ summary: 'Generate printable HTML/PDF report of petty cash ledger transactions' })
+  async exportTransactionsPdf(
+    @Request() req: any,
+    @Response() res: any,
+    @Query('companyId') companyId?: string,
+    @Query('transactionType') transactionType?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('regionId') regionId?: string,
+    @Query('search') search?: string
+  ) {
+    const effectiveCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
+    const htmlReport = await this.fundsService.exportTransactionsPdfHtml(
+      effectiveCompanyId,
+      transactionType,
+      startDate,
+      endDate,
+      search,
+      regionId
+    );
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(htmlReport);
+  }
+
   @Get('transactions')
   @ApiOperation({ summary: 'Get petty cash financial transactions ledger' })
   async getTransactions(
     @Request() req: any,
     @Query('companyId') companyId?: string,
     @Query('transactionType') transactionType?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('regionId') regionId?: string,
+    @Query('search') search?: string,
     @Query('page') page = '1',
     @Query('pageSize') pageSize = '20'
   ) {
     const effectiveCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
     const pageNum = parseInt(page as any, 10) || 1;
     const size = parseInt(pageSize as any, 10) || 20;
-    return this.fundsService.getTransactions(effectiveCompanyId, transactionType, pageNum, size);
+    return this.fundsService.getTransactions(
+      effectiveCompanyId,
+      transactionType,
+      pageNum,
+      size,
+      startDate,
+      endDate,
+      search,
+      regionId
+    );
   }
 
   @Get('availability')
