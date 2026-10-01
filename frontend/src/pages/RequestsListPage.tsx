@@ -37,9 +37,22 @@ export const RequestsListPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
-  const [datePreset, setDatePreset] = useState<'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM'>('TODAY');
-  const [startDate, setStartDate] = useState(() => getLocalDateString());
+  const isEmployee = user?.role === 'EMPLOYEE';
+  const [datePreset, setDatePreset] = useState<'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM'>(() => 
+    isEmployee ? 'THIS_MONTH' : 'TODAY'
+  );
+  const [startDate, setStartDate] = useState(() => 
+    isEmployee ? getStartOfMonthString() : getLocalDateString()
+  );
   const [endDate, setEndDate] = useState(() => getLocalDateString());
+
+  useEffect(() => {
+    if (user?.role === 'EMPLOYEE') {
+      setDatePreset('THIS_MONTH');
+      setStartDate(getStartOfMonthString());
+      setEndDate(getLocalDateString());
+    }
+  }, [user?.role]);
 
   const applyDatePreset = (preset: 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM') => {
     setDatePreset(preset);
@@ -408,7 +421,7 @@ export const RequestsListPage: React.FC = () => {
                   <tr>
                     <td colSpan={10} className="text-center py-12 text-sm text-slate-400">
                       <div>No requests found matching your filters</div>
-                      {datePreset === 'TODAY' && (
+                      {(datePreset === 'TODAY' || datePreset === 'THIS_MONTH') && (
                         <button
                           type="button"
                           onClick={() => applyDatePreset('ALL')}
@@ -466,8 +479,21 @@ export const RequestsListPage: React.FC = () => {
                         <td className="py-3 px-3 text-slate-600 dark:text-slate-400 hidden lg:table-cell text-xs">
                           {req.budgetHead ? `${req.budgetHead.code} – ${req.budgetHead.name}` : (req.requestType || '—')}
                         </td>
-                        <td className="py-3 px-3 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
-                          {req.currency} {Number(req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <td className="py-3 px-3 whitespace-nowrap text-right">
+                          {['APPROVED', 'PAID', 'COMPLETED'].includes(req.status) && req.approvedAmount && Number(req.approvedAmount) !== Number(req.requestedAmount) ? (
+                            <div className="flex flex-col items-end">
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                {req.currency} {Number(req.approvedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                              <span className="text-[10px] text-slate-400 line-through">
+                                Req: {req.currency} {Number(req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="font-bold text-slate-800 dark:text-slate-100">
+                              {req.currency} {Number(req.approvedAmount && ['APPROVED', 'PAID', 'COMPLETED'].includes(req.status) ? req.approvedAmount : req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 px-3 hidden xl:table-cell">
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded border ${

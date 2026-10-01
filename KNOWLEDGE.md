@@ -638,3 +638,27 @@ At the start of each new month (e.g. October), Finance takes 1–5 days to initi
 
 > **Status:** ✅ Committed to `main`. Run `bash update-server.sh` on the Ubuntu server to deploy.
 
+---
+
+## 17. EMPLOYEE DATE FILTER (THIS MONTH) & APPROVED VS REQUESTED AMOUNT (2026-10-01)
+
+### Context & Problem Solved
+1. **Empty list confusion for regular employees:** The main requests table (`/requests`) defaulted to `TODAY`. If an employee hadn't submitted a request on the current day, they were presented with an empty table.
+2. **Hidden approved amount adjustments:** When an accountant approved a request for an amount lower than requested (e.g., requested $50, approved $35), the table only displayed `requestedAmount` ($50), concealing the approved reduction until the user clicked "View".
+
+### Implementation
+1. **`RequestsListPage.tsx`:**
+   - Role-based date preset: `EMPLOYEE` defaults to `'THIS_MONTH'` (1st of current month to today), while `ACCOUNTANT` and `SUPER_ADMIN` remain on `'TODAY'` to avoid heavy initial loads.
+   - When requests list is empty under `THIS_MONTH`, the "View All Time Requests" button is offered just as under `TODAY`.
+   - "Amount" column: If `status` is `APPROVED`, `PAID`, or `COMPLETED` and `approvedAmount !== requestedAmount`, it shows the approved amount in bold emerald (`$35.00`) with the original requested amount line-through below (`Req: $50.00`).
+2. **`DashboardPage.tsx` (`RequestsTable`):**
+   - Matching "Amount" column enhancement for the Employee Dashboard's "My Recent Requests" table.
+3. **`RequestDetailPage.tsx`:**
+   - Pre-fills `approvedAmountOverride` with `approvedAmount || requestedAmount`.
+   - Passes `approvedAmount` during `ACCOUNTANT_REVIEW` (Stage 1 review) as well as `APPROVED` (Stage 2 review).
+
+### Files Changed
+- `frontend/src/pages/RequestsListPage.tsx`
+- `frontend/src/pages/DashboardPage.tsx`
+- `frontend/src/pages/RequestDetailPage.tsx`
+

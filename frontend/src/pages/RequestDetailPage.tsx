@@ -178,7 +178,7 @@ export const RequestDetailPage: React.FC = () => {
     try {
       const res = await api.get(`/requests/${id}`);
       setRequest(res.data);
-      setApprovedAmountOverride(res.data.requestedAmount.toString());
+      setApprovedAmountOverride((res.data.approvedAmount || res.data.requestedAmount).toString());
       const spent = parseFloat(actualSpent || '0');
       const diff = Number(res.data.approvedAmount || res.data.requestedAmount) - spent;
       setRemainingBalance(diff.toFixed(2));
@@ -228,14 +228,14 @@ export const RequestDetailPage: React.FC = () => {
 
   const handleReview = (status: 'APPROVED' | 'REJECTED' | 'CORRECTION_REQUIRED' | 'ACCOUNTANT_REVIEW') =>
     withLoading(async () => {
-      if (status === 'APPROVED') {
+      if (status === 'APPROVED' || status === 'ACCOUNTANT_REVIEW') {
         const parsed = parseFloat(approvedAmountOverride);
         if (isNaN(parsed) || parsed <= 0) { setError('Approved amount must be greater than zero'); return; }
         if (parsed > 50) { setError('Approved amount cannot exceed the maximum petty cash limit of $50.'); return; }
       }
       await api.post(`/requests/${id}/review`, {
         status, comments: actionComments,
-        approvedAmount: status === 'APPROVED' ? parseFloat(approvedAmountOverride) : undefined,
+        approvedAmount: (status === 'APPROVED' || status === 'ACCOUNTANT_REVIEW') ? parseFloat(approvedAmountOverride) : undefined,
       });
       setActionComments('');
       await loadRequestDetails();

@@ -141,8 +141,21 @@ const RequestsTable: React.FC<ReqTableProps> = ({
                   </td>
                 )}
                 <td className="py-4 px-4 text-slate-500 truncate max-w-[140px] hidden md:table-cell">{req.purpose}</td>
-                <td className="py-4 px-4 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
-                  {req.currency} {Number(req.requestedAmount).toLocaleString()}
+                <td className="py-4 px-4 whitespace-nowrap">
+                  {['APPROVED', 'PAID', 'COMPLETED'].includes(req.status) && req.approvedAmount && Number(req.approvedAmount) !== Number(req.requestedAmount) ? (
+                    <div>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        {req.currency} {Number(req.approvedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className="block text-[10px] text-slate-400 line-through">
+                        Req: {req.currency} {Number(req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      {req.currency} {Number(req.approvedAmount && ['APPROVED', 'PAID', 'COMPLETED'].includes(req.status) ? req.approvedAmount : req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  )}
                 </td>
                 <td className="py-4 px-4"><StatusBadge status={req.status} /></td>
                 {showRemarks && (
