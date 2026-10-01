@@ -714,3 +714,15 @@ At the start of each new month (e.g. October), Finance takes 1–5 days to initi
    - `recordPaymentInTransaction`: If the referenced fund is `CLOSED`, it also falls back to the company's active `OPEN` fund.
    - `getOrCreateCurrentMonthFund`: If the current month fund was marked `CLOSED`, it searches for any active `OPEN` fund for that company rather than returning a closed fund.
 
+---
+
+## 21. ROLE-AWARE FILTER HUB — HIDING REGION FILTER FOR EMPLOYEES (2026-10-01)
+
+### Context & Problem Solved
+- In `RequestsListPage.tsx`, the Region filter dropdown was shown to all users.
+- Regular employees only have access to their own requests within their assigned region. Having a dropdown showing other regions was confusing and non-functional for employees (selecting other regions returned 0 records).
+
+### Implementation
+- `RequestsListPage.tsx`: Wrapped the Region filter dropdown in `{!isEmployee}` so it is only displayed to `ACCOUNTANT` and `SUPER_ADMIN` roles who oversee multi-region requests.
+
+

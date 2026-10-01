@@ -284,40 +284,42 @@ export const RequestsListPage: React.FC = () => {
               </select>
             </div>
 
-            {/* Region Filter */}
-            <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
-              <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <select
-                value={regionFilter}
-                onChange={(e) => setRegionFilter(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
-              >
-                <option value="">All Regions</option>
-                {(() => {
-                  const groups: { [key: string]: any[] } = {};
-                  regions.forEach((r) => {
-                    const cName = r.company?.name || 'Other';
-                    if (!groups[cName]) groups[cName] = [];
-                    groups[cName].push(r);
-                  });
-                  const compKeys = Object.keys(groups);
-                  if (compKeys.length <= 1) {
-                    return regions.map((r) => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
+            {/* Region Filter - Accountant and Admin only */}
+            {!isEmployee && (
+              <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
+                <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <select
+                  value={regionFilter}
+                  onChange={(e) => setRegionFilter(e.target.value)}
+                  className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
+                >
+                  <option value="">All Regions</option>
+                  {(() => {
+                    const groups: { [key: string]: any[] } = {};
+                    regions.forEach((r) => {
+                      const cName = r.company?.name || 'Other';
+                      if (!groups[cName]) groups[cName] = [];
+                      groups[cName].push(r);
+                    });
+                    const compKeys = Object.keys(groups);
+                    if (compKeys.length <= 1) {
+                      return regions.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ));
+                    }
+                    return compKeys.map((cName) => (
+                      <optgroup key={cName} label={`── ${cName} ──`}>
+                        {groups[cName].map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.name}
+                          </option>
+                        ))}
+                      </optgroup>
                     ));
-                  }
-                  return compKeys.map((cName) => (
-                    <optgroup key={cName} label={`── ${cName} ──`}>
-                      {groups[cName].map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ));
-                })()}
-              </select>
-            </div>
+                  })()}
+                </select>
+              </div>
+            )}
 
             {/* Status Filter */}
             <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
