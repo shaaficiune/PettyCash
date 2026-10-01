@@ -37,7 +37,8 @@ export class AuthService {
     }
 
     // ── 2. Temporary lockout check ─────────────────────────────────────────
-    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+    // Exception: the primary master 'admin' account is never locked out
+    if (user.username !== 'admin' && user.lockoutUntil && user.lockoutUntil > new Date()) {
       const remainingMs = user.lockoutUntil.getTime() - Date.now();
       const remainingMins = Math.ceil(remainingMs / 60_000);
       throw new UnauthorizedException(
@@ -49,7 +50,12 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      // Increment failure counter
+      // Primary master 'admin' account is fully exempt from lockout to prevent denial of service and self-lockout
+      if (user.username === 'admin') {
+        throw new UnauthorizedException('Invalid username or password.');
+      }
+
+      // Increment failure counter for all other users
       const newAttempts = (user.failedLoginAttempts ?? 0) + 1;
 
       if (newAttempts >= 5) {

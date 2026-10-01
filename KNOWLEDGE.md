@@ -725,4 +725,21 @@ At the start of each new month (e.g. October), Finance takes 1–5 days to initi
 ### Implementation
 - `RequestsListPage.tsx`: Wrapped the Region filter dropdown in `{!isEmployee}` so it is only displayed to `ACCOUNTANT` and `SUPER_ADMIN` roles who oversee multi-region requests.
 
+---
+
+## 22. PRIMARY 'ADMIN' ACCOUNT LOCKOUT EXEMPTION (2026-10-01)
+
+### Context & Problem Solved
+- Previously, all accounts including `username: 'admin'` were subject to account lockout after 5 consecutive failed login attempts (1 hour in Stage 1, 6 hours in Stage 2).
+- This posed serious risks:
+  1. **Self-lockout:** The system owner/administrator could lock themselves out of the system if mistyping credentials.
+  2. **Denial of Service (DoS):** An external actor knowing the default admin username could deliberately submit 5 bad passwords every hour to keep the system administrator permanently locked out.
+
+### Implementation
+- `backend/src/auth/auth.service.ts`:
+  - Completely exempted `user.username === 'admin'` from `lockoutUntil` checks and failed login attempt counter increments.
+  - Returns a generic `"Invalid username or password."` without displaying remaining attempt countdowns.
+  - Reset database lockout flags on `admin` user.
+  - Other user roles (`ACCOUNTANT`, `EMPLOYEE`, other `SUPER_ADMIN` accounts) retain standard progressive brute-force protection.
+
 
