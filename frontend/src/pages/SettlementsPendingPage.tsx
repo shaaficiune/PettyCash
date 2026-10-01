@@ -98,7 +98,7 @@ export const SettlementsPendingPage: React.FC = () => {
                     </td>
                     <td className="py-4 px-6 text-center">
                       <Link
-                        to={`/requests/${st.request?.id}`}
+                        to={`/requests/${st.request?.requestNumber || st.request?.id}`}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer"
                       >
                         <Eye className="h-3.5 w-3.5" />

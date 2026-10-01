@@ -121,7 +121,7 @@ const RequestsTable: React.FC<ReqTableProps> = ({
             return (
               <tr key={req.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                 <td className="py-4 px-4 font-semibold text-slate-800 dark:text-slate-200">
-                  <Link to={`/requests/${req.id}`} className="text-sm font-bold text-primary hover:underline">
+                  <Link to={`/requests/${req.requestNumber || req.id}`} className="text-sm font-bold text-primary hover:underline">
                     {req.requestNumber}
                   </Link>
                 </td>

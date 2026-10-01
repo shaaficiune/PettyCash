@@ -662,3 +662,23 @@ At the start of each new month (e.g. October), Finance takes 1–5 days to initi
 - `frontend/src/pages/DashboardPage.tsx`
 - `frontend/src/pages/RequestDetailPage.tsx`
 
+---
+
+## 18. CLEAN URL ROUTING WITH REQUEST NUMBER (2026-10-01)
+
+### Context & Problem Solved
+- Previously, navigating to request details generated URLs with raw UUIDs: `/requests/d43dedcb-9044-4041-8d78-c27563408a8e`.
+- This was poor UX: unreadable, hard to share, and gave no indication of the request identity.
+
+### Implementation
+1. **Backend (`requests.service.ts`):**
+   - Added regex check `isUuid(id)`.
+   - `findOne`, `update`, `delete`, and `review` resolve by either `id` (UUID) or `requestNumber` (e.g., `PC-20261001-0001`).
+   - 100% backward compatible: both UUIDs and formatted request numbers are accepted.
+2. **Frontend Routing & Links:**
+   - `RequestsListPage.tsx`: Request # and "View" button link to `/requests/${req.requestNumber}`.
+   - `DashboardPage.tsx`: "My Recent Requests" links to `/requests/${req.requestNumber}`.
+   - `PaymentsPage.tsx`: Request link points to `/requests/${p.request?.requestNumber}`.
+   - `SettlementsPendingPage.tsx`: "Audit" button links to `/requests/${st.request?.requestNumber}`.
+   - `RequestDetailPage.tsx`: Edit link points to `/requests/edit/${request.requestNumber}`.
+

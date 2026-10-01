@@ -440,7 +440,9 @@ export const RequestsListPage: React.FC = () => {
                         className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                       >
                         <td className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">
-                          {req.requestNumber}
+                          <Link to={`/requests/${req.requestNumber || req.id}`} className="hover:underline text-primary">
+                            {req.requestNumber}
+                          </Link>
                         </td>
                         <td className="py-3 px-3 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">
                           {new Date(req.requestDate || req.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -519,7 +521,7 @@ export const RequestsListPage: React.FC = () => {
                       </td>
                       <td className="py-4 px-6 text-center">
                         <Link
-                          to={`/requests/${req.id}`}
+                          to={`/requests/${req.requestNumber || req.id}`}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-xs font-semibold transition-all"
                         >
                           <Eye className="h-3.5 w-3.5" />

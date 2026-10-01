@@ -86,7 +86,7 @@ export const PaymentsPage: React.FC = () => {
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-200">
-                        <Link to={`/requests/${p.request?.id}`} className="hover:underline text-primary">{p.request?.requestNumber}</Link>
+                        <Link to={`/requests/${p.request?.requestNumber || p.request?.id}`} className="hover:underline text-primary">{p.request?.requestNumber}</Link>
                       </td>
                       <td className="py-4 px-4 hidden sm:table-cell">
                         <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${

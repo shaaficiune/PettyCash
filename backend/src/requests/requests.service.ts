@@ -232,9 +232,17 @@ export class RequestsService {
     };
   }
 
+  private isUuid(val: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+  }
+
+  private getRequestIdentifierWhere(identifier: string) {
+    return this.isUuid(identifier) ? { id: identifier } : { requestNumber: identifier };
+  }
+
   async findOne(id: string, user: any) {
-    const request = await this.prisma.pettyCashRequest.findUnique({
-      where: { id },
+    const request = await this.prisma.pettyCashRequest.findFirst({
+      where: this.getRequestIdentifierWhere(id),
       include: {
         user: { select: { fullName: true, username: true, phone: true } },
         company: { select: { name: true } },
@@ -265,8 +273,8 @@ export class RequestsService {
   }
 
   async update(id: string, userId: string, dto: UpdateRequestDto) {
-    const request = await this.prisma.pettyCashRequest.findUnique({
-      where: { id },
+    const request = await this.prisma.pettyCashRequest.findFirst({
+      where: this.getRequestIdentifierWhere(id),
       include: { attachments: true },
     });
 
@@ -390,7 +398,7 @@ export class RequestsService {
     }
 
     const updatedRequest = await this.prisma.pettyCashRequest.update({
-      where: { id },
+      where: { id: request.id },
       data,
       include: { attachments: true },
     });
@@ -409,8 +417,8 @@ export class RequestsService {
   }
 
   async delete(id: string, userId: string) {
-    const request = await this.prisma.pettyCashRequest.findUnique({
-      where: { id },
+    const request = await this.prisma.pettyCashRequest.findFirst({
+      where: this.getRequestIdentifierWhere(id),
     });
 
     if (!request) {
@@ -426,20 +434,22 @@ export class RequestsService {
     }
 
     await this.prisma.pettyCashRequest.delete({
-      where: { id },
+      where: { id: request.id },
     });
 
     return { success: true, message: 'Request deleted successfully' };
   }
 
   async review(id: string, reviewerId: string, reviewerRole: string, dto: ReviewRequestDto) {
-    const request = await this.prisma.pettyCashRequest.findUnique({
-      where: { id },
+    const request = await this.prisma.pettyCashRequest.findFirst({
+      where: this.getRequestIdentifierWhere(id),
     });
 
     if (!request) {
       throw new NotFoundException('Request not found');
     }
+
+    const targetId = request.id;
 
     // Use plain string comparison to avoid any Prisma enum mismatch issues
     const currentStatus = String(request.status);
@@ -502,8 +512,8 @@ export class RequestsService {
 
       const fund = await this.fundsService.getOrCreateCurrentMonthFund(request.companyId);
       const approvedRequest = await this.prisma.$transaction(async (tx) => {
-        await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', id);
-        const latestRequest = await (tx as any).pettyCashRequest.findUnique({ where: { id } });
+        await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', targetId);
+        const latestRequest = await (tx as any).pettyCashRequest.findUnique({ where: { id: targetId } });
         if (!latestRequest || !['PENDING_APPROVAL', 'ACCOUNTANT_REVIEW'].includes(String(latestRequest.status))) {
           throw new BadRequestException('Request is no longer in a reviewable state');
         }
@@ -520,7 +530,7 @@ export class RequestsService {
 
         await this.fundsService.recordApprovalInTransaction(tx, fund.id, approvedAmount);
         return (tx as any).pettyCashRequest.update({
-          where: { id },
+          where: { id: targetId },
           data: { status: RequestStatus.APPROVED, approvedAmount },
         });
       });
@@ -541,15 +551,15 @@ export class RequestsService {
     }
 
     const updatedRequest = await this.prisma.$transaction(async (tx) => {
-      await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', id);
-      const latestRequest = await (tx as any).pettyCashRequest.findUnique({ where: { id } });
+      await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', targetId);
+      const latestRequest = await (tx as any).pettyCashRequest.findUnique({ where: { id: targetId } });
       if (!latestRequest || !['PENDING_APPROVAL', 'ACCOUNTANT_REVIEW'].includes(String(latestRequest.status))) {
         throw new BadRequestException('Request is no longer in a reviewable state');
       }
       if (newStatus === 'ACCOUNTANT_REVIEW' && latestRequest.status !== RequestStatus.PENDING_APPROVAL) {
         throw new BadRequestException('Request must be in Pending Approval to forward to CFO review.');
       }
-      return (tx as any).pettyCashRequest.update({ where: { id }, data });
+      return (tx as any).pettyCashRequest.update({ where: { id: targetId }, data });
     });
 
     if (notification) {

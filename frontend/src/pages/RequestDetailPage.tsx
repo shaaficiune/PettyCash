@@ -233,7 +233,7 @@ export const RequestDetailPage: React.FC = () => {
         if (isNaN(parsed) || parsed <= 0) { setError('Approved amount must be greater than zero'); return; }
         if (parsed > 50) { setError('Approved amount cannot exceed the maximum petty cash limit of $50.'); return; }
       }
-      await api.post(`/requests/${id}/review`, {
+      await api.post(`/requests/${request?.id || id}/review`, {
         status, comments: actionComments,
         approvedAmount: (status === 'APPROVED' || status === 'ACCOUNTANT_REVIEW') ? parseFloat(approvedAmountOverride) : undefined,
       });
@@ -286,7 +286,7 @@ export const RequestDetailPage: React.FC = () => {
         </button>
         {canEdit && (
           <Link
-            to={`/requests/edit/${request.id}`}
+            to={`/requests/edit/${request.requestNumber || request.id}`}
             className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-sm shadow-amber-500/20 transition-all"
           >
             <Edit3 className="h-3.5 w-3.5" />
