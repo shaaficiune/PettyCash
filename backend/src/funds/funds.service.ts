@@ -19,7 +19,7 @@ export class FundsService {
     return this.prisma.$transaction(async (tx) => {
       // Serialize initial allocations and top-ups for this company/month,
       // including the case where the fund row has not been created yet.
-      await (tx as any).$queryRawUnsafe(
+      await (tx as any).$executeRawUnsafe(
         'SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))',
         dto.companyId,
         `${dto.month}-${dto.year}`,
@@ -28,7 +28,7 @@ export class FundsService {
       const existing = await (tx as any).pettyCashFund.findUnique({ where: key });
 
       if (existing) {
-        await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', existing.id);
+        await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', existing.id);
         const lockedFund = await (tx as any).pettyCashFund.findUnique({ where: { id: existing.id } });
         if (lockedFund.status !== 'OPEN') throw new BadRequestException('This fund is already closed');
 
@@ -147,7 +147,7 @@ export class FundsService {
     const additionalFunding = Number(dto.additionalFunding || 0);
 
     return this.prisma.$transaction(async (tx) => {
-      await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fund.id);
+      await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fund.id);
       const currentFund = await (tx as any).pettyCashFund.findUnique({ where: { id: fund.id } });
       if (!currentFund || currentFund.status !== 'OPEN') {
         throw new BadRequestException('This fund is already closed');
@@ -159,7 +159,7 @@ export class FundsService {
         data: { status: 'CLOSED', closingBalance: carryForward },
       });
 
-      await (tx as any).$queryRawUnsafe(
+      await (tx as any).$executeRawUnsafe(
         'SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))',
         companyId,
         `${nextMonth}-${nextYear}`,
@@ -167,7 +167,7 @@ export class FundsService {
       const nextWhere = { companyId_month_year: { companyId, month: nextMonth, year: nextYear } };
       let existingNextFund = await (tx as any).pettyCashFund.findUnique({ where: nextWhere });
       if (existingNextFund) {
-        await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', existingNextFund.id);
+        await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', existingNextFund.id);
         existingNextFund = await (tx as any).pettyCashFund.findUnique({ where: { id: existingNextFund.id } });
       }
       let nextFund: any;
@@ -277,7 +277,7 @@ export class FundsService {
   }
 
   async recordApprovalInTransaction(tx: any, fundId: string, approvedAmount: number) {
-    await tx.$queryRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
+    await tx.$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
     const fund = await tx.pettyCashFund.findUnique({ where: { id: fundId } });
     if (!fund || fund.status !== 'OPEN') {
       throw new BadRequestException('The petty cash fund is not open for approvals');
@@ -317,7 +317,7 @@ export class FundsService {
     referenceNumber?: string | null,
     notes?: string,
   ) {
-    await tx.$queryRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
+    await tx.$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
     const lockedFund = await tx.pettyCashFund.findUnique({ where: { id: fundId } });
     if (!lockedFund || lockedFund.status !== 'OPEN') {
       throw new BadRequestException('The petty cash fund is not open for payments');

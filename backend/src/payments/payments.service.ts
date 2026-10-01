@@ -41,7 +41,7 @@ export class PaymentsService {
     const fund = await this.fundsService.getOrCreateCurrentMonthFund(requestSnapshot.companyId);
     const result = await this.prisma.$transaction(async (tx) => {
       // Serialize payments for this request, then re-read its state and paid total.
-      await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', dto.requestId);
+      await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', dto.requestId);
       const request = await (tx as any).pettyCashRequest.findUnique({ where: { id: dto.requestId } });
       if (!request) throw new NotFoundException('Petty cash request not found');
       if (request.status !== RequestStatus.APPROVED && request.status !== RequestStatus.PAYMENT_PROCESSING) {

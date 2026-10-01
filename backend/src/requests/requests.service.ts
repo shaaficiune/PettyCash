@@ -502,7 +502,7 @@ export class RequestsService {
 
       const fund = await this.fundsService.getOrCreateCurrentMonthFund(request.companyId);
       const approvedRequest = await this.prisma.$transaction(async (tx) => {
-        await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', id);
+        await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', id);
         const latestRequest = await (tx as any).pettyCashRequest.findUnique({ where: { id } });
         if (!latestRequest || !['PENDING_APPROVAL', 'ACCOUNTANT_REVIEW'].includes(String(latestRequest.status))) {
           throw new BadRequestException('Request is no longer in a reviewable state');
@@ -541,7 +541,7 @@ export class RequestsService {
     }
 
     const updatedRequest = await this.prisma.$transaction(async (tx) => {
-      await (tx as any).$queryRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', id);
+      await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', id);
       const latestRequest = await (tx as any).pettyCashRequest.findUnique({ where: { id } });
       if (!latestRequest || !['PENDING_APPROVAL', 'ACCOUNTANT_REVIEW'].includes(String(latestRequest.status))) {
         throw new BadRequestException('Request is no longer in a reviewable state');
