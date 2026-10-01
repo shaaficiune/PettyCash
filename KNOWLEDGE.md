@@ -698,3 +698,19 @@ At the start of each new month (e.g. October), Finance takes 1–5 days to initi
    - Displays `request.costCenter || request.region?.name || '—'`.
    - This ensures both existing historical requests and new requests immediately display the region as the Cost Center instead of an empty dash.
 
+---
+
+## 20. CROSS-MONTH APPROVAL & DISBURSEMENT ROLLOVER (2026-10-01)
+
+### Context & Problem Solved
+- When a request initiated in an earlier month (e.g. September) rolled over for final approval or payment in a subsequent month (e.g. October), the approval could encounter `"The petty cash fund is not open for approvals"` if the referenced fund month was closed.
+- Additionally, if an accountant tested "Close Month" on a current month, the closed status would block further activity until the next month was funded.
+
+### Implementation
+1. **Database Recovery (Local):**
+   - Reset local October 2026 fund (`PettyCashFund`) status back to `OPEN` (with its remaining balance intact) and cleared premature test records.
+2. **Backend Fail-Safe (`funds.service.ts`):**
+   - `recordApprovalInTransaction`: If the referenced fund is `CLOSED`, it automatically falls back to the company's active `OPEN` fund and logs the approval commit against it.
+   - `recordPaymentInTransaction`: If the referenced fund is `CLOSED`, it also falls back to the company's active `OPEN` fund.
+   - `getOrCreateCurrentMonthFund`: If the current month fund was marked `CLOSED`, it searches for any active `OPEN` fund for that company rather than returning a closed fund.
+

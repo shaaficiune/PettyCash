@@ -332,9 +332,23 @@ export class FundsService {
 
   async recordApprovalInTransaction(tx: any, fundId: string, approvedAmount: number) {
     await tx.$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
-    const fund = await tx.pettyCashFund.findUnique({ where: { id: fundId } });
+    let fund = await tx.pettyCashFund.findUnique({ where: { id: fundId } });
+
+    // Cross-month rollover: If the referenced fund is CLOSED, charge against the active OPEN fund of the same company
+    if (fund && fund.status !== 'OPEN') {
+      const openFund = await tx.pettyCashFund.findFirst({
+        where: { companyId: fund.companyId, status: 'OPEN' },
+        orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      });
+      if (openFund) {
+        fund = openFund;
+        fundId = openFund.id;
+        await tx.$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
+      }
+    }
+
     if (!fund || fund.status !== 'OPEN') {
-      throw new BadRequestException('The petty cash fund is not open for approvals');
+      throw new BadRequestException('The petty cash fund is not open for approvals. Please ensure an active open fund exists for this company.');
     }
 
     const totalAvailable = Number(fund.totalAvailable);
@@ -372,9 +386,23 @@ export class FundsService {
     notes?: string,
   ) {
     await tx.$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
-    const lockedFund = await tx.pettyCashFund.findUnique({ where: { id: fundId } });
+    let lockedFund = await tx.pettyCashFund.findUnique({ where: { id: fundId } });
+
+    // Cross-month rollover: If the referenced fund is CLOSED, charge against the active OPEN fund of the same company
+    if (lockedFund && lockedFund.status !== 'OPEN') {
+      const openFund = await tx.pettyCashFund.findFirst({
+        where: { companyId: lockedFund.companyId, status: 'OPEN' },
+        orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      });
+      if (openFund) {
+        lockedFund = openFund;
+        fundId = openFund.id;
+        await tx.$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
+      }
+    }
+
     if (!lockedFund || lockedFund.status !== 'OPEN') {
-      throw new BadRequestException('The petty cash fund is not open for payments');
+      throw new BadRequestException('The petty cash fund is not open for payments. Please ensure an active open fund exists for this company.');
     }
 
     const totalAvailable = Number(lockedFund.totalAvailable);
@@ -518,6 +546,15 @@ export class FundsService {
     });
 
     if (existing) {
+      if (existing.status === 'CLOSED') {
+        const activeOpenFund = await (this.prisma as any).pettyCashFund.findFirst({
+          where: { companyId, status: 'OPEN' },
+          orderBy: [{ year: 'desc' }, { month: 'desc' }],
+        });
+        if (activeOpenFund) {
+          return activeOpenFund;
+        }
+      }
       return existing;
     }
 
