@@ -682,3 +682,19 @@ At the start of each new month (e.g. October), Finance takes 1–5 days to initi
    - `SettlementsPendingPage.tsx`: "Audit" button links to `/requests/${st.request?.requestNumber}`.
    - `RequestDetailPage.tsx`: Edit link points to `/requests/edit/${request.requestNumber}`.
 
+---
+
+## 19. REGION TO COST CENTER ALIGNMENT (2026-10-01)
+
+### Context & Problem Solved
+- In the Petty Cash workflow, each request is tied to a `Region`, which enforces a region-specific monthly budget limit (`Region.monthlyBudget`).
+- However, the `Cost Center` field on `PettyCashRequest` was previously displaying as blank/dash (`—`) on every request because it was not explicitly captured in the creation form.
+
+### Implementation
+1. **Backend (`requests.service.ts`):**
+   - On `create`: When `dto.costCenter` is omitted but `dto.regionId` is provided, `costCenter` automatically defaults to the selected `Region.name`.
+   - On `update`: If the region is updated and `dto.costCenter` is not explicitly set, `data.costCenter` is updated with the new `Region.name`.
+2. **Frontend (`RequestDetailPage.tsx`):**
+   - Displays `request.costCenter || request.region?.name || '—'`.
+   - This ensures both existing historical requests and new requests immediately display the region as the Cost Center instead of an empty dash.
+

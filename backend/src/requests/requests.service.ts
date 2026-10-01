@@ -110,6 +110,17 @@ export class RequestsService {
 
     const initialStatus = dto.status === RequestStatus.PENDING_APPROVAL ? RequestStatus.PENDING_APPROVAL : RequestStatus.DRAFT;
 
+    let costCenter = dto.costCenter || null;
+    if (!costCenter && dto.regionId) {
+      const region = await this.prisma.region.findUnique({
+        where: { id: dto.regionId },
+        select: { name: true },
+      });
+      if (region) {
+        costCenter = region.name;
+      }
+    }
+
     const request = await this.prisma.pettyCashRequest.create({
       data: {
         requestNumber,
@@ -119,7 +130,7 @@ export class RequestsService {
         projectId: dto.projectId || null,
         regionId: dto.regionId || null,
         budgetHeadId: dto.budgetHeadId || null,
-        costCenter: dto.costCenter || null,
+        costCenter,
         vendorName: dto.vendorName || null,
         receiverName: dto.receiverName || null,
         receiverPhone: dto.receiverPhone || null,
@@ -296,8 +307,17 @@ export class RequestsService {
     let wasResubmitted = false;
     if (dto.projectId !== undefined) data.projectId = dto.projectId || null;
     if (dto.regionId !== undefined) data.regionId = dto.regionId || null;
-    if (dto.budgetHeadId !== undefined) data.budgetHeadId = dto.budgetHeadId || null;
-    if (dto.costCenter !== undefined) data.costCenter = dto.costCenter || null;
+    if (dto.costCenter !== undefined) {
+      data.costCenter = dto.costCenter || null;
+    } else if (dto.regionId) {
+      const region = await this.prisma.region.findUnique({
+        where: { id: dto.regionId },
+        select: { name: true },
+      });
+      if (region) {
+        data.costCenter = region.name;
+      }
+    }
     if (dto.vendorName !== undefined) data.vendorName = dto.vendorName || null;
     if (dto.receiverName !== undefined) data.receiverName = dto.receiverName || null;
     if (dto.receiverPhone !== undefined) data.receiverPhone = dto.receiverPhone || null;

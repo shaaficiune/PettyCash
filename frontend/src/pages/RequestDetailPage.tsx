@@ -402,7 +402,7 @@ export const RequestDetailPage: React.FC = () => {
             </Field>
 
             <Field label="Cost Center" icon={CircleDollarSign}>
-              <span className="text-sm">{request.costCenter || <span className="text-slate-400">—</span>}</span>
+              <span className="text-sm">{request.costCenter || request.region?.name || <span className="text-slate-400">—</span>}</span>
             </Field>
           </div>
 
