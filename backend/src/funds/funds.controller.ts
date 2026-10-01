@@ -28,9 +28,13 @@ export class FundsController {
   @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
   @ApiOperation({ summary: 'Close month and carry balance to next month' })
   async close(@Body() dto: CloseFundDto, @Request() req: any) {
-    const companyId = req.user.companyId;
+    const effectiveCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.ACCOUNTANT)
+      ? (dto.companyId || req.user.companyId)
+      : req.user.companyId;
     const now = new Date();
-    return this.fundsService.closeMonth(companyId, now.getMonth() + 1, now.getFullYear(), dto);
+    const targetMonth = dto.month || (now.getMonth() + 1);
+    const targetYear = dto.year || now.getFullYear();
+    return this.fundsService.closeMonth(effectiveCompanyId, targetMonth, targetYear, dto);
   }
 
   @Get('summary')

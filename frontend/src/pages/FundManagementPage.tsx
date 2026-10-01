@@ -59,8 +59,11 @@ export const FundManagementPage: React.FC = () => {
   const [openingBalance, setOpeningBalance] = useState('');
   const [additionalFunding, setAdditionalFunding] = useState('');
   const [topUpAmount, setTopUpAmount] = useState('');
+  const [prevFund, setPrevFund] = useState<FundSummary | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
+  const [closingMonth, setClosingMonth] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -83,10 +86,14 @@ export const FundManagementPage: React.FC = () => {
     fetchFund();
   }, [selectedCompanyId, selectedMonth, selectedYear]);
 
+  const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
+  const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+
   const fetchFund = async () => {
     setLoadingFund(true);
     setFundError(null);
     setFund(null);
+    setPrevFund(null);
     try {
       const res = await api.get('/funds/summary', {
         params: { month: selectedMonth, year: selectedYear, companyId: selectedCompanyId },
@@ -95,6 +102,24 @@ export const FundManagementPage: React.FC = () => {
     } catch (err: any) {
       if (err?.response?.status === 404 || err?.response?.status === 400) {
         setFund(null);
+        // Fetch previous month to check for carry-forward balance
+        try {
+          const prevRes = await api.get('/funds/summary', {
+            params: { month: prevMonth, year: prevYear, companyId: selectedCompanyId },
+          });
+          if (prevRes.data) {
+            setPrevFund(prevRes.data);
+            const prevRem = Number(prevRes.data.remainingBalance || 0);
+            if (prevRem > 0) {
+              setOpeningBalance(String(prevRem));
+            } else {
+              setOpeningBalance('');
+            }
+          }
+        } catch {
+          setPrevFund(null);
+          setOpeningBalance('');
+        }
       } else {
         setFundError(err?.response?.data?.message || 'Could not load fund data.');
       }
@@ -128,6 +153,26 @@ export const FundManagementPage: React.FC = () => {
       setErrorMsg(err?.response?.data?.message || 'Failed to initialize fund.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCloseMonth = async () => {
+    if (!fund) return;
+    clearMessages();
+    setClosingMonth(true);
+    try {
+      await api.post('/funds/close', {
+        companyId: selectedCompanyId,
+        month: selectedMonth,
+        year: selectedYear,
+      });
+      setSuccessMsg(`Month ${MONTHS[selectedMonth - 1]} ${selectedYear} has been closed. Remaining balance rolled over to next month.`);
+      setShowCloseModal(false);
+      fetchFund();
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || 'Failed to close month.');
+    } finally {
+      setClosingMonth(false);
     }
   };
 
@@ -271,10 +316,22 @@ export const FundManagementPage: React.FC = () => {
             </div>
           </div>
 
+          {prevFund && Number(prevFund.remainingBalance || 0) > 0 && (
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl flex items-start gap-2.5 mb-4 text-xs text-amber-800 dark:text-amber-300">
+              <ArrowUpRight className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-600" />
+              <div>
+                <p className="font-bold">Previous Month Rollover Detected</p>
+                <p className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-400">
+                  {MONTHS[prevMonth - 1]} {prevYear} has a remaining balance of <strong className="font-mono font-bold">${fmt(Number(prevFund.remainingBalance))}</strong>. It is prefilled below as your Opening Balance (Carry-Forward).
+                </p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleInitFund} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Opening Balance ($)
+                Opening Balance / Carry-Forward ($)
               </label>
               <input
                 type="number"
@@ -289,7 +346,7 @@ export const FundManagementPage: React.FC = () => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Additional Funding ($)
+                Monthly Allocation ($)
               </label>
               <input
                 type="number"
@@ -300,6 +357,14 @@ export const FundManagementPage: React.FC = () => {
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/20"
                 placeholder="0.00"
               />
+              <p className="text-[11px] text-slate-400 mt-1">New fund allocation assigned for this month</p>
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs">
+              <span className="font-medium text-slate-600 dark:text-slate-400">Total Starting Available:</span>
+              <span className="font-mono font-bold text-sm text-primary">
+                ${fmt((parseFloat(openingBalance) || 0) + (parseFloat(additionalFunding) || 0))}
+              </span>
             </div>
 
             <button
@@ -339,8 +404,8 @@ export const FundManagementPage: React.FC = () => {
 
           {/* Top-Up Action Bar (only if open) */}
           {isFundOpen && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-              <form onSubmit={handleTopUp} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+              <form onSubmit={handleTopUp} className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Top-Up Amount ($)
@@ -365,6 +430,50 @@ export const FundManagementPage: React.FC = () => {
                   Add Funds
                 </button>
               </form>
+
+              {/* Close Month Button */}
+              <div className="border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 pt-3 md:pt-0 md:pl-4 flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setShowCloseModal(true)}
+                  className="w-full md:w-auto px-4 py-2 border border-rose-300 dark:border-rose-800/60 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
+                >
+                  Close Month
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Close Month Confirmation Modal */}
+          {showCloseModal && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Close Month: {MONTHS[selectedMonth - 1]} {selectedYear}?
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Closing this fund will lock {MONTHS[selectedMonth - 1]} {selectedYear}. The remaining balance of <strong className="text-emerald-600 font-bold">${fmt(Number(fund.remainingBalance))}</strong> will automatically roll over as the Opening Balance for the next month.
+                </p>
+                <div className="flex items-center justify-end gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCloseModal(false)}
+                    disabled={closingMonth}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloseMonth}
+                    disabled={closingMonth}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                  >
+                    {closingMonth ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    Confirm & Close Month
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -382,7 +491,7 @@ export const FundManagementPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {[
                   { label: 'Opening Balance (Carry-Forward)', value: fund.openingBalance, type: 'credit' },
-                  { label: 'Additional Funding', value: fund.additionalFunding, type: 'credit' },
+                  { label: 'Monthly Allocation / Top-Up', value: fund.additionalFunding, type: 'credit' },
                   { label: 'Total Available', value: fund.totalAvailable, type: 'total' },
                   { label: 'Approved Requests', value: fund.approvedAmount, type: 'debit' },
                   { label: 'Payments Made', value: fund.paidAmount, type: 'debit' },

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   ArrowLeft, Download, ShieldCheck, XCircle, Coins, CheckSquare,
   RefreshCw, User, Building2, MapPin, Tag, Calendar, FileText,
-  Paperclip, CheckCircle2, Clock, AlertCircle, CircleDollarSign,
+  Paperclip, CheckCircle2, AlertCircle, CircleDollarSign,
   Banknote, Edit3, Send, ReceiptText, ClipboardCheck, Loader2,
 } from 'lucide-react';
 
@@ -216,7 +216,7 @@ export const RequestDetailPage: React.FC = () => {
   const isEmployee = user?.role === 'EMPLOYEE';
   const isAccountant = user?.role === 'ACCOUNTANT' || user?.role === 'SUPER_ADMIN';
   const canEdit = isEmployee && (request.status === 'DRAFT' || request.status === 'CORRECTION_REQUIRED');
-  const statusMeta = STATUS_META[request.status] || STATUS_META.DRAFT;
+
 
   const withLoading = async (fn: () => Promise<void>) => {
     setActionLoading(true);

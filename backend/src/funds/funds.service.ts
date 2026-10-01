@@ -61,7 +61,26 @@ export class FundsService {
         return updated;
       }
 
-      const openingBalance = Number(dto.openingBalance || 0);
+      // Check if previous month exists to handle automatic carry-forward
+      const prevMonth = dto.month === 1 ? 12 : dto.month - 1;
+      const prevYear = dto.month === 1 ? dto.year - 1 : dto.year;
+      const previousFund = await (tx as any).pettyCashFund.findUnique({
+        where: { companyId_month_year: { companyId: dto.companyId, month: prevMonth, year: prevYear } },
+      });
+
+      const prevRemaining = previousFund ? Number(previousFund.closingBalance ?? previousFund.remainingBalance ?? 0) : 0;
+
+      // Determine opening balance:
+      // If user passed openingBalance > 0, use it. Otherwise inherit from previous month remaining.
+      let openingBalance = Number(dto.openingBalance || 0);
+      let isCarryForward = false;
+      if (openingBalance === 0 && prevRemaining > 0) {
+        openingBalance = prevRemaining;
+        isCarryForward = true;
+      } else if (openingBalance > 0 && prevRemaining > 0 && Math.abs(openingBalance - prevRemaining) < 0.01) {
+        isCarryForward = true;
+      }
+
       const additionalFunding = Number(dto.additionalFunding || 0);
       const totalAvailable = openingBalance + additionalFunding;
       const newFund = await (tx as any).pettyCashFund.create({
@@ -77,7 +96,42 @@ export class FundsService {
         },
       });
 
-      if (totalAvailable > 0) {
+      // If previous month was still OPEN, close it cleanly
+      if (previousFund && previousFund.status === 'OPEN') {
+        await (tx as any).pettyCashFund.update({
+          where: { id: previousFund.id },
+          data: { status: 'CLOSED', closingBalance: prevRemaining },
+        });
+      }
+
+      // Ledger recording
+      if (isCarryForward && openingBalance > 0) {
+        await (tx as any).pettyCashLedger.create({
+          data: {
+            fundId: newFund.id,
+            companyId: dto.companyId,
+            transactionType: 'CARRY_FORWARD',
+            description: `Month-end carry-forward from ${prevMonth}/${prevYear}`,
+            credit: openingBalance,
+            balanceAfter: openingBalance,
+            remarks: `Opening Balance Rollover: $${openingBalance.toLocaleString()}`,
+          },
+        });
+
+        if (additionalFunding > 0) {
+          await (tx as any).pettyCashLedger.create({
+            data: {
+              fundId: newFund.id,
+              companyId: dto.companyId,
+              transactionType: 'ALLOCATION',
+              description: `Monthly allocation for ${dto.month}/${dto.year}`,
+              credit: additionalFunding,
+              balanceAfter: totalAvailable,
+              remarks: `Monthly Allocation: +$${additionalFunding.toLocaleString()}`,
+            },
+          });
+        }
+      } else if (totalAvailable > 0) {
         await (tx as any).pettyCashLedger.create({
           data: {
             fundId: newFund.id,
