@@ -579,3 +579,62 @@ The Transaction Ledger (`TransactionsPage.tsx`, `funds.controller.ts`, `funds.se
    - Case-insensitive multi-field search across descriptions, reference numbers, remarks, employees, and request metadata.
    - Zero changes to Prisma schema (safe for live database and backward compatible).
 
+---
+
+## 16. CARRY-FORWARD DASHBOARD CARDS & CLOSE MONTH WORKFLOW (2026-10-01)
+
+### Context / Problem Solved
+At the start of each new month (e.g. October), Finance takes 1–5 days to initialize the new month's fund. During that window the dashboard showed **$0** for all balances — even though the previous month (September) still had an unspent carry-forward balance that employees and accountants needed to see.
+
+### Changes Made
+
+#### Backend — `reports.service.ts` (`getDashboardStats`)
+- After computing the current-month `fundSummary`, if **both** `totalBalance === 0` AND `totalAllocated === 0` (meaning no fund has been set up yet for this month), the function now:
+  1. Fetches the **previous month's** `PettyCashFund` rows.
+  2. For each company, extracts `closingBalance ?? remainingBalance`.
+  3. Attaches the result as `funds.prevMonthCarryForward`:
+     ```json
+     {
+       "month": 9, "year": 2026, "totalBalance": 20700,
+       "perCompany": [
+         { "id": "...", "name": "Somtel", "balance": 12500, "status": "OPEN" },
+         { "id": "...", "name": "Bluekom", "balance": 8200, "status": "OPEN" }
+       ]
+     }
+     ```
+  4. Field is `null` as soon as the current month has any allocation → cards vanish automatically.
+- **No schema changes.** No new API endpoints.
+
+#### Frontend — `DashboardPage.tsx`
+- **SuperAdminDashboard** and **AccountantDashboard** both read `stats.funds.prevMonthCarryForward`.
+- `carryCards` array is built using the **exact same `SummaryCard` component** and **existing color scheme** (Somtel → orange, Bluekom → blue — identical to normal company balance cards).
+- Cards are spread into `mainCards` after `companyCards`:
+  - Label: `"Somtel — Sep Balance"`
+  - Value: `$12,500`
+  - Sub: `"Sep 2026 carry-forward · Oct not yet funded"`
+  - Click → `/funds` (Fund Management page)
+- Cards **auto-disappear** the moment October is funded. Zero manual action required.
+- Employee dashboard unchanged — Employees never see fund balance cards.
+
+#### Backend — `funds.service.ts` + `FundManagementPage.tsx` (same commit)
+- **Auto Carry-Forward on `initFund`:** when opening a new month and `openingBalance=0`, the backend automatically inherits the previous month's `closingBalance`, records a `CARRY_FORWARD` ledger entry, and closes the previous month if still OPEN.
+- **"Close Month" button** added to Fund Management page: Accountant can explicitly close a month → remaining balance rolls over to the next month → confirmation modal → calls `POST /funds/close`.
+- UI labels renamed: "Additional Funding" → "Monthly Allocation".
+
+### Behavioral Rules
+| Condition | Dashboard shows |
+|-----------|----------------|
+| Current month fund **not yet initialized** | Carry-forward cards from prev month |
+| Current month fund **initialized** (any amount > 0) | Normal company balance cards (carry cards gone) |
+| Current month fund initialized **but drained to $0** | Normal $0 cards (no carry-forward shown — this is a real zero) |
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `backend/src/reports/reports.service.ts` | `getDashboardStats` — add `prevMonthCarryForward` fallback |
+| `frontend/src/pages/DashboardPage.tsx` | `carryCards` in SuperAdmin + Accountant dashboards |
+| `backend/src/funds/funds.service.ts` | Auto carry-forward in `initFund`, `closeMonth` logic |
+| `frontend/src/pages/FundManagementPage.tsx` | Close Month button + modal, UI label renames |
+
+> **Status:** ✅ Committed to `main`. Run `bash update-server.sh` on the Ubuntu server to deploy.
+

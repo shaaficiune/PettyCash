@@ -146,6 +146,44 @@ export class ReportsService {
         fundSummary = { totalBalance, totalAllocated, perCompany };
       }
 
+      // Carry-forward: if no fund has been allocated for the current month yet,
+      // surface the previous month's remaining balance so the dashboard stays informative.
+      let prevMonthCarryForward: any = null;
+      if (fundSummary.totalBalance === 0 && fundSummary.totalAllocated === 0) {
+        const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+        const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+        const prevFunds = await (this.prisma as any).pettyCashFund.findMany({
+          where: { month: prevMonth, year: prevYear },
+          include: { company: { select: { id: true, name: true } } },
+        });
+        const prevPerCompany: Array<{ id: string; name: string; balance: number; allocated: number; status: string }> = [];
+        let prevTotal = 0;
+        for (const c of companies) {
+          const pf = prevFunds.find((f: any) => f.companyId === c.id);
+          const bal = pf ? Number(pf.closingBalance ?? pf.remainingBalance ?? 0) : 0;
+          if (bal > 0) {
+            prevPerCompany.push({
+              id: c.id,
+              name: c.name,
+              balance: bal,
+              allocated: Number(pf?.totalAvailable || 0),
+              status: pf?.status || 'OPEN',
+            });
+            prevTotal += bal;
+          }
+        }
+        if (prevTotal > 0) {
+          prevMonthCarryForward = {
+            month: prevMonth,
+            year: prevYear,
+            totalBalance: prevTotal,
+            perCompany: prevPerCompany,
+          };
+        }
+      }
+      // Attach to fundSummary so it is returned in one cohesive funds payload
+      if (fundSummary) fundSummary.prevMonthCarryForward = prevMonthCarryForward;
+
     }
 
     return {

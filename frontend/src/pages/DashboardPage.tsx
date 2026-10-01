@@ -200,6 +200,20 @@ const SuperAdminDashboard: React.FC = () => {
     topBarClass: c.name === 'Bluekom' ? 'bg-blue-600' : 'bg-orange-600',
   })) || [];
 
+  // Previous-month carry-forward cards — only shown when current month has no fund yet.
+  // Reuses the exact same SummaryCard component & existing company color scheme.
+  const carryFwd = funds?.prevMonthCarryForward;
+  const carryCards: CardProps[] = carryFwd?.perCompany?.map((c: any) => ({
+    label: `${c.name} — ${MONTHS[carryFwd.month - 1]} Balance`,
+    value: fmtMoney(c.balance),
+    sub: `${MONTHS[carryFwd.month - 1]} ${carryFwd.year} carry-forward · ${MONTHS[period.month - 1]} not yet funded`,
+    icon: Building2,
+    iconClass: c.name === 'Bluekom' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400',
+    bgClass: c.name === 'Bluekom' ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20',
+    topBarClass: c.name === 'Bluekom' ? 'bg-blue-600' : 'bg-orange-600',
+    to: '/funds',
+  })) || [];
+
   const mainCards: CardProps[] = [
     {
       label: 'Available Cash Balance',
@@ -211,6 +225,7 @@ const SuperAdminDashboard: React.FC = () => {
       topBarClass: 'bg-primary',
     },
     ...companyCards,
+    ...carryCards,
     {
       label: 'Total Requests',
       value: stats?.counts?.total ?? 0,
@@ -292,6 +307,19 @@ const AccountantDashboard: React.FC = () => {
     topBarClass: c.name === 'Bluekom' ? 'bg-blue-600' : 'bg-orange-600',
   })) || [];
 
+  // Previous-month carry-forward cards — only shown when current month has no fund yet.
+  const carryFwd = funds?.prevMonthCarryForward;
+  const carryCards: CardProps[] = carryFwd?.perCompany?.map((c: any) => ({
+    label: `${c.name} — ${MONTHS[carryFwd.month - 1]} Balance`,
+    value: fmtMoney(c.balance),
+    sub: `${MONTHS[carryFwd.month - 1]} ${carryFwd.year} carry-forward · ${MONTHS[period.month - 1]} not yet funded`,
+    icon: Building2,
+    iconClass: c.name === 'Bluekom' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400',
+    bgClass: c.name === 'Bluekom' ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20',
+    topBarClass: c.name === 'Bluekom' ? 'bg-blue-600' : 'bg-orange-600',
+    to: '/funds',
+  })) || [];
+
   const mainCards: CardProps[] = [
     {
       label: 'Available Cash Balance',
@@ -303,6 +331,7 @@ const AccountantDashboard: React.FC = () => {
       topBarClass: 'bg-primary',
     },
     ...companyCards,
+    ...carryCards,
     {
       label: 'Total Requests',
       value: stats?.counts?.total ?? 0,
