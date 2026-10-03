@@ -742,4 +742,75 @@ At the start of each new month (e.g. October), Finance takes 1–5 days to initi
   - Reset database lockout flags on `admin` user.
   - Other user roles (`ACCOUNTANT`, `EMPLOYEE`, other `SUPER_ADMIN` accounts) retain standard progressive brute-force protection.
 
+---
+
+## 23. PRODUCTION GO-LIVE DATA CLEANUP (2026-10-03)
+
+### Context
+The system went live online for real production use on **2026-10-03**. Staff had already completed training using test/demo data. Before going live, all transactional/training data was cleared while preserving all reference/configuration data.
+
+### Script Added
+- **File:** `backend/scripts/clean-production-data.js`
+- **Run with:** `node scripts/clean-production-data.js`
+- **Cutoff date:** 2026-10-04 (deletes all records created before this date)
+
+### What Was DELETED (Training Data)
+| Table | Records Deleted |
+|-------|----------------|
+| PettyCashRequest | All |
+| Payment | All |
+| ExpenseSettlement | All |
+| PettyCashFund | All (Sep 2026 test funds) |
+| PettyCashLedger | All |
+| PettyCashAttachment | All |
+| Notification | All |
+| AuditLog | All |
+| RefreshToken | All (sessions reset, all users re-login) |
+
+### What Was KEPT (Reference Data)
+| Table | Kept |
+|-------|------|
+| Company | ✅ Somtel + Bluekom |
+| User | ✅ All real users |
+| Region | ✅ All regions |
+| BudgetHead | ✅ All budget heads |
+| Department | ✅ All departments |
+| Role / Permission | ✅ |
+| SystemSetting | ✅ |
+
+### Go-Live Rules
+- **Month billing starts October 2026** — first real October fund must be initialized by the Accountant
+- Script is safe to re-run; it deletes based on `createdAt < CUTOFF_DATE`
+- Script prints a full audit table before and after deletion
+- All sessions are invalidated (RefreshToken table cleared entirely); all users must log in again
+
+---
+
+## 24. ACCOUNTANT / SUPER_ADMIN SUBMIT REQUEST FIX (2026-10-03)
+
+### Problem
+After the October go-live cleanup, **Accountant and SUPER_ADMIN users could not submit new petty cash requests** via `RequestFormPage.tsx`. The "Submit Request" button was disabled and the form showed a "Fund Unavailable" warning banner.
+
+### Root Cause
+`RequestFormPage.tsx` had a hard frontend block:
+```tsx
+// OLD (broken):
+disabled={fundAvailability !== null && !fundAvailability.available}
+```
+This blocked ALL roles when no fund existed for the current month — but Accountants and Admins are precisely the users who set up funds and may need to submit requests before the fund is initialized.
+
+### Fix Applied
+- `frontend/src/pages/RequestFormPage.tsx`
+  - Added `const isEmployee = (user as any)?.role === 'EMPLOYEE'`
+  - Fund unavailability banner: only shown to `isEmployee`
+  - Submit button disabled by fund check: only for `isEmployee`
+  - Region over-budget block: only for `isEmployee`
+  - Backend already allows Accountant/Admin submissions (no role guard on `POST /requests`)
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `frontend/src/pages/RequestFormPage.tsx` | `isEmployee` guard on fund/budget blocks |
+
+> **Status:** ✅ Fixed 2026-10-03. Committed to `main`. Run `bash update-server.sh` on the Ubuntu server.
 

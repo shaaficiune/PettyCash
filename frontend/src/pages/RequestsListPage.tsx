@@ -236,7 +236,7 @@ export const RequestsListPage: React.FC = () => {
             Export PDF
           </button>
           
-          {user?.role === 'EMPLOYEE' && (
+          {(user?.role === 'EMPLOYEE' || user?.role === 'ACCOUNTANT') && (
             <Link
               to="/requests/new"
               className="px-3 py-1.5 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all shadow-md"

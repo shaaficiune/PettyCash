@@ -523,11 +523,19 @@ export class RequestsService {
         message: `Your petty cash request ${request.requestNumber} was reviewed by the Accountant and is now awaiting Finance/CFO Approval.`,
       };
 
-    // -- STAGE 2: ? APPROVED (CFO/Finance final, or SUPER_ADMIN direct) ----
+    // -- STAGE 2: → APPROVED (CFO/Finance final, or SUPER_ADMIN direct) ----
     // Accepts from ACCOUNTANT_REVIEW (normal) or PENDING_APPROVAL (SUPER_ADMIN bypass)
     } else if (newStatus === 'APPROVED') {
       if (currentStatus === 'PENDING_APPROVAL' && reviewerRole !== RoleName.SUPER_ADMIN) {
         throw new BadRequestException('An accountant must forward this request for final review before approval');
+      }
+
+      // Self-approval guard: An Accountant cannot approve a request they submitted themselves.
+      // SUPER_ADMIN (CFO) is exempt from this restriction.
+      if (reviewerRole === RoleName.ACCOUNTANT && request.userId === reviewerId) {
+        throw new ForbiddenException(
+          'You cannot approve your own request. Please ask a Super Admin (CFO) to review and approve it.'
+        );
       }
 
       const fund = await this.fundsService.getOrCreateCurrentMonthFund(request.companyId);
@@ -539,6 +547,12 @@ export class RequestsService {
         }
         if (latestRequest.status === RequestStatus.PENDING_APPROVAL && reviewerRole !== RoleName.SUPER_ADMIN) {
           throw new BadRequestException('An accountant must forward this request for final review before approval');
+        }
+        // Double-check inside the transaction to prevent race conditions
+        if (reviewerRole === RoleName.ACCOUNTANT && latestRequest.userId === reviewerId) {
+          throw new ForbiddenException(
+            'You cannot approve your own request. Please ask a Super Admin (CFO) to review and approve it.'
+          );
         }
 
         const approvedAmount = dto.approvedAmount !== undefined

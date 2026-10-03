@@ -36,8 +36,8 @@ export class UsersService {
     const company = await this.prisma.company.findUnique({ where: { id: dto.companyId }, select: { id: true } });
     if (!company) throw new BadRequestException('Company not found');
 
-    // Create a unique one-time password and return it only in this admin response.
-    const temporaryPassword = randomBytes(24).toString('base64url');
+    // Default one-time password shared with all new users. They are required to change it on first login.
+    const temporaryPassword = 'Welcome@2026';
     const passwordHash = await bcrypt.hash(temporaryPassword, 10);
 
     let departmentId = dto.departmentId;
@@ -211,7 +211,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const pass = randomBytes(24).toString('base64url');
+    const pass = 'Welcome@2026';
     const passwordHash = await bcrypt.hash(pass, 10);
 
     await this.prisma.user.update({

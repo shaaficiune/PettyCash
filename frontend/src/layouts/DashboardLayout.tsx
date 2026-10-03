@@ -152,7 +152,7 @@ export const DashboardLayout: React.FC = () => {
   const navItems = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ACCOUNTANT', 'EMPLOYEE'] },
     { label: 'My Requests', path: '/requests', icon: FileText, roles: ['EMPLOYEE'] },
-    { label: 'Submit Request', path: '/requests/new', icon: PlusCircle, roles: ['EMPLOYEE'] },
+    { label: 'Submit Request', path: '/requests/new', icon: PlusCircle, roles: ['EMPLOYEE', 'ACCOUNTANT'] },
     { label: 'All Requests', path: '/requests', icon: FileText, roles: ['ACCOUNTANT', 'SUPER_ADMIN'] },
     { label: 'Fund Management', path: '/funds', icon: Wallet, roles: ['SUPER_ADMIN', 'ACCOUNTANT'] },
     { label: 'Transaction Ledger', path: '/transactions', icon: Coins, roles: ['SUPER_ADMIN', 'ACCOUNTANT'] },

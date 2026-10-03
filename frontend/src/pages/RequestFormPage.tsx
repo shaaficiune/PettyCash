@@ -7,6 +7,7 @@ import { Save, Send, FileUp, X, ArrowLeft, Building2, AlertTriangle } from 'luci
 export const RequestFormPage: React.FC = () => {
   const { user } = useAuth();
   const { id } = useParams(); // present if editing
+  const isEmployee = (user as any)?.role === 'EMPLOYEE';
   const navigate = useNavigate();
 
   // Form Fields
@@ -149,8 +150,9 @@ export const RequestFormPage: React.FC = () => {
       }
     }
 
-    // Block submit if fund is not active (already checked server-side, but gives immediate UX feedback)
-    if (submitStatus === 'PENDING_APPROVAL' && fundAvailability && !fundAvailability.available) {
+    // Block submit if fund is not active — only applies to EMPLOYEE role.
+    // Accountants and Super Admins can submit requests to initialize or test funds.
+    if (isEmployee && submitStatus === 'PENDING_APPROVAL' && fundAvailability && !fundAvailability.available) {
       setError(fundAvailability.message);
       return;
     }
@@ -215,8 +217,8 @@ export const RequestFormPage: React.FC = () => {
           {id ? 'Update draft request details' : 'Create an expense request within your regional budget'}
         </p>
 
-        {/* Fund Unavailability Banner */}
-        {fundAvailability && !fundAvailability.available && (
+        {/* Fund Unavailability Banner — only shown to regular employees */}
+        {isEmployee && fundAvailability && !fundAvailability.available && (
           <div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3">
             <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5" />
             <div>
@@ -486,15 +488,15 @@ export const RequestFormPage: React.FC = () => {
 
             <button
               type="button"
-              disabled={submitting || (fundAvailability !== null && !fundAvailability.available) || numAmount > 50 || isOverBudget || !budgetHeadId}
+              disabled={submitting || (isEmployee && fundAvailability !== null && !fundAvailability.available) || numAmount > 50 || (isEmployee && isOverBudget) || !budgetHeadId}
               title={
                 !budgetHeadId
                   ? 'Please select a Budget Head before submitting'
                   : numAmount > 50
                   ? 'Request amount cannot exceed $50.00'
-                  : fundAvailability && !fundAvailability.available
+                  : isEmployee && fundAvailability && !fundAvailability.available
                   ? fundAvailability.message
-                  : isOverBudget
+                  : isEmployee && isOverBudget
                   ? 'Request exceeds region monthly budget'
                   : undefined
               }
