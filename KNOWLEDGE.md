@@ -788,29 +788,89 @@ The system went live online for real production use on **2026-10-03**. Staff had
 
 ## 24. ACCOUNTANT / SUPER_ADMIN SUBMIT REQUEST FIX (2026-10-03)
 
-### Problem
+### Business Rules (Accountant Role — Enforced in Both Frontend & Backend)
+
+| Action | Accountant | SUPER_ADMIN | Notes |
+|--------|-----------|-------------|-------|
+| Submit new request | ✅ Yes | ✅ Yes | Even when October fund not yet initialized |
+| Save as draft | ✅ Yes | ✅ Yes | |
+| Review (Stage 1: forward to CFO) | ✅ Yes (others' requests) | ✅ Yes | |
+| **Approve OWN request** | ❌ **NO — Blocked** | ✅ Yes | Backend throws `ForbiddenException` |
+| Approve others' requests | ✅ Yes (Stage 2) | ✅ Yes | |
+| Record payment | ✅ Yes (after APPROVED) | ✅ Yes | Only after final approval |
+| Fund management | ✅ Yes | ✅ Yes | Initialize, top-up, close month |
+
+### Self-Approval Prevention (Backend — `requests.service.ts`)
+Two layers of protection:
+1. **Pre-check (line 535):** Before transaction starts
+2. **In-transaction (line 552):** Inside `$transaction` to prevent race conditions
+
+```typescript
+// Self-approval guard
+if (reviewerRole === RoleName.ACCOUNTANT && request.userId === reviewerId) {
+  throw new ForbiddenException(
+    'You cannot approve your own request. Please ask a Super Admin (CFO) to review and approve it.'
+  );
+}
+```
+
+### Self-Approval Prevention (Frontend — `RequestDetailPage.tsx`)
+```tsx
+// Line 220
+const isOwnRequest = user?.role === 'ACCOUNTANT' && request?.userId === user?.id;
+
+// Line 499 — Review panel hidden if own request
+{isAccountant && !isOwnRequest && (request.status === 'PENDING_APPROVAL' || ...)}
+```
+When `isOwnRequest === true`: The entire review panel (Approve/Reject/Correction buttons) is **hidden** from the UI.
+
+### Workflow for Accountant's Own Request
+1. Accountant submits request → `PENDING_APPROVAL`
+2. Another Accountant (or SUPER_ADMIN) forwards to `ACCOUNTANT_REVIEW`
+3. **SUPER_ADMIN (CFO) approves** → `APPROVED`
+4. Accountant records payment → `PAID`
+
+### Problem (Fixed)
 After the October go-live cleanup, **Accountant and SUPER_ADMIN users could not submit new petty cash requests** via `RequestFormPage.tsx`. The "Submit Request" button was disabled and the form showed a "Fund Unavailable" warning banner.
 
 ### Root Cause
-`RequestFormPage.tsx` had a hard frontend block:
+`RequestFormPage.tsx` had a hard frontend block that applied to ALL roles:
 ```tsx
 // OLD (broken):
 disabled={fundAvailability !== null && !fundAvailability.available}
 ```
-This blocked ALL roles when no fund existed for the current month — but Accountants and Admins are precisely the users who set up funds and may need to submit requests before the fund is initialized.
 
 ### Fix Applied
 - `frontend/src/pages/RequestFormPage.tsx`
   - Added `const isEmployee = (user as any)?.role === 'EMPLOYEE'`
   - Fund unavailability banner: only shown to `isEmployee`
   - Submit button disabled by fund check: only for `isEmployee`
-  - Region over-budget block: only for `isEmployee`
-  - Backend already allows Accountant/Admin submissions (no role guard on `POST /requests`)
+  - Region over-budget block on submit button: only for `isEmployee`
 
 ### Files Changed
 | File | Change |
 |------|--------|
 | `frontend/src/pages/RequestFormPage.tsx` | `isEmployee` guard on fund/budget blocks |
 
-> **Status:** ✅ Fixed 2026-10-03. Committed to `main`. Run `bash update-server.sh` on the Ubuntu server.
+> **Status:** ✅ Fixed 2026-10-03. Commit `2941f35`. Run `bash update-server.sh` on the Ubuntu server.
+
+---
+
+## 25. SERVER DEPLOY COMMAND (Quick Reference)
+
+After every `git push`, run this on the Ubuntu server terminal:
+
+```bash
+cd ~/app
+bash update-server.sh
+```
+
+### To Clean Production Data (Once — Already Done 2026-10-03)
+```bash
+cd ~/app
+node backend/scripts/clean-production-data.js
+```
+
+> ⚠️ Only run the cleanup script **once**. It is idempotent (safe to re-run) but will delete any real October requests if run again without adjusting the CUTOFF_DATE.
+
 
