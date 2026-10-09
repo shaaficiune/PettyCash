@@ -873,4 +873,50 @@ node backend/scripts/clean-production-data.js
 
 > ⚠️ Only run the cleanup script **once**. It is idempotent (safe to re-run) but will delete any real October requests if run again without adjusting the CUTOFF_DATE.
 
+---
+
+## 26. SELF-SERVICE CHANGE PASSWORD (2026-10-09)
+
+### Context / Problem Solved
+Users had no way to change their own password after the forced first-login reset. The only way to get a new password was for an Admin to reset it — which generated a new one-time temporary password. This was inconvenient for everyday password management.
+
+### Implementation — Frontend Only (No Schema or Backend Changes)
+
+#### Backend (already existed — no changes made)
+- **Endpoint:** `POST /api/auth/change-password`
+- **Guard:** `JwtAuthGuard` (requires active session)
+- **DTO:** `{ oldPassword: string, newPassword: string }` (`ChangePasswordDto`)
+- **Logic:** bcrypt compare old → hash new → update DB → invalidate all refresh tokens
+- **File:** `backend/src/auth/auth.service.ts` → `changePassword()`
+- **Controller:** `backend/src/auth/auth.controller.ts` (line 44–51)
+
+#### Frontend Change (`frontend/src/layouts/DashboardLayout.tsx`)
+- Updated bottom sidebar user card to have an upward popup menu (matching modern web apps) showing User info, "Change Password", and "Log out".
+- Clicking "Change Password" opens a dedicated modal with: **Current Password**, **New Password**, and **Confirm New Password**.
+- State variables: `showCpModal`, `showProfileDropdown`, `cpOldPass`, `cpNewPass`, `cpConfirm`, `cpShowOld/New/Confirm`, `cpError`, `cpSuccess`, `cpSaving`.
+- Function: `handleChangePassword()` — calls `POST /auth/change-password`.
+- Icons used: `KeyRound`, `Eye`, `EyeOff`, `ChevronUp`, `LogOut`.
+
+#### UX Details
+- **Trigger:** Sidebar bottom user card click toggles the popup menu.
+- **Current Password** field with show/hide toggle.
+- **New Password** field with show/hide toggle + real-time strength bar (`Too short` / `Good` / `Strong`).
+- **Confirm Password** field with real-time match indicator (red border if mismatch, green if match).
+- **Warning banner:** "After changing your password, you will be signed out and need to log in again."
+- **On success:** Green message → modal auto-closes after 1.8s → session invalidated.
+- **Client-side validation:** min 8 chars, passwords must match, new ≠ old.
+- `Enter` key on Confirm field submits the form.
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `frontend/src/layouts/DashboardLayout.tsx` | Sidebar bottom profile popup + Change Password modal |
+
+### Deployment
+```bash
+# No schema migration needed — frontend-only change
+cd ~/app && bash update-server.sh
+```
+
+> **Status:** ✅ Implemented 2026-10-09. Zero downtime deploy. No schema changes.
 

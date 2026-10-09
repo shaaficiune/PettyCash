@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -17,52 +17,76 @@ import {
   Wallet,
   Menu,
   X,
-  Settings,
   UserCircle,
-  Save,
-  ShieldCheck
+  KeyRound,
+  Eye,
+  EyeOff,
+  ChevronUp
 } from 'lucide-react';
 import api from '../services/api';
 
 export const DashboardLayout: React.FC = () => {
-  const { user, logout, updateUserContext } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [companyContext, setCompanyContext] = useState<string>('ALL'); // ALL, Somtel, Bluekom
+  const [companyContext, setCompanyContext] = useState<string>('ALL');
   const [companies, setCompanies] = useState<any[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [profileName, setProfileName] = useState('');
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileError, setProfileError] = useState('');
-  const [profileSuccess, setProfileSuccess] = useState(false);
 
-  const openProfileModal = () => {
-    setProfileName(user?.fullName || '');
-    setProfileError('');
-    setProfileSuccess(false);
+  // Profile dropdown
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Change Password modal
+  const [showCpModal, setShowCpModal] = useState(false);
+  const [cpOldPass, setCpOldPass] = useState('');
+  const [cpNewPass, setCpNewPass] = useState('');
+  const [cpConfirm, setCpConfirm] = useState('');
+  const [cpShowOld, setCpShowOld] = useState(false);
+  const [cpShowNew, setCpShowNew] = useState(false);
+  const [cpShowConfirm, setCpShowConfirm] = useState(false);
+  const [cpError, setCpError] = useState('');
+  const [cpSuccess, setCpSuccess] = useState(false);
+  const [cpSaving, setCpSaving] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target as Node)) {
+        setShowProfileDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const openChangePassword = () => {
+    setShowProfileDropdown(false);
     setMobileMenuOpen(false);
-    setShowProfileModal(true);
+    setCpOldPass(''); setCpNewPass(''); setCpConfirm('');
+    setCpShowOld(false); setCpShowNew(false); setCpShowConfirm(false);
+    setCpError(''); setCpSuccess(false); setCpSaving(false);
+    setShowCpModal(true);
   };
 
-  const handleSaveProfile = async () => {
-    if (!profileName.trim()) {
-      setProfileError('Full name cannot be empty');
-      return;
-    }
-    setProfileSaving(true);
-    setProfileError('');
+  const handleChangePassword = async () => {
+    setCpError('');
+    if (!cpOldPass) { setCpError('Please enter your current password.'); return; }
+    if (cpNewPass.length < 8) { setCpError('New password must be at least 8 characters.'); return; }
+    if (cpNewPass !== cpConfirm) { setCpError('New passwords do not match.'); return; }
+    if (cpOldPass === cpNewPass) { setCpError('New password must be different from current password.'); return; }
+    setCpSaving(true);
     try {
-      await api.put('/auth/profile', { fullName: profileName.trim() });
-      updateUserContext({ fullName: profileName.trim() });
-      setProfileSuccess(true);
-      setTimeout(() => setShowProfileModal(false), 1200);
+      await api.post('/auth/change-password', { oldPassword: cpOldPass, newPassword: cpNewPass });
+      setCpSuccess(true);
+      setCpOldPass(''); setCpNewPass(''); setCpConfirm('');
+      setTimeout(() => setShowCpModal(false), 1800);
     } catch (err: any) {
-      setProfileError(err.response?.data?.message || 'Failed to save changes');
+      setCpError(err.response?.data?.message || 'Failed to change password. Check your current password.');
     } finally {
-      setProfileSaving(false);
+      setCpSaving(false);
     }
   };
 
@@ -227,45 +251,67 @@ export const DashboardLayout: React.FC = () => {
             })}
         </nav>
 
-        {/* User profile footer — always pinned at bottom */}
-        <div className="flex-shrink-0 p-4 border-t border-white/10 dark:border-slate-800 bg-[#0a2e2e] dark:bg-slate-900/90">
-          {/* Clickable profile card — opens My Profile modal */}
+        {/* User profile footer — dropdown trigger */}
+        <div ref={profileDropdownRef} className="flex-shrink-0 p-4 border-t border-white/10 dark:border-slate-800 bg-[#0a2e2e] dark:bg-slate-900/90 relative">
+
+          {/* Profile Dropdown Popover — appears above the card */}
+          {showProfileDropdown && (
+            <div className="absolute bottom-full left-3 right-3 mb-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden z-[60]">
+              {/* User info header */}
+              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                <div className="h-9 w-9 rounded-lg bg-[#0a2e2e] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                  {user.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.fullName}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {user.email || user.username}
+                  </p>
+                </div>
+              </div>
+
+              {/* Change Password */}
+              <button
+                onClick={openChangePassword}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <KeyRound className="h-4 w-4 text-slate-400" />
+                Change Password
+              </button>
+
+              {/* Divider */}
+              <div className="h-px bg-slate-100 dark:bg-slate-800" />
+
+              {/* Log out */}
+              <button
+                onClick={() => { setShowProfileDropdown(false); logout(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+                Log out
+              </button>
+            </div>
+          )}
+
+          {/* Profile card button */}
           <button
-            onClick={openProfileModal}
-            className="w-full flex items-center gap-3 mb-3.5 p-2 -mx-0 rounded-lg hover:bg-white/10 transition-colors cursor-pointer group text-left"
+            onClick={() => setShowProfileDropdown(prev => !prev)}
+            className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer group text-left ${
+              showProfileDropdown ? 'bg-white/15' : 'hover:bg-white/10'
+            }`}
           >
             <div className="h-9 w-9 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 group-hover:bg-white/25 transition-colors">
-              {user.fullName.split(' ').map(n => n[0]).join('')}
+              {user.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold truncate text-white">{user.fullName}</p>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 bg-white/15 text-white/80 rounded border border-white/20">
-                  {user.role.replace('_', ' ')}
-                </span>
-                {user.role === 'SUPER_ADMIN' || user.role === 'ACCOUNTANT' ? (
-                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-white/10 text-white/70 border border-white/15">
-                    All Companies
-                  </span>
-                ) : (
-                  <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border ${
-                    user.company?.name === 'Somtel' 
-                      ? 'bg-orange-400/20 text-orange-200 border-orange-400/30' 
-                      : 'bg-blue-400/20 text-blue-200 border-blue-400/30'
-                  }`}>
-                    {user.company?.name}
-                  </span>
-                )}
-              </div>
+              <p className="text-[11px] text-white/55 truncate">
+                {user.email || user.username}
+              </p>
             </div>
-            <UserCircle className="h-3.5 w-3.5 text-white/40 group-hover:text-white/80 transition-colors flex-shrink-0" />
-          </button>
-          <button
-            onClick={logout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-white/80 hover:text-white border border-white/15 dark:border-slate-700 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Logout
+            <ChevronUp className={`h-3.5 w-3.5 text-white/40 transition-transform duration-200 flex-shrink-0 ${
+              showProfileDropdown ? 'rotate-0' : 'rotate-180'
+            }`} />
           </button>
         </div>
       </aside>
@@ -396,138 +442,181 @@ export const DashboardLayout: React.FC = () => {
         </main>
       </div>
 
-      {/* ── MY PROFILE MODAL ──────────────────────────────────────────── */}
-      {showProfileModal && (
+      {/* ── CHANGE PASSWORD MODAL ──────────────────────────────────────── */}
+      {showCpModal && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowProfileModal(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowCpModal(false); }}
         >
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-[#0a2e2e] to-[#0d3d3d]">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-white font-bold text-sm">
-                  {user.fullName.split(' ').map(n => n[0]).join('')}
+                <div className="h-10 w-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-white">
+                  <KeyRound className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-white">My Profile</h2>
-                  <p className="text-[11px] text-white/60">Account details and settings</p>
+                  <h2 className="text-sm font-bold text-white">Change Password</h2>
+                  <p className="text-[11px] text-white/60">Update your account login password</p>
                 </div>
               </div>
               <button
-                onClick={() => setShowProfileModal(false)}
+                onClick={() => setShowCpModal(false)}
                 className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="px-6 py-5 space-y-4">
+              {/* Info note */}
+              <div className="flex items-start gap-2.5 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                <KeyRound className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
+                  After changing your password, you will be signed out and need to log in again.
+                </p>
+              </div>
 
-              {/* Role Badge */}
-              <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                <ShieldCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                <div>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Role</p>
-                  <p className="text-sm font-bold text-slate-800 dark:text-white">
-                    {user.role.replace('_', ' ')}
-                  </p>
+              {/* Current Password */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="cp-old-pass"
+                    type={cpShowOld ? 'text' : 'password'}
+                    value={cpOldPass}
+                    onChange={e => { setCpOldPass(e.target.value); setCpError(''); }}
+                    className="w-full px-3 py-2.5 pr-10 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0a2e2e] dark:focus:ring-teal-500 transition"
+                    placeholder="Enter your current password"
+                    autoComplete="current-password"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCpShowOld(!cpShowOld)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {cpShowOld ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-                {user.company?.name && (
-                  <>
-                    <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-2" />
-                    <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Company</p>
-                      <p className="text-sm font-bold text-slate-800 dark:text-white">{user.company.name}</p>
-                    </div>
-                  </>
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  New Password
+                  <span className="ml-1 text-slate-400 font-normal">(min. 8 characters)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="cp-new-pass"
+                    type={cpShowNew ? 'text' : 'password'}
+                    value={cpNewPass}
+                    onChange={e => { setCpNewPass(e.target.value); setCpError(''); }}
+                    className="w-full px-3 py-2.5 pr-10 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0a2e2e] dark:focus:ring-teal-500 transition"
+                    placeholder="Enter new password"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCpShowNew(!cpShowNew)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {cpShowNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {/* Password strength hint */}
+                {cpNewPass.length > 0 && (
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <div className={`h-1 flex-1 rounded-full transition-colors ${
+                      cpNewPass.length >= 12 ? 'bg-emerald-500' : cpNewPass.length >= 8 ? 'bg-amber-400' : 'bg-rose-400'
+                    }`} />
+                    <span className={`text-[10px] font-semibold ${
+                      cpNewPass.length >= 12 ? 'text-emerald-500' : cpNewPass.length >= 8 ? 'text-amber-500' : 'text-rose-400'
+                    }`}>
+                      {cpNewPass.length >= 12 ? 'Strong' : cpNewPass.length >= 8 ? 'Good' : 'Too short'}
+                    </span>
+                  </div>
                 )}
               </div>
 
-              {/* Username — READ ONLY */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-                  Username <span className="text-slate-400 font-normal">(read-only)</span>
-                </label>
-                <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                  <span className="text-sm text-slate-400 dark:text-slate-500 select-none">@</span>
-                  <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{user.username}</span>
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-400 rounded font-medium">Read only</span>
-                </div>
-              </div>
-
-              {/* Full Name — EDITABLE */}
+              {/* Confirm New Password */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Full Name
+                  Confirm New Password
                 </label>
-                <input
-                  type="text"
-                  value={profileName}
-                  onChange={e => { setProfileName(e.target.value); setProfileError(''); setProfileSuccess(false); }}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveProfile()}
-                  className="w-full px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0a2e2e] dark:focus:ring-teal-500 transition"
-                  placeholder="Full Name"
-                  autoFocus
-                />
+                <div className="relative">
+                  <input
+                    id="cp-confirm-pass"
+                    type={cpShowConfirm ? 'text' : 'password'}
+                    value={cpConfirm}
+                    onChange={e => { setCpConfirm(e.target.value); setCpError(''); }}
+                    onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
+                    className={`w-full px-3 py-2.5 pr-10 text-sm border rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0a2e2e] dark:focus:ring-teal-500 transition ${
+                      cpConfirm && cpNewPass !== cpConfirm
+                        ? 'border-rose-400 dark:border-rose-500'
+                        : cpConfirm && cpNewPass === cpConfirm
+                        ? 'border-emerald-400 dark:border-emerald-500'
+                        : 'border-slate-300 dark:border-slate-600'
+                    }`}
+                    placeholder="Re-enter new password"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCpShowConfirm(!cpShowConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {cpShowConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {cpConfirm && cpNewPass !== cpConfirm && (
+                  <p className="text-[10px] text-rose-400 mt-1">Passwords do not match</p>
+                )}
+                {cpConfirm && cpNewPass === cpConfirm && cpNewPass.length >= 8 && (
+                  <p className="text-[10px] text-emerald-500 mt-1">✓ Passwords match</p>
+                )}
               </div>
 
-              {/* Email + Phone (read only display) */}
-              {(user.email || user.phone) && (
-                <div className="grid grid-cols-2 gap-3">
-                  {user.email && (
-                    <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide mb-1">Email</p>
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate">{user.email}</p>
-                    </div>
-                  )}
-                  {user.phone && (
-                    <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide mb-1">Phone</p>
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-300">{user.phone}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Error */}
-              {profileError && (
+              {cpError && (
                 <p className="text-xs text-rose-500 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg px-3 py-2">
-                  {profileError}
+                  {cpError}
                 </p>
               )}
 
               {/* Success */}
-              {profileSuccess && (
+              {cpSuccess && (
                 <p className="text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2 font-semibold">
-                  Profile updated successfully.
+                  ✓ Password changed successfully. Signing you out...
                 </p>
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50">
               <button
-                onClick={() => setShowProfileModal(false)}
+                onClick={() => setShowCpModal(false)}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={handleSaveProfile}
-                disabled={profileSaving || profileSuccess}
+                onClick={handleChangePassword}
+                disabled={cpSaving || cpSuccess}
                 className="flex items-center gap-2 px-4 py-2 bg-[#0a2e2e] hover:bg-[#0d3d3d] disabled:opacity-60 text-white text-xs font-semibold rounded-lg transition cursor-pointer"
               >
-                {profileSaving ? (
+                {cpSaving ? (
                   <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <Save className="h-3.5 w-3.5" />
+                  <KeyRound className="h-3.5 w-3.5" />
                 )}
-                {profileSaving ? 'Saving...' : 'Save Changes'}
+                {cpSaving ? 'Updating...' : 'Update Password'}
               </button>
             </div>
+
           </div>
         </div>
       )}
