@@ -10,13 +10,17 @@ import {
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { formatCurrency, formatDate } from '../utils/format';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/table';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const COMPANY_COLORS: Record<string, string> = {
-  Bluekom: '#3b82f6',
-  Somtel:  '#f97316',
-};
 
 const fmtMoney = (n: number) =>
   `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -81,24 +85,24 @@ interface ReqTableProps {
 const RequestsTable: React.FC<ReqTableProps> = ({
   rows, showCompany = false, showEmployee = true, showRemarks = false, emptyMessage,
 }) => (
-  <div className="overflow-x-auto">
-    <table className="w-full text-left text-sm">
-      <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
-        <tr>
-          <th className="py-3.5 px-4">Request #</th>
-          <th className="py-3.5 px-4 hidden sm:table-cell">Date</th>
-          {showEmployee && <th className="py-3.5 px-4">Employee</th>}
-          {showCompany && <th className="py-3.5 px-4 hidden sm:table-cell">Company</th>}
-          <th className="py-3.5 px-4 hidden md:table-cell">Purpose</th>
-          <th className="py-3.5 px-4">Amount</th>
-          <th className="py-3.5 px-4">Status</th>
-          {showRemarks && <th className="py-3.5 px-4 hidden lg:table-cell">Remarks</th>}
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
+  <div className="rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+    <Table>
+      <TableHeader className="bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+        <TableRow>
+          <TableHead className="py-3 px-4">Request #</TableHead>
+          <TableHead className="py-3 px-4 hidden sm:table-cell">Date</TableHead>
+          {showEmployee && <TableHead className="py-3 px-4">Employee</TableHead>}
+          {showCompany && <TableHead className="py-3 px-4 hidden sm:table-cell">Company</TableHead>}
+          <TableHead className="py-3 px-4 hidden md:table-cell">Purpose</TableHead>
+          <TableHead className="py-3 px-4">Amount</TableHead>
+          <TableHead className="py-3 px-4">Status</TableHead>
+          {showRemarks && <TableHead className="py-3 px-4 hidden lg:table-cell">Remarks</TableHead>}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {rows.length === 0 ? (
-          <tr>
-            <td colSpan={8}>
+          <TableRow>
+            <TableCell colSpan={8} className="p-0">
               {emptyMessage ? (
                 <div className="py-8 text-center text-sm text-slate-400">
                   {emptyMessage}
@@ -110,36 +114,36 @@ const RequestsTable: React.FC<ReqTableProps> = ({
                   description="There are no requests matching this view."
                 />
               )}
-            </td>
-          </tr>
+            </TableCell>
+          </TableRow>
         ) : (
           rows.map(req => {
             const isSomtel = req.company?.name === 'Somtel';
             const isBluekom = req.company?.name === 'Bluekom';
             return (
-              <tr key={req.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                <td className="py-4 px-4 font-semibold text-slate-800 dark:text-slate-200">
+              <TableRow key={req.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                <TableCell className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">
                   <Link to={`/requests/${req.requestNumber || req.id}`} className="text-sm font-bold text-primary hover:underline">
                     {req.requestNumber}
                   </Link>
-                </td>
-                <td className="py-4 px-4 text-slate-500 hidden sm:table-cell">
+                </TableCell>
+                <TableCell className="py-3 px-4 text-slate-500 hidden sm:table-cell text-xs">
                   {formatDate(req.requestDate || req.createdAt)}
-                </td>
+                </TableCell>
                 {showEmployee && (
-                  <td className="py-4 px-4 font-medium text-slate-800 dark:text-slate-200">{req.user?.fullName}</td>
+                  <TableCell className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200 text-xs">{req.user?.fullName}</TableCell>
                 )}
                 {showCompany && (
-                  <td className="py-4 px-4 hidden sm:table-cell">
+                  <TableCell className="py-3 px-4 hidden sm:table-cell">
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
                       isSomtel ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20' : isBluekom ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20' : 'bg-slate-100 text-slate-600'
                     }`}>
                       {req.company?.name}
                     </span>
-                  </td>
+                  </TableCell>
                 )}
-                <td className="py-4 px-4 text-slate-500 truncate max-w-[140px] hidden md:table-cell">{req.purpose}</td>
-                <td className="py-4 px-4 whitespace-nowrap">
+                <TableCell className="py-3 px-4 text-slate-500 truncate max-w-[140px] hidden md:table-cell text-xs">{req.purpose}</TableCell>
+                <TableCell className="py-3 px-4 whitespace-nowrap text-xs">
                   {['APPROVED', 'PAID', 'COMPLETED'].includes(req.status) && req.approvedAmount && Number(req.approvedAmount) !== Number(req.requestedAmount) ? (
                     <div>
                       <span className="font-bold text-emerald-600 dark:text-emerald-400">
@@ -159,19 +163,19 @@ const RequestsTable: React.FC<ReqTableProps> = ({
                       )}
                     </span>
                   )}
-                </td>
-                <td className="py-4 px-4"><StatusBadge status={req.status} /></td>
+                </TableCell>
+                <TableCell className="py-3 px-4"><StatusBadge status={req.status} /></TableCell>
                 {showRemarks && (
-                  <td className="py-4 px-4 text-slate-500 max-w-[160px] truncate hidden lg:table-cell">
+                  <TableCell className="py-3 px-4 text-slate-500 max-w-[160px] truncate hidden lg:table-cell text-xs">
                     {req.correctionNotes || req.remarks || '—'}
-                  </td>
+                  </TableCell>
                 )}
-              </tr>
+              </TableRow>
             );
           })
         )}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   </div>
 );
 

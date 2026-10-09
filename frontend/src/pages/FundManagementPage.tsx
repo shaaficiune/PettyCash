@@ -14,6 +14,7 @@ import {
   ArrowUpRight,
   FileDown,
 } from 'lucide-react';
+import { Table, TableBody, TableRow, TableCell } from '../components/ui/table';
 
 interface FundSummary {
   id: string;
@@ -541,8 +542,8 @@ export const FundManagementPage: React.FC = () => {
                 {fund.status}
               </span>
             </div>
-            <table className="w-full text-xs">
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <Table>
+              <TableBody>
                 {[
                   { label: 'Opening Balance (Carry-Forward)', value: fund.openingBalance, type: 'credit' },
                   { label: 'Monthly Allocation / Top-Up', value: fund.additionalFunding, type: 'credit' },
@@ -551,20 +552,20 @@ export const FundManagementPage: React.FC = () => {
                   { label: 'Payments Made', value: fund.paidAmount, type: 'debit' },
                   { label: 'Remaining Balance', value: fund.remainingBalance, type: 'balance' },
                 ].map((row) => (
-                  <tr key={row.label} className={row.type === 'total' || row.type === 'balance' ? 'bg-slate-50/60 dark:bg-slate-800/40 font-bold' : ''}>
-                    <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{row.label}</td>
-                    <td className={`px-4 py-2.5 text-right font-mono font-semibold ${
+                  <TableRow key={row.label} className={row.type === 'total' || row.type === 'balance' ? 'bg-slate-50/60 dark:bg-slate-800/40 font-bold' : ''}>
+                    <TableCell className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-400">{row.label}</TableCell>
+                    <TableCell className={`px-4 py-2.5 text-right font-mono font-semibold text-xs ${
                       row.type === 'debit' ? 'text-rose-600 dark:text-rose-400' :
                       row.type === 'balance' ? 'text-emerald-600 dark:text-emerald-400' :
                       row.type === 'total' ? 'text-primary' :
                       'text-slate-800 dark:text-slate-200'
                     }`}>
                       {row.type === 'debit' ? '-' : ''}${fmt(Number(row.value))}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       )}

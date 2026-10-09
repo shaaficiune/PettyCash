@@ -1,6 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
+import { ColumnDef } from '@tanstack/react-table';
 import { UserPlus, UserCheck, ShieldAlert, KeyRound, Save, PlusCircle, Trash2, Users, MapPin, BookOpen, Pencil, X, Search, Filter } from 'lucide-react';
+import {
+  DataTable,
+  DataTableColumnHeader,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/data-table';
 
 export const UserManagementPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'budgets' | 'regions' | 'budget-heads'>('users');
@@ -368,6 +379,195 @@ export const UserManagementPage: React.FC = () => {
     return true;
   });
 
+  const userColumns: ColumnDef<any>[] = useMemo(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
+            aria-label="Select all"
+            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={(e) => row.toggleSelected(!!e.target.checked)}
+            aria-label="Select row"
+            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        accessorKey: 'fullName',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Employee" />
+        ),
+        cell: ({ row }) => {
+          const u = row.original;
+          return (
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-slate-200">{u.fullName}</p>
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
+                <span>@{u.username}</span>
+                {u.phone && <span>• {u.phone}</span>}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'company',
+        accessorFn: (row) => row.company?.name || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Company" />
+        ),
+        cell: ({ row }) => {
+          const u = row.original;
+          const isSomtel = u.company?.name === 'Somtel';
+          const isBluekom = u.company?.name === 'Bluekom';
+          return (
+            <span
+              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                isSomtel
+                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
+                  : isBluekom
+                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+              }`}
+            >
+              {u.company?.name || 'N/A'}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'region',
+        accessorFn: (row) => row.region?.name || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Region" />
+        ),
+        cell: ({ row }) => {
+          const u = row.original;
+          return u.region?.name ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/60">
+              {u.region.name}
+            </span>
+          ) : (
+            <span className="text-slate-400 text-xs">—</span>
+          );
+        },
+      },
+      {
+        id: 'role',
+        accessorFn: (row) => row.role?.name || row.role || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Role" />
+        ),
+        cell: ({ row }) => {
+          const u = row.original;
+          return (
+            <span className="text-xs font-bold uppercase px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded border border-slate-200/60 dark:border-slate-700">
+              {u.role?.name || u.role}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: 'status',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Status" />
+        ),
+        cell: ({ row }) => {
+          const u = row.original;
+          return (
+            <span
+              className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                u.status === 'ACTIVE'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40'
+                  : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+              }`}
+            >
+              {u.status}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'actions',
+        header: () => <div className="text-center min-w-[280px]">Actions</div>,
+        cell: ({ row }) => {
+          const u = row.original;
+          return (
+            <div className="text-center whitespace-nowrap">
+              <div className="inline-flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(u)}
+                  title="Edit user details"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-primary/8 hover:bg-primary/15 text-primary border border-primary/20 hover:border-primary/40 transition-all cursor-pointer"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleResetPassword(u.id)}
+                  title="Generate new one-time password"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 hover:border-amber-300 transition-all cursor-pointer"
+                >
+                  <KeyRound className="h-3 w-3" />
+                  Reset PW
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleStatus(u)}
+                  title={u.status === 'ACTIVE' ? 'Disable this account' : 'Re-activate this account'}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                    u.status === 'ACTIVE'
+                      ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/40 hover:border-rose-300'
+                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/40 hover:border-emerald-300'
+                  }`}
+                >
+                  {u.status === 'ACTIVE' ? (
+                    <>
+                      <ShieldAlert className="h-3 w-3" /> Disable
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="h-3 w-3" /> Activate
+                    </>
+                  )}
+                </button>
+
+                {u.status === 'DISABLED' && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteUser(u)}
+                    title="Permanently delete this account"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-800 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40 hover:border-rose-300 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Delete
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
+
   return (
     <div className="space-y-4 font-sans">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -642,133 +842,15 @@ export const UserManagementPage: React.FC = () => {
                 </select>
               </div>
             </div>
-
-            {/* USERS TABLE */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
-              {loading ? (
-                <div className="p-12 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-                  <span className="text-xs text-slate-400">Loading user directory...</span>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                      <tr>
-                        <th className="py-3.5 px-6">Employee</th>
-                        <th className="py-3.5 px-4">Company</th>
-                        <th className="py-3.5 px-4 hidden lg:table-cell">Region</th>
-                        <th className="py-3.5 px-4">Role</th>
-                        <th className="py-3.5 px-4">Status</th>
-                        <th className="py-3.5 px-6 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
-                      {filteredUsers.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="text-center py-12 text-sm text-slate-400">
-                            No employees found matching your filters
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredUsers.map((u) => {
-                          const isSomtel = u.company?.name === 'Somtel';
-                          const isBluekom = u.company?.name === 'Bluekom';
-                          return (
-                            <tr
-                              key={u.id}
-                              className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
-                            >
-                              <td className="py-4 px-6">
-                                <div>
-                                  <p className="font-semibold text-slate-800 dark:text-slate-200">{u.fullName}</p>
-                                  <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
-                                    <span>@{u.username}</span>
-                                    {u.phone && <span>• {u.phone}</span>}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                                  isSomtel
-                                    ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                                    : isBluekom
-                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                                }`}>
-                                  {u.company?.name || 'N/A'}
-                                </span>
-                              </td>
-                              <td className="py-4 px-4 hidden lg:table-cell">
-                                {u.region?.name ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/60">
-                                    {u.region.name}
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-400 text-xs">—</span>
-                                )}
-                              </td>
-                              <td className="py-4 px-4">
-                                <span className="text-xs font-bold uppercase px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded border border-slate-200/60 dark:border-slate-700">
-                                  {u.role?.name || u.role}
-                                </span>
-                              </td>
-                              <td className="py-4 px-4">
-                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                                  u.status === 'ACTIVE'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40'
-                                    : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                                }`}>
-                                  {u.status}
-                                </span>
-                              </td>
-                              <td className="py-4 px-6 text-center space-x-1.5 whitespace-nowrap">
-                                <button
-                                  onClick={() => handleOpenEdit(u)}
-                                  title="Edit User"
-                                  className="inline-flex p-1.5 hover:bg-primary/10 text-primary rounded transition-all cursor-pointer"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleResetPassword(u.id)}
-                                  title="Reset Password to default"
-                                  className="inline-flex p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded transition-all cursor-pointer"
-                                >
-                                  <KeyRound className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleToggleStatus(u)}
-                                  title={u.status === 'ACTIVE' ? 'Disable Account' : 'Activate Account'}
-                                  className={`inline-flex p-1.5 rounded transition-all cursor-pointer ${
-                                    u.status === 'ACTIVE' 
-                                      ? 'hover:bg-rose-50 text-rose-600' 
-                                      : 'hover:bg-emerald-50 text-emerald-600'
-                                  }`}
-                                >
-                                  {u.status === 'ACTIVE' ? <ShieldAlert className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteUser(u)}
-                                  title={
-                                    u.status === 'DISABLED'
-                                      ? 'Delete User'
-                                      : 'Account must be disabled prior to deletion'
-                                  }
-                                  className="inline-flex p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-all cursor-pointer"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+            {/* SHADCN/UI USERS DATA TABLE */}
+            <DataTable
+              columns={userColumns}
+              data={filteredUsers}
+              isLoading={loading}
+              searchPlaceholder="Search users by name, username, phone..."
+              pageSize={15}
+              pageSizeOptions={[10, 15, 25, 50]}
+            />
           </div>
         )
       )}
@@ -897,32 +979,32 @@ export const UserManagementPage: React.FC = () => {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                <tr>
-                  <th className="py-3.5 px-6">Region Name</th>
-                  <th className="py-3.5 px-4">Company</th>
-                  <th className="py-3.5 px-4 hidden sm:table-cell">Assigned Users</th>
-                  <th className="py-3.5 px-4 hidden md:table-cell">Requests (Total)</th>
-                  <th className="py-3.5 px-4">Monthly Budget Limit ($)</th>
-                  <th className="py-3.5 px-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
+            <Table>
+              <TableHeader className="bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                <TableRow>
+                  <TableHead className="py-3 px-6">Region Name</TableHead>
+                  <TableHead className="py-3 px-4">Company</TableHead>
+                  <TableHead className="py-3 px-4 hidden sm:table-cell">Assigned Users</TableHead>
+                  <TableHead className="py-3 px-4 hidden md:table-cell">Requests (Total)</TableHead>
+                  <TableHead className="py-3 px-4">Monthly Budget Limit ($)</TableHead>
+                  <TableHead className="py-3 px-6 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {regions
                   .filter(r => !regionCompanyFilter || r.companyId === regionCompanyFilter || r.company?.id === regionCompanyFilter)
                   .map((region) => {
                   const isSomtel = region.company?.name === 'Somtel';
                   const isBluekom = region.company?.name === 'Bluekom';
                   return (
-                    <tr key={region.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-200">
+                    <TableRow key={region.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                      <TableCell className="py-3.5 px-6 font-semibold text-slate-800 dark:text-slate-200">
                         <div className="flex items-center gap-2">
                           <span className="inline-block w-2 h-2 rounded-full bg-primary"></span>
                           {region.name}
                         </div>
-                      </td>
-                      <td className="py-4 px-4">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-4">
                         <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
                           isSomtel
                             ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
@@ -930,19 +1012,19 @@ export const UserManagementPage: React.FC = () => {
                             ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
                             : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                         }`}>{region.company?.name || 'N/A'}</span>
-                      </td>
-                      <td className="py-4 px-4 hidden sm:table-cell">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-4 hidden sm:table-cell">
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">
                           <Users className="h-3 w-3 text-slate-400" />
                           {region._count?.users || 0} users
                         </span>
-                      </td>
-                      <td className="py-4 px-4 hidden md:table-cell">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-4 hidden md:table-cell">
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1 rounded-md">
                           {region._count?.requests || 0} requests
                         </span>
-                      </td>
-                    <td className="py-4 px-4">
+                      </TableCell>
+                    <TableCell className="py-3.5 px-4">
                       <div className="flex items-center gap-1.5 max-w-[180px]">
                         <span className="text-slate-400 font-semibold">$</span>
                         <input
@@ -954,8 +1036,8 @@ export const UserManagementPage: React.FC = () => {
                           className="w-full px-3 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       </div>
-                    </td>
-                    <td className="py-4 px-6 text-right">
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
                       <button
                         onClick={() => handleSaveRegionBudget(region.id)}
                         disabled={savingBudgetId === region.id}
@@ -964,19 +1046,19 @@ export const UserManagementPage: React.FC = () => {
                         <Save className="h-3.5 w-3.5" />
                         {savingBudgetId === region.id ? 'Saving...' : 'Save'}
                       </button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
                 {regions.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-10 text-center text-xs text-slate-400">
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-xs text-slate-400">
                       No regions found. Add regions from the Regions tab first.
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       )}
@@ -1024,31 +1106,31 @@ export const UserManagementPage: React.FC = () => {
               <p className="text-xs text-slate-500 mt-0.5">Operational regions for petty cash requests</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  <tr>
-                    <th className="py-3.5 px-6">Region Name</th>
-                    <th className="py-3.5 px-4">Company</th>
-                    <th className="py-3.5 px-4">Requests</th>
-                    <th className="py-3.5 px-6 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
+              <Table>
+                <TableHeader className="bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  <TableRow>
+                    <TableHead className="py-3 px-6">Region Name</TableHead>
+                    <TableHead className="py-3 px-4">Company</TableHead>
+                    <TableHead className="py-3 px-4">Requests</TableHead>
+                    <TableHead className="py-3 px-6 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {regions.map((r) => {
                     const isSomtel = r.company?.name === 'Somtel';
                     const isBluekom = r.company?.name === 'Bluekom';
                     return (
-                      <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="py-4 px-6">
+                      <TableRow key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                        <TableCell className="py-3.5 px-6">
                           {editingRegionId === r.id ? (
                             <input value={editingRegionName} onChange={(e) => setEditingRegionName(e.target.value)}
                               className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary w-full max-w-[200px]" />
                           ) : (
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">{r.name}</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{r.name}</span>
                           )}
-                        </td>
+                        </TableCell>
 
-                        <td className="py-4 px-4">
+                        <TableCell className="py-3.5 px-4">
                           <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
                             isSomtel
                               ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
@@ -1056,11 +1138,11 @@ export const UserManagementPage: React.FC = () => {
                               ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
                               : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                           }`}>{r.company?.name || 'N/A'}</span>
-                        </td>
-                      <td className="py-4 px-4">
+                        </TableCell>
+                      <TableCell className="py-3.5 px-4">
                         <span className="inline-flex items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">{r._count?.requests || 0} requests</span>
-                      </td>
-                      <td className="py-4 px-6 text-right whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-6 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           {editingRegionId === r.id ? (
                             <>
@@ -1077,15 +1159,15 @@ export const UserManagementPage: React.FC = () => {
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
                   {regions.length === 0 && (
-                    <tr><td colSpan={5} className="py-10 text-center text-xs text-slate-400">No regions found. Add one above.</td></tr>
+                    <TableRow><TableCell colSpan={4} className="py-10 text-center text-xs text-slate-400">No regions found. Add one above.</TableCell></TableRow>
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
         )
@@ -1146,48 +1228,48 @@ export const UserManagementPage: React.FC = () => {
               <p className="text-xs text-slate-500 mt-0.5">Expenditure categories and classification codes</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  <tr>
-                    <th className="py-3.5 px-6">Code</th>
-                    <th className="py-3.5 px-4">Name</th>
-                    <th className="py-3.5 px-4 hidden md:table-cell">Description</th>
-                    <th className="py-3.5 px-4">Company</th>
-                    <th className="py-3.5 px-4 hidden sm:table-cell">Requests</th>
-                    <th className="py-3.5 px-6 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
+              <Table>
+                <TableHeader className="bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  <TableRow>
+                    <TableHead className="py-3 px-6">Code</TableHead>
+                    <TableHead className="py-3 px-4">Name</TableHead>
+                    <TableHead className="py-3 px-4 hidden md:table-cell">Description</TableHead>
+                    <TableHead className="py-3 px-4">Company</TableHead>
+                    <TableHead className="py-3 px-4 hidden sm:table-cell">Requests</TableHead>
+                    <TableHead className="py-3 px-6 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {budgetHeads.map((bh) => {
                     const isSomtel = bh.company?.name === 'Somtel';
                     const isBluekom = bh.company?.name === 'Bluekom';
                     return (
-                      <tr key={bh.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="py-4 px-6">
+                      <TableRow key={bh.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                        <TableCell className="py-3.5 px-6">
                         {editingBhId === bh.id ? (
                           <input value={editingBhCode} onChange={(e) => setEditingBhCode(e.target.value)}
                             className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary w-24" />
                         ) : (
-                          <span className="font-mono font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/30 px-2.5 py-1 rounded">{bh.code}</span>
+                          <span className="font-mono font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/30 px-2.5 py-1 rounded text-xs">{bh.code}</span>
                         )}
-                      </td>
-                      <td className="py-4 px-4">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-4">
                         {editingBhId === bh.id ? (
                           <input value={editingBhName} onChange={(e) => setEditingBhName(e.target.value)}
                             className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary w-full max-w-[200px]" />
                         ) : (
-                          <span className="font-semibold text-slate-800 dark:text-slate-200">{bh.name}</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{bh.name}</span>
                         )}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 max-w-[200px] hidden md:table-cell">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-4 text-slate-500 max-w-[200px] hidden md:table-cell text-xs">
                         {editingBhId === bh.id ? (
                           <input value={editingBhDesc} onChange={(e) => setEditingBhDesc(e.target.value)} placeholder="Optional description"
                             className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full" />
                         ) : (
                           <span className="truncate block">{bh.description || '—'}</span>
                         )}
-                      </td>
-                      <td className="py-3.5 px-4">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-4">
                         <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
                           isSomtel
                             ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
@@ -1195,11 +1277,11 @@ export const UserManagementPage: React.FC = () => {
                             ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
                             : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                         }`}>{bh.company?.name || 'N/A'}</span>
-                      </td>
-                      <td className="py-3.5 px-4 hidden sm:table-cell">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-4 hidden sm:table-cell">
                         <span className="inline-flex items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">{bh._count?.requests || 0} requests</span>
-                      </td>
-                      <td className="py-3.5 px-6 text-right whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-6 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           {editingBhId === bh.id ? (
                             <>
@@ -1216,15 +1298,15 @@ export const UserManagementPage: React.FC = () => {
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
                   {budgetHeads.length === 0 && (
-                    <tr><td colSpan={6} className="py-10 text-center text-xs text-slate-400">No budget heads found. Add one above.</td></tr>
+                    <TableRow><TableCell colSpan={6} className="py-10 text-center text-xs text-slate-400">No budget heads found. Add one above.</TableCell></TableRow>
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
         )

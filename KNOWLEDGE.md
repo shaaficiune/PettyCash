@@ -1,7 +1,7 @@
 # 📚 PETTY CASH MANAGEMENT SYSTEM — MASTER KNOWLEDGE DOCUMENT
 **Project:** Somtel / Bluekom Petty Cash App  
 **GitHub:** https://github.com/shaaficiune/PettyCash.git  
-**Last Updated:** 2026-09-30
+**Last Updated:** 2026-10-09
 **Purpose:** Full context restoration for any future AI assistant — read this file before starting any work.
 
 ---
@@ -1093,4 +1093,63 @@ The project uses a deep-teal + golden-amber palette:
 5. **Never** use inline `style={{ backgroundColor: '...' }}` for CTA buttons — use Tailwind design tokens.
 
 > **Status:** ✅ Completed 2026-10-09. TypeScript check passed with 0 errors.
+
+---
+
+## 📊 shadcn/ui Data Table Upgrade (2026-10-09)
+
+Upgraded the Petty Cash App's tables to the official **shadcn/ui Data Table** architecture powered by **TanStack Table v8** (`@tanstack/react-table`).
+
+### 1. Primitives & Components Created
+
+| File | Purpose |
+|------|---------|
+| [`frontend/src/lib/utils.ts`](file:///d:/Petty%20Cash%20App/frontend/src/lib/utils.ts) | Canonical `cn()` helper (merging `clsx` and `tailwind-merge`). |
+| [`frontend/src/components/ui/table.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/components/ui/table.tsx) | Official shadcn/ui Table primitives: `Table`, `TableHeader`, `TableBody`, `TableFooter`, `TableRow`, `TableHead`, `TableCell`, `TableCaption`. Fully dark-mode styled. |
+| [`frontend/src/components/ui/data-table/data-table-column-header.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/components/ui/data-table/data-table-column-header.tsx) | Interactive sortable header with ascend/descend chevrons and hover states. |
+| [`frontend/src/components/ui/data-table/data-table-pagination.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/components/ui/data-table/data-table-pagination.tsx) | Official shadcn pagination bar: selected rows counter, rows-per-page dropdown (`[10, 20, 30, 50, 100]`), page counter, and navigation buttons (`First`, `Prev`, `Next`, `Last`). |
+| [`frontend/src/components/ui/data-table/data-table-view-options.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/components/ui/data-table/data-table-view-options.tsx) | Column visibility toggler dropdown with toggle checkboxes. |
+| [`frontend/src/components/ui/data-table/data-table.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/components/ui/data-table/data-table.tsx) | Generic, turnkey `<DataTable<TData, TValue>>` component integrating sorting, global search filtering, column visibility, row selection checkboxes, loading skeleton, and empty state. |
+| [`frontend/src/components/ui/data-table/index.ts`](file:///d:/Petty%20Cash%20App/frontend/src/components/ui/data-table/index.ts) | Barrel export file for all Data Table components. |
+
+### 2. Pages Upgraded
+
+| Page | Changes & Upgrades |
+|------|--------------------|
+| [`RequestsListPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/RequestsListPage.tsx) | Upgraded with TanStack `DataTable`: Checkbox row selection, sortable Request #, Date, Employee, Beneficiary, Amount, Priority, and Status. Column visibility controls and shadcn pagination. |
+| [`TransactionsPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/TransactionsPage.tsx) | Upgraded with `DataTable`: Sortable columns (Date, Reference, Employee, Recipient, Type, Debit, Credit, Balance), row selection, column toggling, pagination, and preserved detail modal. |
+| [`PaymentsPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/PaymentsPage.tsx) | Upgraded with `DataTable`: Checkbox selection, sortable columns, CSV export, column toggling, pagination, and voucher printing modal action. |
+| [`SettlementsPendingPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/SettlementsPendingPage.tsx) | Upgraded with `DataTable`: Row selection, sorting on Actual Spent and Remaining Balance, column visibility, pagination, and audit action. |
+| [`UserManagementPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/UserManagementPage.tsx) | Users Directory upgraded to `DataTable`: Sortable Employee, Company, Region, Role, Status, checkbox row selection, column toggle, pagination. Retained high-UX action buttons (Edit, Reset PW, Activate/Disable, Delete). Sub-tables (Region Budgets, Regions, Budget Heads) updated with shadcn `Table` primitives. |
+| [`ReportsPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/ReportsPage.tsx) | Expense records upgraded to `DataTable`: Multi-column sorting, column visibility toggle, pagination, and preserved the Filter Totals summary bar. |
+| [`DashboardPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/DashboardPage.tsx) | `RequestsTable` upgraded to use official shadcn `Table` primitives (`Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`). |
+| [`FundManagementPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/FundManagementPage.tsx) | Fund breakdown ledger upgraded to use shadcn `Table` primitives. |
+
+### 3. Verification & Production Build
+- `npx tsc --noEmit` verified with **0 errors**.
+- `npm run build` (`tsc && vite build`) passed production build in **11.12s** producing clean `dist/` bundle:
+  - `dist/index.html` (0.87 kB)
+  - `dist/assets/index.css` (61.46 kB)
+  - `dist/assets/index.js` (677.48 kB)
+- Both local backend (`:3000`) and frontend (`:5173`) are online and responsive.
+
+### 4. Online Server Deployment (`update-server.sh`)
+To deploy these changes to the live production server (Ubuntu VPS):
+1. Push local changes to GitHub:
+   ```bash
+   git add .
+   git commit -m "feat(ui): upgrade tables to official shadcn/ui Data Table and TanStack Table v8"
+   git push origin main
+   ```
+2. On the production server terminal, run:
+   ```bash
+   bash update-server.sh
+   ```
+   This script automatically:
+   - Pulls the latest commits (`git pull origin main`)
+   - Re-installs dependencies (`npm install` for backend & frontend)
+   - Runs Prisma migrations & schema synchronization
+   - Rebuilds production assets (`npm run build`)
+   - Restarts the PM2 backend service (`pm2 restart petty-cash-backend --update-env`)
+   - Reloads Nginx (`sudo systemctl reload nginx`)
 

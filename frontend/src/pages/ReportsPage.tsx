@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { ColumnDef } from '@tanstack/react-table';
 import {
   FileSpreadsheet,
   FileText,
@@ -25,7 +26,8 @@ import {
 } from 'lucide-react';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { EmptyState } from '../components/ui/EmptyState';
-import { formatDate } from '../utils/format';
+import { formatCurrency, formatDate } from '../utils/format';
+import { DataTable, DataTableColumnHeader } from '../components/ui/data-table';
 
 /* ─────────────────────────────────────────────
    Audit Log Config (for Super Admin audit tab)
@@ -271,6 +273,199 @@ export const ReportsPage: React.FC = () => {
     setSearchQuery('');
     setPage(1);
   };
+
+  const reportColumns: ColumnDef<any>[] = useMemo(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
+            aria-label="Select all"
+            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={(e) => row.toggleSelected(!!e.target.checked)}
+            aria-label="Select row"
+            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        accessorKey: 'requestNumber',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Voucher #" />
+        ),
+        cell: ({ row }) => (
+          <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">
+            {row.original.requestNumber}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'requestDate',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Date" />
+        ),
+        cell: ({ row }) => (
+          <span className="text-slate-500 whitespace-nowrap text-xs">
+            {formatDate(row.original.requestDate)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'employeeName',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Employee" />
+        ),
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div className="text-xs">
+              <div className="font-medium text-slate-800 dark:text-slate-200">{r.employeeName}</div>
+              {r.receiverName && (
+                <div className="text-[10px] text-slate-400">&rarr; {r.receiverName}</div>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: 'companyName',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Company" />
+        ),
+        cell: ({ row }) => {
+          const comp = row.original.companyName || '';
+          const isSomtel = comp.toLowerCase().includes('somtel');
+          return (
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                isSomtel
+                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300'
+                  : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+              }`}
+            >
+              {comp}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: 'regionName',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Region" />
+        ),
+        cell: ({ row }) => (
+          <span className="font-medium text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">
+            {row.original.regionName || '—'}
+          </span>
+        ),
+      },
+      {
+        id: 'budgetHead',
+        accessorFn: (row) => `${row.budgetHeadCode || ''} ${row.budgetHeadName || ''}`,
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Budget Head" />
+        ),
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <span className="text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">
+              {r.budgetHeadCode ? (
+                <span className="font-mono text-[10px] font-semibold text-slate-400 mr-1">
+                  [{r.budgetHeadCode}]
+                </span>
+              ) : null}
+              {r.budgetHeadName || '—'}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: 'purpose',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Purpose" />
+        ),
+        cell: ({ row }) => (
+          <span
+            className="text-slate-700 dark:text-slate-300 max-w-xs truncate block text-xs"
+            title={row.original.purpose}
+          >
+            {row.original.purpose}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'requestedAmount',
+        header: ({ column }) => (
+          <div className="text-right">
+            <DataTableColumnHeader column={column} title="Requested" />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right font-medium text-slate-600 dark:text-slate-400 text-xs whitespace-nowrap">
+            ${Number(row.original.requestedAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </div>
+        ),
+      },
+      {
+        id: 'disbursed',
+        header: ({ column }) => (
+          <div className="text-right">
+            <DataTableColumnHeader column={column} title="Disbursed" />
+          </div>
+        ),
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div className="text-right whitespace-nowrap text-xs">
+              {r.actualExpenseAmount !== null && r.actualExpenseAmount !== undefined ? (
+                <div className="flex flex-col items-end">
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    ${Number(r.actualExpenseAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                  {r.remainingBalance !== null && Number(r.remainingBalance) > 0 ? (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      +${Number(r.remainingBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} refund
+                    </span>
+                  ) : null}
+                </div>
+              ) : r.approvedAmount !== null ? (
+                <span className="font-bold text-slate-900 dark:text-white">
+                  ${Number(r.approvedAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: 'status',
+        header: ({ column }) => (
+          <div className="text-center">
+            <DataTableColumnHeader column={column} title="Status" />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="text-center">
+            <StatusBadge status={row.original.status} />
+          </div>
+        ),
+      },
+    ],
+    []
+  );
 
   // Export Excel
   const handleExportExcel = async () => {
@@ -656,237 +851,62 @@ export const ReportsPage: React.FC = () => {
             )}
           </div>
 
-          {/* ──────────────── Table Caadi Ah (Standard Data Table) ──────────────── */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-            {/* Table Header Bar */}
-            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <div>
-                <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                  Petty Cash Records
-                </h3>
-                <p className="text-[10px] text-slate-400 mt-0.5">
-                  Showing {reportData?.items?.length ?? 0} of {reportData?.total ?? 0} filtered records
-                </p>
-              </div>
+          {/* ──────────────── Upgraded shadcn/ui Data Table ──────────────── */}
+          <div className="space-y-3">
+            <DataTable
+              columns={reportColumns}
+              data={reportData?.items || []}
+              isLoading={loading}
+              searchPlaceholder="Search report rows..."
+              pageSize={pageSize}
+              pageSizeOptions={[10, 25, 50, 100]}
+              emptyState={
+                <EmptyState
+                  icon={FileText}
+                  title="No records found"
+                  description="Try adjusting the date range, company, region, or status filters."
+                />
+              }
+            />
 
-              {/* Items per page selector */}
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <span>Rows:</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs focus:outline-none"
-                >
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
-            </div>
+            {/* Summary Stats Bar — totals for ALL filtered results */}
+            {reportData && reportData.summary && (
+              <div className="px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex flex-wrap items-center gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Filter Totals</span>
 
-            {/* Table Content */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/40 text-left">
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Voucher #
-                    </th>
-                    <th className="px-3 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Employee
-                    </th>
-                    <th className="px-3 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Company
-                    </th>
-                    <th className="px-3 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Region
-                    </th>
-                    <th className="px-3 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Budget Head
-                    </th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider max-w-xs">
-                      Purpose
-                    </th>
-                    <th className="px-3 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">
-                      Requested ($)
-                    </th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">
-                      Disbursed ($)
-                    </th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={10} className="text-center py-16">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-b-2 border-primary" />
-                          <span className="text-xs text-slate-400 font-medium">Loading report records...</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : !reportData || reportData.items.length === 0 ? (
-                    <tr>
-                      <td colSpan={10}>
-                        <EmptyState
-                          icon={FileText}
-                          title="No records found"
-                          description="Try adjusting the date range, company, region, or status filters."
-                        />
-                      </td>
-                    </tr>
-                  ) : (
-                    reportData.items.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
-                      >
-                        {/* Voucher # */}
-                        <td className="px-4 py-3 font-mono font-bold text-slate-800 dark:text-slate-200">
-                          {row.requestNumber}
-                        </td>
-
-                        {/* Date */}
-                        <td className="px-3 py-3 text-slate-500 whitespace-nowrap">
-                          {formatDate(row.requestDate)}
-                        </td>
-
-                        {/* Employee */}
-                        <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">
-                          <div>{row.employeeName}</div>
-                          {row.receiverName && (
-                            <div className="text-[10px] text-slate-400">
-                              &rarr; {row.receiverName}
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Company */}
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              row.companyName.toLowerCase().includes('somtel')
-                                ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300'
-                                : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
-                            }`}
-                          >
-                            {row.companyName}
-                          </span>
-                        </td>
-
-                        {/* Region */}
-                        <td className="px-3 py-3 font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                          {row.regionName}
-                        </td>
-
-                        {/* Budget Head (Category) */}
-                        <td className="px-3 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                          {row.budgetHeadCode ? (
-                            <span className="font-mono text-[10px] font-semibold text-slate-400 mr-1">
-                              [{row.budgetHeadCode}]
-                            </span>
-                          ) : null}
-                          {row.budgetHeadName}
-                        </td>
-
-                        {/* Purpose */}
-                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-xs truncate" title={row.purpose}>
-                          {row.purpose}
-                        </td>
-
-                        {/* Requested Amount */}
-                        <td className="px-3 py-3 text-right font-medium text-slate-500 whitespace-nowrap">
-                          ${row.requestedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-
-                        {/* Disbursed Amount / Net Spent */}
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          {row.actualExpenseAmount !== null && row.actualExpenseAmount !== undefined ? (
-                            <div className="flex flex-col items-end">
-                              <span className="font-bold text-slate-900 dark:text-white">
-                                ${Number(row.actualExpenseAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                              </span>
-                              {row.remainingBalance !== null && Number(row.remainingBalance) > 0 ? (
-                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                                  +${Number(row.remainingBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} refund
-                                </span>
-                              ) : null}
-                            </div>
-                          ) : row.approvedAmount !== null ? (
-                            <span className="font-bold text-slate-900 dark:text-white">
-                              ${Number(row.approvedAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 font-normal">—</span>
-                          )}
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-4 py-3 text-center whitespace-nowrap">
-                          <StatusBadge status={row.status} />
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-
-                {/* Table Footer with Summary Totals */}
-                {reportData && reportData.items.length > 0 && (
-                  <tfoot>
-                    <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 font-bold">
-                      <td colSpan={7} className="px-4 py-3 text-xs text-slate-800 dark:text-slate-100 uppercase tracking-wider text-right">
-                        Filtered Totals:
-                      </td>
-                      <td className="px-3 py-3 text-right text-xs text-slate-600 dark:text-slate-300">
-                        ${reportData.summary.totalRequested.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                        ${reportData.summary.totalDisbursed.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-4 py-3 text-center text-[10px] text-slate-400">
-                        {reportData.total} items
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            {reportData && reportData.totalPages > 1 && (
-              <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-xs text-slate-400">
-                  Page {reportData.page} of {reportData.totalPages}
-                </span>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={page <= 1}
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-
-                  <span className="px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {page} / {reportData.totalPages}
-                  </span>
-
-                  <button
-                    onClick={() => handlePageChange(page + 1)}
-                    disabled={page >= reportData.totalPages}
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+                {/* Total Records */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 shadow-xs">
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase">Records</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-white">{reportData.total}</span>
                 </div>
+
+                {/* Total Requested */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 shadow-xs">
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase">Total Requested</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                    {formatCurrency(reportData.summary.totalRequested)}
+                  </span>
+                </div>
+
+                {/* Total Disbursed */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-emerald-200 dark:border-emerald-800/50 shadow-xs">
+                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase">Total Disbursed</span>
+                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                    {formatCurrency(reportData.summary.totalDisbursed)}
+                  </span>
+                </div>
+
+                {/* Pending count if any */}
+                {reportData.summary.pendingCount > 0 && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-amber-200 dark:border-amber-800/50 shadow-xs">
+                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase">Pending</span>
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{reportData.summary.pendingCount}</span>
+                  </div>
+                )}
+
+                <span className="ml-auto text-[10px] text-slate-400">
+                  {reportData.totalPages > 1 ? `Showing page ${reportData.page} of ${reportData.totalPages}` : `All ${reportData.total} records shown`}
+                </span>
               </div>
             )}
           </div>

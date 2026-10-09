@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
+import { ColumnDef } from '@tanstack/react-table';
 import { Eye, CheckCircle2 } from 'lucide-react';
 import { EmptyState } from '../components/ui/EmptyState';
 import { formatCurrency, formatDate } from '../utils/format';
+import { DataTable, DataTableColumnHeader } from '../components/ui/data-table';
 
 export const SettlementsPendingPage: React.FC = () => {
   const [settlements, setSettlements] = useState<any[]>([]);
@@ -15,7 +17,7 @@ export const SettlementsPendingPage: React.FC = () => {
       const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
       const companyQuery = companyFilter !== 'ALL' ? `?companyId=${companyFilter}` : '';
       const res = await api.get(`/settlements/pending${companyQuery}`);
-      setSettlements(res.data);
+      setSettlements(res.data || []);
     } catch (e) {
       console.error('Failed to load pending settlements list', e);
     } finally {
@@ -31,94 +33,191 @@ export const SettlementsPendingPage: React.FC = () => {
     };
   }, []);
 
+  const columns: ColumnDef<any>[] = useMemo(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
+            aria-label="Select all"
+            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={(e) => row.toggleSelected(!!e.target.checked)}
+            aria-label="Select row"
+            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        id: 'requestNumber',
+        accessorFn: (row) => row.request?.requestNumber || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Request #" />
+        ),
+        cell: ({ row }) => {
+          const st = row.original;
+          return (
+            <Link
+              to={`/requests/${st.request?.requestNumber || st.request?.id}`}
+              className="text-primary hover:underline font-bold"
+            >
+              {st.request?.requestNumber || '—'}
+            </Link>
+          );
+        },
+      },
+      {
+        id: 'employee',
+        accessorFn: (row) => row.request?.user?.fullName || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Employee" />
+        ),
+        cell: ({ row }) => {
+          const st = row.original;
+          return (
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                {st.request?.user?.fullName}
+              </p>
+              {st.request?.user?.employeeNumber && (
+                <p className="text-[10px] text-slate-400">
+                  Emp #: {st.request?.user?.employeeNumber}
+                </p>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'company',
+        accessorFn: (row) => row.request?.company?.name || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Company" />
+        ),
+        cell: ({ row }) => {
+          const st = row.original;
+          const isSomtel = st.request?.company?.name === 'Somtel';
+          return (
+            <span
+              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded whitespace-nowrap ${
+                isSomtel
+                  ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
+                  : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400'
+              }`}
+            >
+              {st.request?.company?.name || '—'}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: 'actualExpenseAmount',
+        header: ({ column }) => (
+          <div className="text-right">
+            <DataTableColumnHeader column={column} title="Actual Spent" />
+          </div>
+        ),
+        cell: ({ row }) => {
+          const st = row.original;
+          return (
+            <div className="text-right font-bold text-slate-800 dark:text-slate-100">
+              {formatCurrency(st.actualExpenseAmount, st.request?.currency)}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: 'remainingBalance',
+        header: ({ column }) => (
+          <div className="text-right">
+            <DataTableColumnHeader column={column} title="Remaining Balance" />
+          </div>
+        ),
+        cell: ({ row }) => {
+          const st = row.original;
+          const bal = Number(st.remainingBalance);
+          return (
+            <div
+              className={`text-right font-semibold ${
+                bal > 0
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : bal < 0
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {formatCurrency(st.remainingBalance, st.request?.currency)}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: 'createdAt',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Submitted Date" />
+        ),
+        cell: ({ row }) => (
+          <span className="text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
+            {formatDate(row.original.createdAt)}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: () => <div className="text-center">Action</div>,
+        cell: ({ row }) => {
+          const st = row.original;
+          return (
+            <div className="text-center">
+              <Link
+                to={`/requests/${st.request?.requestNumber || st.request?.id}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition-all"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Audit
+              </Link>
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
+
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-4 font-sans">
       <div>
-        <h2 className="text-xl font-bold text-slate-800 dark:text-white">Settlement Audits</h2>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-white">Settlement Audits</h2>
         <p className="text-xs text-slate-500">Review employee expenses and receipts</p>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
-        {loading ? (
-          <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-            <span className="text-xs text-slate-400">Loading settlements...</span>
-          </div>
-        ) : settlements.length === 0 ? (
+      <DataTable
+        columns={columns}
+        data={settlements}
+        isLoading={loading}
+        searchPlaceholder="Filter settlements by request #, employee..."
+        pageSize={20}
+        pageSizeOptions={[10, 20, 50, 100]}
+        emptyState={
           <EmptyState
             icon={CheckCircle2}
             title="All caught up!"
             description="No pending settlement audits found."
           />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                <tr>
-                  <th className="py-3.5 px-6">Request #</th>
-                  <th className="py-3.5 px-4">Employee</th>
-                  <th className="py-3.5 px-4 hidden sm:table-cell">Company</th>
-                  <th className="py-3.5 px-4">Actual spent</th>
-                  <th className="py-3.5 px-4">Remaining Balance</th>
-                  <th className="py-3.5 px-4 hidden md:table-cell">Submitted Date</th>
-                  <th className="py-3.5 px-6 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
-                {settlements.map((st) => {
-                  return (
-                    <tr
-                      key={st.id}
-                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
-                    >
-                    <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-200">
-                      <Link to={`/requests/${st.request?.requestNumber || st.request?.id}`} className="text-primary hover:underline font-bold">
-                        {st.request?.requestNumber}
-                      </Link>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div>
-                        <p className="font-semibold text-slate-800 dark:text-slate-200">{st.request?.user?.fullName}</p>
-                        <p className="text-xs text-slate-400">Emp #: {st.request?.user?.employeeNumber}</p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 hidden sm:table-cell">
-                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                        st.request?.company?.name === 'Somtel' 
-                          ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400' 
-                          : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400'
-                      }`}>
-                        {st.request?.company?.name}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 font-bold text-slate-800 dark:text-slate-100">
-                      {formatCurrency(st.actualExpenseAmount, st.request?.currency)}
-                    </td>
-                    <td className="py-4 px-4 font-semibold">
-                      <span className={Number(st.remainingBalance) > 0 ? 'text-amber-600 dark:text-amber-400' : Number(st.remainingBalance) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'}>
-                        {formatCurrency(st.remainingBalance, st.request?.currency)}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-slate-500 dark:text-slate-400 hidden md:table-cell">
-                      {formatDate(st.createdAt)}
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <Link
-                        to={`/requests/${st.request?.requestNumber || st.request?.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition-all"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        Audit
-                      </Link>
-                    </td>
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        }
+      />
     </div>
   );
 };
+
+export default SettlementsPendingPage;

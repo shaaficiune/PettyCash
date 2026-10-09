@@ -1,11 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
-import { 
-  ArrowUpRight, ArrowDownLeft, RefreshCw, Filter, DollarSign, Search,
-  Calendar, MapPin, FileSpreadsheet, Printer, Eye, X
+import { ColumnDef } from '@tanstack/react-table';
+import {
+  DollarSign,
+  FileSpreadsheet,
+  Printer,
+  RefreshCw,
+  Eye,
+  Calendar,
+  MapPin,
+  Filter,
+  X,
 } from 'lucide-react';
 import { EmptyState } from '../components/ui/EmptyState';
 import { formatCurrency, formatDate } from '../utils/format';
+import { DataTable, DataTableColumnHeader } from '../components/ui/data-table';
 
 export const TransactionsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -15,13 +24,9 @@ export const TransactionsPage: React.FC = () => {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
 
-  // Pagination & Filters
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(25);
-  const [total, setTotal] = useState(0);
+  // Filters
   const [typeFilter, setTypeFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
-  const [search, setSearch] = useState('');
   const [datePreset, setDatePreset] = useState<'ALL' | 'THIS_MONTH' | 'THIS_WEEK' | 'TODAY' | 'CUSTOM'>('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -48,18 +53,16 @@ export const TransactionsPage: React.FC = () => {
     setLoading(true);
     try {
       const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
-      const params: any = { page, pageSize };
+      const params: any = { page: 1, pageSize: 500 };
       if (companyFilter !== 'ALL') params.companyId = companyFilter;
       if (typeFilter) params.transactionType = typeFilter;
       if (regionFilter) params.regionId = regionFilter;
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
-      if (search.trim()) params.search = search.trim();
 
       const res = await api.get('/funds/transactions', { params });
       if (res.data && res.data.items) {
         setTransactions(res.data.items);
-        setTotal(res.data.total || 0);
       } else {
         setTransactions(res.data || []);
       }
@@ -76,20 +79,10 @@ export const TransactionsPage: React.FC = () => {
     return () => {
       window.removeEventListener('companyFilterChanged', loadTransactions);
     };
-  }, [typeFilter, regionFilter, startDate, endDate, page]);
-
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1);
-      loadTransactions();
-    }, 350);
-    return () => clearTimeout(timer);
-  }, [search]);
+  }, [typeFilter, regionFilter, startDate, endDate]);
 
   const applyDatePreset = (preset: 'ALL' | 'THIS_MONTH' | 'THIS_WEEK' | 'TODAY' | 'CUSTOM') => {
     setDatePreset(preset);
-    setPage(1);
     const now = new Date();
     if (preset === 'TODAY') {
       const todayStr = now.toISOString().slice(0, 10);
@@ -122,7 +115,6 @@ export const TransactionsPage: React.FC = () => {
       if (regionFilter) params.regionId = regionFilter;
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
-      if (search.trim()) params.search = search.trim();
 
       const res = await api.get('/funds/transactions/export-excel', { params, responseType: 'blob' });
       const blob = new Blob([res.data], { type: 'application/vnd.ms-excel' });
@@ -150,7 +142,6 @@ export const TransactionsPage: React.FC = () => {
     if (regionFilter) params.append('regionId', regionFilter);
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
-    if (search.trim()) params.append('search', search.trim());
 
     const printWindow = window.open('about:blank', '_blank');
     try {
@@ -168,15 +159,269 @@ export const TransactionsPage: React.FC = () => {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  // Define shadcn/ui TanStack Columns for Transactions
+  const columns: ColumnDef<any>[] = useMemo(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
+            aria-label="Select all"
+            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={(e) => row.toggleSelected(!!e.target.checked)}
+            aria-label="Select row"
+            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        accessorKey: 'date',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Date" />
+        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          return (
+            <span className="whitespace-nowrap text-slate-600 dark:text-slate-300 font-semibold text-xs">
+              {formatDate(t.date || t.createdAt)}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'company',
+        accessorFn: (row) => row.company?.name || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Company" />
+        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          const isSomtel = t.company?.name === 'Somtel';
+          return (
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap ${
+                isSomtel
+                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
+                  : 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+              }`}
+            >
+              {t.company?.name || 'N/A'}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'reference',
+        accessorFn: (row) => row.request?.requestNumber || row.referenceNumber || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Req / Invoice #" />
+        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          return (
+            <div className="flex flex-col gap-0.5 whitespace-nowrap">
+              {t.request?.requestNumber && (
+                <span className="font-semibold text-primary text-xs">
+                  #{t.request.requestNumber}
+                </span>
+              )}
+              {(t.referenceNumber || t.request?.invoiceNumber) && (
+                <span className="text-[11px] text-slate-400 font-mono">
+                  {t.referenceNumber || t.request?.invoiceNumber}
+                </span>
+              )}
+              {!t.request?.requestNumber && !t.referenceNumber && (
+                <span className="text-slate-400 text-xs">—</span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'employee',
+        accessorFn: (row) => row.employee?.fullName || row.request?.user?.fullName || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Employee" />
+        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          const emp = t.employee?.fullName || t.request?.user?.fullName;
+          return (
+            <span className="font-medium text-slate-800 dark:text-slate-200 text-xs truncate max-w-[140px] block">
+              {emp || '—'}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'recipient',
+        accessorFn: (row) => row.request?.receiverName || row.request?.vendorName || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Recipient" />
+        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          const name = t.request?.receiverName || t.request?.vendorName;
+          const phone = t.request?.receiverPhone;
+          return name ? (
+            <div>
+              <p className="font-medium text-slate-800 dark:text-slate-200 text-xs truncate max-w-[130px]">
+                {name}
+              </p>
+              {phone && <p className="text-[10px] text-slate-400 font-mono">{phone}</p>}
+            </div>
+          ) : (
+            <span className="text-slate-400 text-xs">—</span>
+          );
+        },
+      },
+      {
+        id: 'region',
+        accessorFn: (row) => row.request?.region?.name || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Region" />
+        ),
+        cell: ({ row }) => {
+          const region = row.original.request?.region?.name;
+          return region ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+              {region}
+            </span>
+          ) : (
+            <span className="text-slate-400 text-xs">—</span>
+          );
+        },
+      },
+      {
+        id: 'category',
+        accessorFn: (row) => row.request?.budgetHead?.name || row.description || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Category" />
+        ),
+        cell: ({ row }) => {
+          const category = row.original.request?.budgetHead?.name;
+          return (
+            <span className="text-slate-600 dark:text-slate-400 text-xs truncate max-w-[130px] block">
+              {category || '—'}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: 'transactionType',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Type" />
+        ),
+        cell: ({ row }) => {
+          const type = row.original.transactionType;
+          return (
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap border ${
+                type === 'ALLOCATION' || type === 'TRANSFER_IN'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40'
+                  : type === 'PAYMENT' || type === 'TRANSFER_OUT'
+                  ? 'bg-rose-50 text-rose-700 border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40'
+                  : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+              }`}
+            >
+              {type}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: 'debit',
+        header: ({ column }) => (
+          <div className="text-right">
+            <DataTableColumnHeader column={column} title="Debit" />
+          </div>
+        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          return (
+            <div className="text-right font-bold text-rose-600 dark:text-rose-400 text-xs whitespace-nowrap">
+              {t.debit && Number(t.debit) > 0
+                ? `−${formatCurrency(t.debit, t.currency || t.company?.currency || 'USD')}`
+                : '—'}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: 'credit',
+        header: ({ column }) => (
+          <div className="text-right">
+            <DataTableColumnHeader column={column} title="Credit" />
+          </div>
+        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          return (
+            <div className="text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
+              {t.credit && Number(t.credit) > 0
+                ? `+${formatCurrency(t.credit, t.currency || t.company?.currency || 'USD')}`
+                : '—'}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: 'balanceAfter',
+        header: ({ column }) => (
+          <div className="text-right">
+            <DataTableColumnHeader column={column} title="Balance" />
+          </div>
+        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          return (
+            <div className="text-right font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap">
+              {formatCurrency(t.balanceAfter || 0, t.currency || t.company?.currency || 'USD')}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'actions',
+        header: () => <div className="text-center">Action</div>,
+        cell: ({ row }) => {
+          const t = row.original;
+          return (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setSelectedTx(t)}
+                className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                title="View Details"
+              >
+                <Eye className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
 
   return (
-    <div className="space-y-5 font-sans">
+    <div className="space-y-4 font-sans">
       {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <DollarSign className="h-6 w-6 text-primary" />
+          <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
             Transactions Ledger
           </h2>
           <p className="text-xs text-slate-500">
@@ -185,30 +430,27 @@ export const TransactionsPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {/* EXCEL BUTTON */}
           <button
             onClick={handleExportExcel}
             disabled={exportingExcel}
-            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
             {exportingExcel ? 'Exporting...' : 'Export Excel'}
           </button>
 
-          {/* PDF BUTTON */}
           <button
             onClick={handleExportPdf}
             disabled={exportingPdf}
-            className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
           >
             <Printer className="h-3.5 w-3.5" />
             {exportingPdf ? 'Preparing...' : 'Export PDF'}
           </button>
 
-          {/* REFRESH BUTTON */}
           <button
             onClick={loadTransactions}
-            className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Refresh
@@ -217,106 +459,88 @@ export const TransactionsPage: React.FC = () => {
       </div>
 
       {/* FILTER HUB */}
-      <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs flex flex-col gap-3 transition-colors">
-        <div className="flex flex-col md:flex-row gap-3 items-center">
-          {/* SEARCH BAR */}
-          <div className="relative flex-1 w-full">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-              <Search className="h-4 w-4" />
-            </span>
-            <input
-              type="text"
-              placeholder="Search by request #, employee, recipient, description, or ref..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
-            />
+      <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs flex flex-col gap-2.5 transition-colors">
+        <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+          {/* DATE PRESET SELECT */}
+          <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
+            <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <select
+              value={datePreset}
+              onChange={(e) => applyDatePreset(e.target.value as any)}
+              className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full font-medium"
+            >
+              <option value="ALL">All Dates</option>
+              <option value="TODAY">Today</option>
+              <option value="THIS_WEEK">This Week</option>
+              <option value="THIS_MONTH">This Month</option>
+              <option value="CUSTOM">Custom Range...</option>
+            </select>
           </div>
 
-          <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full md:w-auto shrink-0">
-            {/* DATE PRESET SELECT */}
-            <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
-              <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <select
-                value={datePreset}
-                onChange={(e) => applyDatePreset(e.target.value as any)}
-                className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none cursor-pointer w-full font-medium"
-              >
-                <option value="ALL">All Dates</option>
-                <option value="TODAY">Today</option>
-                <option value="THIS_WEEK">This Week</option>
-                <option value="THIS_MONTH">This Month</option>
-                <option value="CUSTOM">Custom Range...</option>
-              </select>
-            </div>
-
-            {/* REGION FILTER - GROUPED BY COMPANY */}
-            <div className="flex items-center gap-1.5 min-w-[150px] flex-1 sm:flex-initial">
-              <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <select
-                value={regionFilter}
-                onChange={(e) => {
-                  setRegionFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none cursor-pointer w-full"
-              >
-                <option value="">All Regions</option>
-                {(() => {
-                  const groups: { [key: string]: any[] } = {};
-                  regions.forEach((r) => {
-                    const cName = r.company?.name || 'Other';
-                    if (!groups[cName]) groups[cName] = [];
-                    groups[cName].push(r);
-                  });
-                  const compKeys = Object.keys(groups);
-                  if (compKeys.length <= 1) {
-                    return regions.map((r) => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ));
-                  }
-                  return compKeys.map((cName) => (
-                    <optgroup key={cName} label={`── ${cName} ──`}>
-                      {groups[cName].map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </optgroup>
+          {/* REGION FILTER - GROUPED BY COMPANY */}
+          <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
+            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <select
+              value={regionFilter}
+              onChange={(e) => setRegionFilter(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
+            >
+              <option value="">All Regions</option>
+              {(() => {
+                const groups: { [key: string]: any[] } = {};
+                regions.forEach((r) => {
+                  const cName = r.company?.name || 'Other';
+                  if (!groups[cName]) groups[cName] = [];
+                  groups[cName].push(r);
+                });
+                const compKeys = Object.keys(groups);
+                if (compKeys.length <= 1) {
+                  return regions.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
                   ));
-                })()}
-              </select>
-            </div>
+                }
+                return compKeys.map((cName) => (
+                  <optgroup key={cName} label={`── ${cName} ──`}>
+                    {groups[cName].map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ));
+              })()}
+            </select>
+          </div>
 
-            {/* MOVEMENT TYPE FILTER */}
-            <div className="flex items-center gap-1.5 min-w-[150px] flex-1 sm:flex-initial">
-              <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <select
-                value={typeFilter}
-                onChange={(e) => {
-                  setTypeFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none cursor-pointer w-full"
-              >
-                <option value="">All Movement Types</option>
-                <option value="PAYMENT">Payment / Expense</option>
-                <option value="ALLOCATION">Fund Allocation</option>
-                <option value="CARRY_FORWARD">Carry Forward</option>
-                <option value="TRANSFER_IN">Transfer In</option>
-                <option value="TRANSFER_OUT">Transfer Out</option>
-                <option value="ADJUSTMENT">Adjustment</option>
-                <option value="REIMBURSEMENT">Reimbursement</option>
-              </select>
-            </div>
+          {/* MOVEMENT TYPE FILTER */}
+          <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
+            <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
+            >
+              <option value="">All Movement Types</option>
+              <option value="PAYMENT">Payment / Expense</option>
+              <option value="ALLOCATION">Fund Allocation</option>
+              <option value="CARRY_FORWARD">Carry Forward</option>
+              <option value="TRANSFER_IN">Transfer In</option>
+              <option value="TRANSFER_OUT">Transfer Out</option>
+              <option value="ADJUSTMENT">Adjustment</option>
+              <option value="REIMBURSEMENT">Reimbursement</option>
+            </select>
           </div>
         </div>
 
         {/* CUSTOM DATE RANGE BAR */}
         {(datePreset === 'CUSTOM' || startDate || endDate) && (
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800/60 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-xs">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Date Range:</span>
+              <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                Date Range:
+              </span>
               <span className="text-[11px] text-slate-400">From:</span>
               <input
                 type="date"
@@ -324,9 +548,8 @@ export const TransactionsPage: React.FC = () => {
                 onChange={(e) => {
                   setStartDate(e.target.value);
                   setDatePreset('CUSTOM');
-                  setPage(1);
                 }}
-                className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-md text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+                className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
               />
               <span className="text-[11px] text-slate-400">To:</span>
               <input
@@ -335,9 +558,8 @@ export const TransactionsPage: React.FC = () => {
                 onChange={(e) => {
                   setEndDate(e.target.value);
                   setDatePreset('CUSTOM');
-                  setPage(1);
                 }}
-                className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-md text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+                className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
               />
             </div>
 
@@ -348,8 +570,6 @@ export const TransactionsPage: React.FC = () => {
                 setEndDate('');
                 setTypeFilter('');
                 setRegionFilter('');
-                setSearch('');
-                setPage(1);
               }}
               className="text-xs text-rose-500 hover:text-rose-600 font-medium cursor-pointer"
             >
@@ -359,210 +579,22 @@ export const TransactionsPage: React.FC = () => {
         )}
       </div>
 
-      {/* TABLE SECTION */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="p-16 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-3"></div>
-            <span className="text-xs text-slate-400">Loading ledger records...</span>
-          </div>
-        ) : transactions.length === 0 ? (
+      {/* SHADCN/UI UPGRADED DATA TABLE */}
+      <DataTable
+        columns={columns}
+        data={transactions}
+        isLoading={loading}
+        searchPlaceholder="Search by request #, employee, recipient, or ref..."
+        pageSize={20}
+        pageSizeOptions={[10, 20, 50, 100]}
+        emptyState={
           <EmptyState
             icon={DollarSign}
             title="No transactions found"
             description="No transaction ledger entries match your filter criteria."
-            action={
-              (startDate || endDate || typeFilter || regionFilter || search) ? (
-                <button
-                  onClick={() => {
-                    setDatePreset('ALL');
-                    setStartDate('');
-                    setEndDate('');
-                    setTypeFilter('');
-                    setRegionFilter('');
-                    setSearch('');
-                    setPage(1);
-                  }}
-                  className="text-xs text-primary hover:underline font-semibold cursor-pointer"
-                >
-                  Clear all filters
-                </button>
-              ) : undefined
-            }
           />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                <tr>
-                  <th className="py-3 px-4 whitespace-nowrap">Date</th>
-                  <th className="py-3 px-3 whitespace-nowrap">Company</th>
-                  <th className="py-3 px-4 whitespace-nowrap">Req / Invoice #</th>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Recipient</th>
-                  <th className="py-3 px-3 hidden md:table-cell">Region</th>
-                  <th className="py-3 px-3 hidden lg:table-cell">Category</th>
-                  <th className="py-3 px-3 whitespace-nowrap">Type</th>
-                  <th className="py-3 px-3 text-right whitespace-nowrap">Debit</th>
-                  <th className="py-3 px-3 text-right whitespace-nowrap">Credit</th>
-                  <th className="py-3 px-4 text-right whitespace-nowrap">Balance</th>
-                  <th className="py-3 px-3 text-center whitespace-nowrap">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
-                {transactions.map((t) => {
-                  const isDebit = Boolean(t.debit && Number(t.debit) > 0);
-                  const isSomtel = t.company?.name === 'Somtel';
-                  const employeeName = t.employee?.fullName || t.request?.user?.fullName || '—';
-                  const recipientName = t.request?.receiverName || t.request?.vendorName || '—';
-                  const recipientPhone = t.request?.receiverPhone;
-                  const regionName = t.request?.region?.name;
-                  const categoryName = t.request?.budgetHead ? t.request.budgetHead.name : null;
-
-                  return (
-                    <tr
-                      key={t.id}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
-                    >
-                      {/* Date */}
-                      <td className="py-3 px-4 whitespace-nowrap text-slate-600 dark:text-slate-300 font-semibold text-xs">
-                        {formatDate(t.date || t.createdAt)}
-                      </td>
-
-                      {/* Company */}
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          isSomtel
-                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                            : 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                        }`}>
-                          {t.company?.name || 'N/A'}
-                        </span>
-                      </td>
-
-                      {/* Ref / Request # */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-0.5">
-                          {t.request?.requestNumber && (
-                            <span className="font-semibold text-primary text-xs">
-                              #{t.request.requestNumber}
-                            </span>
-                          )}
-                          {(t.referenceNumber || t.request?.invoiceNumber) && (
-                            <span className="font-mono text-slate-600 dark:text-slate-400 text-[11px] flex items-center gap-1">
-                              <span className="text-[10px] text-slate-400 font-sans font-medium">Inv #:</span>
-                              {t.referenceNumber || t.request?.invoiceNumber}
-                            </span>
-                          )}
-                          {!t.request?.requestNumber && !t.referenceNumber && !t.request?.invoiceNumber && (
-                            <span className="text-slate-400 text-xs">—</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Employee */}
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-slate-800 dark:text-slate-200 text-xs">
-                          {employeeName}
-                        </div>
-                      </td>
-
-                      {/* Recipient */}
-                      <td className="py-3 px-4">
-                        <div>
-                          <p className="font-medium text-slate-800 dark:text-slate-200 text-xs">
-                            {recipientName}
-                          </p>
-                          {recipientPhone && (
-                            <p className="text-[10px] text-slate-400 font-mono">{recipientPhone}</p>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Region */}
-                      <td className="py-3 px-3 text-slate-500 dark:text-slate-400 hidden md:table-cell text-xs whitespace-nowrap">
-                        {regionName ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-                            {regionName}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-xs">—</span>
-                        )}
-                      </td>
-
-                      {/* Category */}
-                      <td className="py-3 px-3 text-slate-600 dark:text-slate-400 hidden lg:table-cell text-xs">
-                        {categoryName || <span className="text-slate-400">—</span>}
-                      </td>
-
-                      {/* Movement Type */}
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
-                          t.transactionType === 'PAYMENT' 
-                            ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
-                            : t.transactionType === 'CARRY_FORWARD'
-                            ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20'
-                            : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
-                        }`}>
-                          {isDebit ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}
-                          {t.transactionType?.replace(/_/g, ' ')}
-                        </span>
-                      </td>
-
-                      {/* Debit */}
-                      <td className="py-3 px-3 text-right text-rose-600 dark:text-rose-400 font-bold whitespace-nowrap text-xs">
-                        {t.debit && Number(t.debit) > 0 ? `−${formatCurrency(t.debit, t.currency || t.company?.currency || 'USD')}` : '—'}
-                      </td>
-
-                      {/* Credit */}
-                      <td className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap text-xs">
-                        {t.credit && Number(t.credit) > 0 ? `+${formatCurrency(t.credit, t.currency || t.company?.currency || 'USD')}` : '—'}
-                      </td>
-
-                      {/* Balance */}
-                      <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap text-xs">
-                        {formatCurrency(t.balanceAfter || 0, t.currency || t.company?.currency || 'USD')}
-                      </td>
-
-                      {/* Action Detail View */}
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <button
-                          onClick={() => setSelectedTx(t)}
-                          className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
-                          title="View Details"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* PAGINATION */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-3 justify-between items-center text-xs text-slate-500 dark:text-slate-400">
-          <span>Showing page {page} of {totalPages} ({total} total transactions)</span>
-          <div className="flex gap-2">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-              className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 cursor-pointer transition-colors"
-            >
-              Previous
-            </button>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setPage(page + 1)}
-              className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 cursor-pointer transition-colors"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* TRANSACTION DETAILS MODAL */}
       {selectedTx && (
