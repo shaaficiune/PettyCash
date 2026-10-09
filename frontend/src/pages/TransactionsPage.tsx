@@ -392,7 +392,7 @@ export const TransactionsPage: React.FC = () => {
                 <tr>
                   <th className="py-3 px-4 whitespace-nowrap">Date</th>
                   <th className="py-3 px-3 whitespace-nowrap">Company</th>
-                  <th className="py-3 px-4 whitespace-nowrap">Ref / Req #</th>
+                  <th className="py-3 px-4 whitespace-nowrap">Req / Invoice #</th>
                   <th className="py-3 px-4">Employee</th>
                   <th className="py-3 px-4">Recipient</th>
                   <th className="py-3 px-3 hidden md:table-cell">Region</th>
@@ -437,17 +437,22 @@ export const TransactionsPage: React.FC = () => {
 
                       {/* Ref / Request # */}
                       <td className="py-3 px-4 whitespace-nowrap">
-                        {t.request?.requestNumber ? (
-                          <span className="font-semibold text-primary text-xs">
-                            #{t.request.requestNumber}
-                          </span>
-                        ) : t.referenceNumber ? (
-                          <span className="font-mono text-slate-600 dark:text-slate-300 text-xs">
-                            {t.referenceNumber}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-xs">—</span>
-                        )}
+                        <div className="flex flex-col gap-0.5">
+                          {t.request?.requestNumber && (
+                            <span className="font-semibold text-primary text-xs">
+                              #{t.request.requestNumber}
+                            </span>
+                          )}
+                          {(t.referenceNumber || t.request?.invoiceNumber) && (
+                            <span className="font-mono text-slate-600 dark:text-slate-400 text-[11px] flex items-center gap-1">
+                              <span className="text-[10px] text-slate-400 font-sans font-medium">Inv #:</span>
+                              {t.referenceNumber || t.request?.invoiceNumber}
+                            </span>
+                          )}
+                          {!t.request?.requestNumber && !t.referenceNumber && !t.request?.invoiceNumber && (
+                            <span className="text-slate-400 text-xs">—</span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Employee */}
@@ -601,12 +606,21 @@ export const TransactionsPage: React.FC = () => {
                   </span>
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Ref / Req #</span>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Request #</span>
                   <span className="font-bold text-primary">
-                    {selectedTx.request?.requestNumber ? `#${selectedTx.request.requestNumber}` : (selectedTx.referenceNumber || '—')}
+                    {selectedTx.request?.requestNumber ? `#${selectedTx.request.requestNumber}` : '—'}
                   </span>
                 </div>
               </div>
+
+              {(selectedTx.referenceNumber || selectedTx.request?.invoiceNumber) && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Invoice #</span>
+                  <span className="font-bold font-mono text-slate-800 dark:text-slate-200 text-xs">
+                    {selectedTx.referenceNumber || selectedTx.request?.invoiceNumber}
+                  </span>
+                </div>
+              )}
 
               <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl space-y-2">
                 <div>

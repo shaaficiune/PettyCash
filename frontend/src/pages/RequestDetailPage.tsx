@@ -765,7 +765,7 @@ export const RequestDetailPage: React.FC = () => {
                 {(pm.transactionId || pm.referenceNumber || pm.notes) && (
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500 pt-1 border-t border-slate-200/40 dark:border-slate-800">
                     {pm.transactionId && <span>Txn: <strong className="text-slate-700 dark:text-slate-300 font-mono">{pm.transactionId}</strong></span>}
-                    {pm.referenceNumber && <span>Ref: <strong className="text-slate-700 dark:text-slate-300 font-mono">{pm.referenceNumber}</strong></span>}
+                    {pm.referenceNumber && <span>Invoice #: <strong className="text-slate-700 dark:text-slate-300 font-mono">{pm.referenceNumber}</strong></span>}
                     {pm.notes && <span className="italic text-slate-400">"{pm.notes}"</span>}
                   </div>
                 )}

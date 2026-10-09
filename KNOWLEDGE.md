@@ -920,3 +920,38 @@ cd ~/app && bash update-server.sh
 
 > **Status:** ✅ Implemented 2026-10-09. Zero downtime deploy. No schema changes.
 
+---
+
+## 27. INVOICE NUMBER VISIBILITY IN REQUEST DETAIL & TRANSACTION LEDGER (2026-10-09)
+
+### Problem Solved
+1. When recording a disbursement payment, users enter an **Invoice Number** (e.g., `456`). In the Request Detail view under payment history, it was previously labeled ambiguously as `Ref: 456`.
+2. In the **Transaction Ledger** table (`/transactions`), the column `Ref / Req #` only showed `#PC-20261009-0001` whenever a request number existed, completely hiding the invoice/reference number (`456`). The transaction detail modal also omitted the invoice number when a request number was present.
+
+### Implementation
+1. **Frontend (`RequestDetailPage.tsx`):**
+   - Labeled payment history reference as compact `Invoice #: 456` instead of `Ref: 456`.
+2. **Frontend (`TransactionsPage.tsx`):**
+   - Table header updated to `Req / Invoice #`.
+   - Table cell now renders both the Request # (e.g., `#PC-20261009-0001`) and the Invoice Number (e.g., `Inv #: 456`).
+   - Transaction Detail view modal now displays **Invoice #** in a dedicated field.
+3. **Backend (`backend/src/funds/funds.service.ts`):**
+   - Added `invoiceNumber` to search filter `where.OR.request.OR`.
+   - Included `invoiceNumber: true` in `request.select` for ledger queries, Excel export, and PDF export.
+   - Updated Excel and PDF exports to display the invoice number alongside the request number.
+
+### Production Safety & Backward Compatibility
+- **Zero Schema Change:** `PettyCashLedger.referenceNumber`, `Payment.referenceNumber`, and `PettyCashRequest.invoiceNumber` have always existed in the PostgreSQL database.
+- **100% Backward Compatible:** All historical and existing production requests and ledger transactions automatically display their invoice numbers without any data modification or risk of corruption.
+- **Zero Downtime:** Simply run `git push origin main` locally, then `bash update-server.sh` on the Ubuntu production server.
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `frontend/src/pages/RequestDetailPage.tsx` | Display `Invoice #: [number]` in payment history section |
+| `frontend/src/pages/TransactionsPage.tsx` | Show both Request # and `Inv #: [number]` in table and detail modal |
+| `backend/src/funds/funds.service.ts` | Search support, include `invoiceNumber`, and export formatting |
+
+> **Status:** ✅ Implemented 2026-10-09. Zero downtime deploy. No schema migration needed.
+
+

@@ -656,6 +656,7 @@ export class FundsService {
               { receiverName: { contains: q, mode: 'insensitive' } },
               { receiverPhone: { contains: q, mode: 'insensitive' } },
               { vendorName: { contains: q, mode: 'insensitive' } },
+              { invoiceNumber: { contains: q, mode: 'insensitive' } },
             ],
           },
         },
@@ -698,6 +699,7 @@ export class FundsService {
             receiverName: true,
             receiverPhone: true,
             vendorName: true,
+            invoiceNumber: true,
             requestedAmount: true,
             approvedAmount: true,
             currency: true,
@@ -769,6 +771,7 @@ export class FundsService {
             receiverName: true,
             receiverPhone: true,
             vendorName: true,
+            invoiceNumber: true,
             region: { select: { name: true } },
             budgetHead: { select: { name: true, code: true } },
             user: { select: { fullName: true } },
@@ -780,7 +783,10 @@ export class FundsService {
 
     const rows = transactions.map((t: any) => {
       const dateStr = t.date ? new Date(t.date).toISOString().slice(0, 10) : '';
-      const refNum = t.request?.requestNumber || t.referenceNumber || '-';
+      const invNum = t.referenceNumber || t.request?.invoiceNumber;
+      const refNum = t.request?.requestNumber
+        ? (invNum ? `#${t.request.requestNumber} (Inv: ${invNum})` : `#${t.request.requestNumber}`)
+        : (invNum || '-');
       const employeeName = t.employee?.fullName || t.request?.user?.fullName || '-';
       const receiverName = t.request?.receiverName || t.request?.vendorName || '-';
       const regionName = t.request?.region?.name || '-';
@@ -870,6 +876,7 @@ export class FundsService {
             receiverName: true,
             receiverPhone: true,
             vendorName: true,
+            invoiceNumber: true,
             region: { select: { name: true } },
             budgetHead: { select: { name: true, code: true } },
             user: { select: { fullName: true } },
@@ -884,7 +891,10 @@ export class FundsService {
 
     const rows = transactions.map((t: any) => {
       const dateStr = t.date ? new Date(t.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-      const refNum = t.request?.requestNumber ? `#${t.request.requestNumber}` : (t.referenceNumber || '—');
+      const invNum = t.referenceNumber || t.request?.invoiceNumber;
+      const refNum = t.request?.requestNumber
+        ? (invNum ? `#${t.request.requestNumber}<br><span style="font-size:9px; color:#64748b;">Inv: ${escapeHtml(invNum)}</span>` : `#${t.request.requestNumber}`)
+        : (invNum || '—');
       const employeeName = t.employee?.fullName || t.request?.user?.fullName || '—';
       const receiverName = t.request?.receiverName ? `${t.request.receiverName}${t.request.receiverPhone ? ` (${t.request.receiverPhone})` : ''}` : (t.request?.vendorName || '—');
       const regionName = t.request?.region?.name || '—';
