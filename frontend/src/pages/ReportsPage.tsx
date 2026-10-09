@@ -178,6 +178,7 @@ export const ReportsPage: React.FC = () => {
   const [loading, setLoading]           = useState<boolean>(true);
   const [exportingExcel, setExportingExcel] = useState<boolean>(false);
   const [exportingPdf, setExportingPdf] = useState<boolean>(false);
+  const [exportingBook, setExportingBook] = useState<boolean>(false);
 
   // Audit trail state
   const [auditLogs, setAuditLogs]       = useState<any[]>([]);
@@ -335,6 +336,48 @@ export const ReportsPage: React.FC = () => {
     }
   };
 
+  // Export Monthly Petty Cash Book (.xlsx)
+  const handleExportMonthlyBook = async () => {
+    setExportingBook(true);
+    try {
+      const { start } = getDateRange();
+      let month = new Date().getMonth() + 1;
+      let year = new Date().getFullYear();
+      if (start) {
+        const d = new Date(start);
+        month = d.getMonth() + 1;
+        year = d.getFullYear();
+      }
+      const globalCompany = sessionStorage.getItem('companyFilter') || 'ALL';
+      const activeCompany = companyId !== 'ALL' ? companyId : globalCompany;
+      const params: Record<string, string> = { month: String(month), year: String(year) };
+      if (activeCompany !== 'ALL') params.companyId = activeCompany;
+      const res = await api.get('/funds/export/monthly-book', {
+        params,
+        responseType: 'blob',
+      });
+      const contentDisposition = res.headers['content-disposition'] || '';
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const filename = match ? match[1] : `Petty_Cash_Book_${monthNames[month - 1]}_${year}.xlsx`;
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Monthly book export error:', err);
+    } finally {
+      setExportingBook(false);
+    }
+  };
+
   // Load audit logs for super admin
   const loadAuditLogs = async () => {
     if (!isSuperAdmin) return;
@@ -376,7 +419,19 @@ export const ReportsPage: React.FC = () => {
         </div>
 
         {/* Global Export Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Monthly Petty Cash Book export - most prominent */}
+          <button
+            id="report-export-monthly-book-btn"
+            onClick={handleExportMonthlyBook}
+            disabled={exportingBook}
+            className="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            title="Export Monthly Petty Cash Book (same format as historical Excel books)"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            {exportingBook ? 'Generating...' : 'Monthly Book (.xlsx)'}
+          </button>
+
           <button
             id="report-export-excel-btn"
             onClick={handleExportExcel}

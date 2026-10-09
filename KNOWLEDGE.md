@@ -955,3 +955,54 @@ cd ~/app && bash update-server.sh
 > **Status:** ✅ Implemented 2026-10-09. Zero downtime deploy. No schema migration needed.
 
 
+---
+
+## 28. 📒 Monthly Petty Cash Book Export (.xlsx) — Historical Format
+
+### Overview
+Accountants can export a fully formatted **Monthly Petty Cash Book** in the exact Excel format that was historically used (matching `Petty Cash book.xlsx`). The workbook contains two sheets — one per company — with embedded logos, eDahab account numbers, running balance formulas, and a formal reconciliation card.
+
+### Sheet Format (per company)
+| Area | Details |
+|------|---------|
+| **Logo** | Somtel banner (`somtel-banner.png`, 190×48px) or Bluekom round logo (`bluekom-logo.jpeg`, 52×52px) |
+| **Header** | Company name, eDahab NO (763238 Somtel / 763241 Bluekom), Opening Balance, Closing Balance, Currency |
+| **Columns** | S/N, Date, #No (Invoice/Ref), Payee Name#, Expenses Description, Category, Region, Credit (Money In), Debit (Money Out), Balance |
+| **Row 7** | Top-up / Float Allocation row with `H7+H3` formula |
+| **Data rows** | All PAYMENT ledger entries for the requested month, sorted by date |
+| **Total Row** | `SUM(I7:Ixx)` for debit, `SUM(H7:Hxx)` for credit, final balance reference |
+| **Reconciliation Card** | Opening Balance, Additional Top-Up, Total Disbursed, Net Remaining (D col summary block) |
+| **Sign-off** | Prepared By / Verified By / Approved By (CFO) signature lines |
+
+### Brand Colors
+| Company | Header BG | Accent |
+|---------|-----------|--------|
+| Somtel | `#0B2545` (navy) | `#D97706` (gold) |
+| Bluekom | `#1E40AF` (royal blue) | blue tones |
+
+### Backend Implementation
+- **Service:** [`backend/src/funds/monthly-book.service.ts`](file:///d:/Petty%20Cash%20App/backend/src/funds/monthly-book.service.ts)
+  - `MonthlyBookService.generateMonthlyBook(month?, year?, companyId?)` → `{ buffer: Buffer, filename: string }`
+  - Uses ExcelJS (`^4.4.0`) for real `.xlsx` with embedded images, formulas, and cell styles
+  - Logo paths are resolved via multiple candidate dirs so the feature works both in dev and from the compiled `dist/` on the server
+- **Controller:** [`backend/src/funds/funds.controller.ts`](file:///d:/Petty%20Cash%20App/backend/src/funds/funds.controller.ts)
+  - `GET /api/funds/export/monthly-book?month=:m&year=:y&companyId=:cid`
+  - Requires JWT auth. Employees are scoped to their own company automatically.
+
+### Frontend Integration
+- **Fund Management Page** (`FundManagementPage.tsx`): Green "Export Book" button in toolbar — exports the current selected company + month/year.
+- **Reports Page** (`ReportsPage.tsx`): Teal "Monthly Book (.xlsx)" button — uses the current date filter to pick month/year.
+
+### Logo Assets
+| Company | Backend Path | Frontend Path |
+|---------|-------------|---------------|
+| Somtel | `backend/assets/logos/somtel-banner.png` | `frontend/public/logos/somtel-banner.png` |
+| Bluekom | `backend/assets/logos/bluekom-logo.jpeg` | `frontend/public/logos/bluekom-logo.jpeg` |
+
+### Production Safety
+- **Zero schema changes** — reads only from existing `PettyCashFund` and `PettyCashLedger` tables.
+- **Zero downtime** — additive GET endpoint, no migrations, no destructive changes.
+- **Date filter:** Ledger entries are filtered by `transactionType = 'PAYMENT'` and `date` within the selected month range.
+
+> **Status:** ✅ Implemented 2026-10-09. No schema migrations needed.
+

@@ -12,6 +12,7 @@ import {
   DollarSign,
   TrendingUp,
   ArrowUpRight,
+  FileDown,
 } from 'lucide-react';
 
 interface FundSummary {
@@ -66,6 +67,7 @@ export const FundManagementPage: React.FC = () => {
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [exportingBook, setExportingBook] = useState(false);
 
   // Load companies
   useEffect(() => {
@@ -206,6 +208,39 @@ export const FundManagementPage: React.FC = () => {
     yearOptions.push(y);
   }
 
+  const handleExportMonthlyBook = async () => {
+    setExportingBook(true);
+    try {
+      const params: Record<string, string> = {
+        month: String(selectedMonth),
+        year: String(selectedYear),
+      };
+      if (selectedCompanyId) params.companyId = selectedCompanyId;
+      const res = await api.get('/funds/export/monthly-book', {
+        params,
+        responseType: 'blob',
+      });
+      const contentDisposition = res.headers['content-disposition'] || '';
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      const filename = match ? match[1] : `Petty_Cash_Book_${MONTHS[selectedMonth - 1]}_${selectedYear}.xlsx`;
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Monthly book export failed', err);
+    } finally {
+      setExportingBook(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans">
       {/* Header & Controls Bar */}
@@ -270,6 +305,22 @@ export const FundManagementPage: React.FC = () => {
             title="Refresh"
           >
             <RefreshCw className="h-4 w-4" />
+          </button>
+
+          {/* Export Monthly Book */}
+          <button
+            id="btn-export-monthly-book"
+            onClick={handleExportMonthlyBook}
+            disabled={exportingBook}
+            title="Export Monthly Petty Cash Book (.xlsx)"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer"
+          >
+            {exportingBook ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <FileDown className="h-3.5 w-3.5" />
+            )}
+            <span className="hidden sm:inline">Export Book</span>
           </button>
         </div>
       </div>

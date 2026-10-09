@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Body, Query, UseGuards, Request, Response } from '@nestjs/common';
 import { FundsService } from './funds.service';
+import { MonthlyBookService } from './monthly-book.service';
 import { InitFundDto, CloseFundDto } from './dto/fund.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CompanyIsolationGuard } from '../auth/company-isolation.guard';
@@ -13,7 +14,41 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 @UseGuards(JwtAuthGuard, CompanyIsolationGuard)
 @Controller('funds')
 export class FundsController {
-  constructor(private readonly fundsService: FundsService) {}
+  constructor(
+    private readonly fundsService: FundsService,
+    private readonly monthlyBookService: MonthlyBookService,
+  ) {}
+
+  @Get('export/monthly-book')
+  @ApiOperation({ summary: 'Export historical-formatted Monthly Petty Cash Book (.xlsx) with embedded company logos' })
+  async exportMonthlyBook(
+    @Request() req: any,
+    @Response() res: any,
+    @Query('month') month?: string,
+    @Query('year') year?: string,
+    @Query('companyId') companyId?: string,
+  ) {
+    const isRestricted = req.user.role === RoleName.EMPLOYEE;
+    const effectiveCompanyId = isRestricted ? req.user.companyId : companyId;
+    const parsedMonth = month ? parseInt(month, 10) : undefined;
+    const parsedYear = year ? parseInt(year, 10) : undefined;
+
+    const { buffer, filename } = await this.monthlyBookService.generateMonthlyBook(
+      parsedMonth,
+      parsedYear,
+      effectiveCompanyId,
+    );
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}"`,
+    );
+    return res.status(200).send(buffer);
+  }
 
   @Post('init')
   @UseGuards(RolesGuard)
