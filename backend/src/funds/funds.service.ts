@@ -460,6 +460,85 @@ export class FundsService {
     return { updatedFund, ledger };
   }
 
+  async recordSettlementRefund(
+    companyId: string,
+    requestId: string,
+    refundAmount: number,
+    accountantId?: string,
+    notes?: string,
+  ) {
+    if (refundAmount <= 0) return null;
+    const fund = await this.getOrCreateCurrentMonthFund(companyId);
+    return this.prisma.$transaction((tx) => this.recordSettlementRefundInTransaction(
+      tx, fund.id, companyId, requestId, refundAmount, accountantId, notes,
+    ));
+  }
+
+  async recordSettlementRefundInTransaction(
+    tx: any,
+    fundId: string,
+    companyId: string,
+    requestId: string,
+    refundAmount: number,
+    accountantId?: string,
+    notes?: string,
+  ) {
+    await tx.$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
+    let lockedFund = await tx.pettyCashFund.findUnique({ where: { id: fundId } });
+
+    if (lockedFund && lockedFund.status !== 'OPEN') {
+      const openFund = await tx.pettyCashFund.findFirst({
+        where: { companyId: lockedFund.companyId, status: 'OPEN' },
+        orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      });
+      if (openFund) {
+        lockedFund = openFund;
+        fundId = openFund.id;
+        await tx.$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
+      }
+    }
+
+    if (!lockedFund) return null;
+
+    const refund = Number(refundAmount);
+    const newPaid = Math.max(0, Number(lockedFund.paidAmount || 0) - refund);
+    const totalAvailable = Number(lockedFund.totalAvailable);
+
+    const committedAmount = await this.getCommittedAmount(tx, lockedFund);
+    const remainingBalance = totalAvailable - committedAmount;
+
+    const updatedFund = await tx.pettyCashFund.update({
+      where: { id: fundId },
+      data: {
+        paidAmount: newPaid,
+        remainingBalance,
+        closingBalance: remainingBalance,
+      },
+    });
+
+    const request = requestId ? await tx.pettyCashRequest.findUnique({
+      where: { id: requestId },
+      select: { requestNumber: true, purpose: true },
+    }) : null;
+
+    const ledger = await tx.pettyCashLedger.create({
+      data: {
+        fundId,
+        companyId,
+        transactionType: 'REIMBURSEMENT',
+        employeeId: accountantId || undefined,
+        requestId: requestId || undefined,
+        description: `Settlement refund / cash return - #${request?.requestNumber || requestId}`,
+        credit: refund,
+        debit: null,
+        balanceAfter: totalAvailable - newPaid,
+        remarks: notes || `Refund for Request #${request?.requestNumber || requestId}`,
+      },
+    });
+
+    return { updatedFund, ledger };
+  }
+
   private async getCommittedAmount(tx: any, fund: any): Promise<number> {
     const periodStart = new Date(fund.year, fund.month - 1, 1);
     const nextPeriodStart = new Date(fund.year, fund.month, 1);

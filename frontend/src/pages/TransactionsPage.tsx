@@ -4,6 +4,8 @@ import {
   ArrowUpRight, ArrowDownLeft, RefreshCw, Filter, DollarSign, Search,
   Calendar, MapPin, FileSpreadsheet, Printer, Eye, X
 } from 'lucide-react';
+import { EmptyState } from '../components/ui/EmptyState';
+import { formatCurrency, formatDate } from '../utils/format';
 
 export const TransactionsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -365,26 +367,29 @@ export const TransactionsPage: React.FC = () => {
             <span className="text-xs text-slate-400">Loading ledger records...</span>
           </div>
         ) : transactions.length === 0 ? (
-          <div className="p-16 text-center text-slate-400 text-xs">
-            <DollarSign className="h-8 w-8 mx-auto mb-2 text-slate-300 dark:text-slate-600 opacity-60" />
-            No transactions found matching your criteria.
-            {(startDate || endDate || typeFilter || regionFilter || search) && (
-              <button
-                onClick={() => {
-                  setDatePreset('ALL');
-                  setStartDate('');
-                  setEndDate('');
-                  setTypeFilter('');
-                  setRegionFilter('');
-                  setSearch('');
-                  setPage(1);
-                }}
-                className="mt-2 text-xs text-primary hover:underline font-semibold cursor-pointer block mx-auto"
-              >
-                Clear all filters
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={DollarSign}
+            title="No transactions found"
+            description="No transaction ledger entries match your filter criteria."
+            action={
+              (startDate || endDate || typeFilter || regionFilter || search) ? (
+                <button
+                  onClick={() => {
+                    setDatePreset('ALL');
+                    setStartDate('');
+                    setEndDate('');
+                    setTypeFilter('');
+                    setRegionFilter('');
+                    setSearch('');
+                    setPage(1);
+                  }}
+                  className="text-xs text-primary hover:underline font-semibold cursor-pointer"
+                >
+                  Clear all filters
+                </button>
+              ) : undefined
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -421,7 +426,7 @@ export const TransactionsPage: React.FC = () => {
                     >
                       {/* Date */}
                       <td className="py-3 px-4 whitespace-nowrap text-slate-600 dark:text-slate-300 font-semibold text-xs">
-                        {new Date(t.date || t.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {formatDate(t.date || t.createdAt)}
                       </td>
 
                       {/* Company */}
@@ -506,17 +511,17 @@ export const TransactionsPage: React.FC = () => {
 
                       {/* Debit */}
                       <td className="py-3 px-3 text-right text-rose-600 dark:text-rose-400 font-bold whitespace-nowrap text-xs">
-                        {t.debit && Number(t.debit) > 0 ? `-$${Number(t.debit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                        {t.debit && Number(t.debit) > 0 ? `−${formatCurrency(t.debit, t.currency || t.company?.currency || 'USD')}` : '—'}
                       </td>
 
                       {/* Credit */}
                       <td className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap text-xs">
-                        {t.credit && Number(t.credit) > 0 ? `+$${Number(t.credit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                        {t.credit && Number(t.credit) > 0 ? `+${formatCurrency(t.credit, t.currency || t.company?.currency || 'USD')}` : '—'}
                       </td>
 
                       {/* Balance */}
                       <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap text-xs">
-                        ${Number(t.balanceAfter || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatCurrency(t.balanceAfter || 0, t.currency || t.company?.currency || 'USD')}
                       </td>
 
                       {/* Action Detail View */}
@@ -671,19 +676,19 @@ export const TransactionsPage: React.FC = () => {
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase font-bold block">Debit</span>
                   <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
-                    {selectedTx.debit ? `-$${Number(selectedTx.debit).toFixed(2)}` : '—'}
+                    {selectedTx.debit ? `−${formatCurrency(selectedTx.debit, selectedTx.currency || selectedTx.company?.currency || 'USD')}` : '—'}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase font-bold block">Credit</span>
                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                    {selectedTx.credit ? `+$${Number(selectedTx.credit).toFixed(2)}` : '—'}
+                    {selectedTx.credit ? `+${formatCurrency(selectedTx.credit, selectedTx.currency || selectedTx.company?.currency || 'USD')}` : '—'}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase font-bold block">Balance After</span>
                   <span className="text-xs font-bold text-slate-800 dark:text-white">
-                    ${Number(selectedTx.balanceAfter || 0).toFixed(2)}
+                    {formatCurrency(selectedTx.balanceAfter || 0, selectedTx.currency || selectedTx.company?.currency || 'USD')}
                   </span>
                 </div>
               </div>

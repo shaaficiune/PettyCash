@@ -987,11 +987,12 @@ Accountants can export a fully formatted **Monthly Petty Cash Book** in the exac
   - Logo paths are resolved via multiple candidate dirs so the feature works both in dev and from the compiled `dist/` on the server
 - **Controller:** [`backend/src/funds/funds.controller.ts`](file:///d:/Petty%20Cash%20App/backend/src/funds/funds.controller.ts)
   - `GET /api/funds/export/monthly-book?month=:m&year=:y&companyId=:cid`
-  - Requires JWT auth. Employees are scoped to their own company automatically.
+  - Protected with `@UseGuards(RolesGuard)` and `@Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)`.
+  - Employees (`RoleName.EMPLOYEE`) are strictly blocked (`403 Forbidden`) from downloading/exporting.
 
 ### Frontend Integration
-- **Fund Management Page** (`FundManagementPage.tsx`): Green "Export Book" button in toolbar — exports the current selected company + month/year.
-- **Reports Page** (`ReportsPage.tsx`): Teal "Monthly Book (.xlsx)" button — uses the current date filter to pick month/year.
+- **Fund Management Page** (`FundManagementPage.tsx`): Green "Export Book" button — visible and accessible ONLY to `SUPER_ADMIN` and `ACCOUNTANT`. Hidden from `EMPLOYEE`.
+- **Reports Page** (`ReportsPage.tsx`): Teal "Monthly Book (.xlsx)" button — visible and accessible ONLY to `SUPER_ADMIN` and `ACCOUNTANT`. Hidden from `EMPLOYEE`.
 
 ### Logo Assets
 | Company | Backend Path | Frontend Path |
@@ -1005,4 +1006,91 @@ Accountants can export a fully formatted **Monthly Petty Cash Book** in the exac
 - **Date filter:** Ledger entries are filtered by `transactionType = 'PAYMENT'` and `date` within the selected month range.
 
 > **Status:** ✅ Implemented 2026-10-09. No schema migrations needed.
+
+---
+
+## 🧾 Feature: Printable Payment Voucher (Voucher Pad Format)
+
+Implemented 2026-10-09 to provide physical voucher pad reproduction for printed disbursement receipts matching original historical pads.
+
+### Visual & Functional Design
+- Component: [`frontend/src/components/PaymentVoucherModal.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/components/PaymentVoucherModal.tsx)
+- Replicates historical pads from `somtel payment voucher.jpeg` and `bluekom payment voucher.jpeg` 1:1:
+  - **Somtel**: `SOMTEL PUNTLAND LTD`, HQ Puntland Garowe-Somalia, original Somtel logo (`/logos/somtel-logo.png`), red `No.` voucher number, `Risaala Printing` credit. Voucher sequence starts at `1` for Somtel.
+  - **Bluekom**: `BLUEKOM PUNTLAND`, Dahabshiil Tower Garowe, original Bluekom logo (`/logos/bluekom-logo.jpg`), blue `No.` voucher number, `Ilbaabs Printing` credit. Voucher sequence starts at `1` for Bluekom.
+- Both vouchers share:
+  - Header: Date formatted `DD / MM / YYYY`, Mr / Ms (payee/receiver), Tell (receiver phone).
+  - 15-Row Ruled Table:
+    - Col 1: `No` (1 to 15)
+    - Col 2: `Description` (row 1 has pure purpose only — region/cost center omitted per business rules; rows 2-15 are ruled blank lines)
+    - Col 3: `Price` (row 1 has price; rows 2-15 blank)
+    - Col 4: `Amount` (row 1 has amount; rows 2-15 blank)
+    - Grand Total row spanning No & Description with formatted sum in Amount.
+  - Signatures: `Initial Signiture` (receiver) and `Aproved By` (cashier/approver).
+- Sequential Numbering:
+  - Company-scoped count: Somtel starts at 1 (`No. 1`, `No. 2`...), and Bluekom starts at 1 (`No. 1`, `No. 2`...).
+- Print Support:
+  - Responsive preview modal with Print button.
+  - Isolated `@media print` CSS so clicking Print or `Ctrl+P` renders ONLY the voucher pad centered on A4 paper with high contrast and zero web chrome.
+  - Native browser "Save as PDF" supported directly.
+
+### Integration Points
+- **Request Detail Page** ([`frontend/src/pages/RequestDetailPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/RequestDetailPage.tsx)):
+  - Top action bar: "Print Payment Voucher" button appears once request status is `PAID` or `COMPLETED`.
+  - Payment History card: "Print Voucher" button in header and per-record row.
+- **Payments Page** ([`frontend/src/pages/PaymentsPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/PaymentsPage.tsx)):
+  - Dedicated "Voucher" column with quick-print icon per payment record.
+- **Backend**:
+  - [`backend/src/requests/requests.service.ts`](file:///d:/Petty%20Cash%20App/backend/src/requests/requests.service.ts): `findOne` dynamically computes `voucherNumber` scoped by company (`createdAt <= request.createdAt`), so each company starts at 1.
+  - [`backend/src/payments/payments.service.ts`](file:///d:/Petty%20Cash%20App/backend/src/payments/payments.service.ts): `getPayments` dynamically computes `voucherNumber` scoped by company (`paymentDate <= pm.paymentDate`), so each company starts at 1.
+
+> **Production Safety:** Zero schema changes. Zero downtime. Safe additive updates.
+
+### Favicon
+- Browser icon set to Bluekom round icon: [`frontend/public/bluekom.jpg`](file:///d:/Petty%20Cash%20App/frontend/public/bluekom.jpg) and [`frontend/public/favicon.ico`](file:///d:/Petty%20Cash%20App/frontend/public/favicon.ico).
+
+---
+
+## 🎨 UI/UX Consistency Refactoring (2026-10-09)
+
+A full audit and refactoring pass to consolidate inconsistent inline styling across all pages.
+
+### Shared Components Created
+
+| File | Purpose |
+|------|---------|
+| [`frontend/src/components/ui/StatusBadge.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/components/ui/StatusBadge.tsx) | **Single canonical status badge** — replaces 4+ separate inline badge implementations. Accepts `status` prop (e.g. `PENDING_APPROVAL`, `APPROVED`, `PAID`, `COMPLETED`, `REJECTED`, `CORRECTION_REQUIRED`). Uses design tokens from `tailwind.config.js`. |
+| [`frontend/src/components/ui/EmptyState.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/components/ui/EmptyState.tsx) | **Standard empty table state** — replaces plain text "no data" messages. Accepts `icon`, `title`, `description`, and optional `action` props. |
+| [`frontend/src/utils/format.ts`](file:///d:/Petty%20Cash%20App/frontend/src/utils/format.ts) | **Shared format utilities** — `formatCurrency(amount, currency?)`, `formatDate(dateStr)`, `humanStatus(raw)`. All pages must import from here. |
+
+### Pages Updated (applied shared components)
+
+| Page | Changes |
+|------|---------|
+| `DashboardPage.tsx` | Removed local `StatusBadge` definition; imports `StatusBadge` from `ui/`. |
+| `RequestsListPage.tsx` | Uses `StatusBadge`, `EmptyState`, `formatCurrency`, `formatDate`. CTA button uses Tailwind `bg-gold` instead of inline `style={{ backgroundColor }}`. |
+| `SettlementsPendingPage.tsx` | Uses `EmptyState` (with `CheckCircle2` icon), `formatCurrency`, `formatDate`. |
+| `PaymentsPage.tsx` | Uses `EmptyState` (with `Receipt` icon), `formatCurrency`, `formatDate`. |
+| `TransactionsPage.tsx` | Imports `formatCurrency` from utils; replaces all 6 inline `toLocaleString`/`toFixed` currency formatters in table rows and detail modal. |
+| `ReportsPage.tsx` | Uses `StatusBadge` from `ui/`. |
+| `RequestDetailPage.tsx` | Uses `StatusBadge` from `ui/`. |
+
+### Layout Fixes (`DashboardLayout.tsx`)
+- **`PAGE_TITLES` map** — Converts raw route paths (`/requests`, `/reports`, etc.) to human-readable page titles in the header breadcrumb.
+- **Mobile company switcher** — Removed `max-w-[100px]` constraint that was clipping long company names on narrow screens.
+
+### Design Tokens (reference)
+The project uses a deep-teal + golden-amber palette:
+- `bg-gold` / `text-gold` → `#E8A020` (CTA buttons, call-to-action)
+- `bg-primary` / `text-primary` → dark teal (links, focus rings, spinners)
+- Status badge colour scheme: amber = pending, emerald = approved/paid/completed, rose = rejected, sky = correction
+
+### Rules Going Forward
+1. **Never** define a local status badge inside a page — always import `StatusBadge` from `../components/ui/StatusBadge`.
+2. **Never** write `amount.toLocaleString(...)` or `toFixed(2)` in JSX — always use `formatCurrency()` from `../utils/format`.
+3. **Never** write `new Date(...).toLocaleDateString()` in JSX — always use `formatDate()`.
+4. **Never** write a plain "No results" text for empty tables — always use `<EmptyState>`.
+5. **Never** use inline `style={{ backgroundColor: '...' }}` for CTA buttons — use Tailwind design tokens.
+
+> **Status:** ✅ Completed 2026-10-09. TypeScript check passed with 0 errors.
 

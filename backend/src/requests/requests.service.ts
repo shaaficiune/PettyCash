@@ -280,7 +280,18 @@ export class RequestsService {
       throw new ForbiddenException('You do not have access to this request');
     }
 
-    return request;
+    // Company-scoped sequential voucher number: Somtel starts at 1, Bluekom starts at 1
+    const voucherNumber = await this.prisma.pettyCashRequest.count({
+      where: {
+        companyId: request.companyId,
+        createdAt: { lte: request.createdAt },
+      },
+    });
+
+    return {
+      ...request,
+      voucherNumber,
+    };
   }
 
   async update(id: string, userId: string, dto: UpdateRequestDto) {

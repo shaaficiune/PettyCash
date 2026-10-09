@@ -46,6 +46,7 @@ const fmt = (n: number) =>
 export const FundManagementPage: React.FC = () => {
   const { user } = useAuth();
   const now = new Date();
+  const canExportBook = user?.role === 'SUPER_ADMIN' || user?.role === 'ACCOUNTANT';
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
@@ -307,21 +308,23 @@ export const FundManagementPage: React.FC = () => {
             <RefreshCw className="h-4 w-4" />
           </button>
 
-          {/* Export Monthly Book */}
-          <button
-            id="btn-export-monthly-book"
-            onClick={handleExportMonthlyBook}
-            disabled={exportingBook}
-            title="Export Monthly Petty Cash Book (.xlsx)"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer"
-          >
-            {exportingBook ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <FileDown className="h-3.5 w-3.5" />
-            )}
-            <span className="hidden sm:inline">Export Book</span>
-          </button>
+          {/* Export Monthly Book — Accountant / Super Admin only */}
+          {canExportBook && (
+            <button
+              id="btn-export-monthly-book"
+              onClick={handleExportMonthlyBook}
+              disabled={exportingBook}
+              title="Export Monthly Petty Cash Book (.xlsx)"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer"
+            >
+              {exportingBook ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileDown className="h-3.5 w-3.5" />
+              )}
+              <span className="hidden sm:inline">Export Book</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -421,7 +424,7 @@ export const FundManagementPage: React.FC = () => {
             <button
               type="submit"
               disabled={submitting || (!openingBalance && !additionalFunding)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#E8A020] hover:bg-[#D4911A] text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gold hover:bg-gold-600 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-sm cursor-pointer"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
               Initialize Fund
@@ -475,7 +478,7 @@ export const FundManagementPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting || !topUpAmount}
-                  className="sm:self-end flex items-center justify-center gap-1.5 px-5 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 shadow-sm cursor-pointer whitespace-nowrap"
+                  className="sm:self-end flex items-center justify-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-600 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 shadow-sm cursor-pointer whitespace-nowrap"
                 >
                   {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlusCircle className="h-3.5 w-3.5" />}
                   Add Funds

@@ -3,12 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SubmitSettlementDto, ReviewSettlementDto } from './dto/settlement.dto';
 import { SettlementStatus, RequestStatus, RoleName } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { FundsService } from '../funds/funds.service';
 
 @Injectable()
 export class SettlementsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notifications: NotificationsService
+    private readonly notifications: NotificationsService,
+    private readonly fundsService: FundsService,
   ) {}
 
   async submitSettlement(userId: string, dto: SubmitSettlementDto) {
@@ -95,11 +97,27 @@ export class SettlementsService {
     });
 
     if (dto.status === SettlementStatus.APPROVED) {
-      // Move Request status to COMPLETED
+      const refundAmount = Number(settlement.remainingBalance || 0);
+
+      // Move Request status to COMPLETED and update approvedAmount to actual settled expense
       await this.prisma.pettyCashRequest.update({
         where: { id: settlement.requestId },
-        data: { status: RequestStatus.COMPLETED },
+        data: {
+          status: RequestStatus.COMPLETED,
+          approvedAmount: settlement.actualExpenseAmount,
+        },
       });
+
+      // If unspent cash is returned, record refund in Fund balance and Ledger
+      if (refundAmount > 0) {
+        await this.fundsService.recordSettlementRefund(
+          settlement.companyId,
+          settlement.requestId,
+          refundAmount,
+          accountantId,
+          settlement.notes || undefined,
+        );
+      }
 
       // Notify employee
       await this.notifications.create(

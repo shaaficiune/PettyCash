@@ -23,6 +23,9 @@ import {
   Banknote,
   RotateCcw,
 } from 'lucide-react';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import { EmptyState } from '../components/ui/EmptyState';
+import { formatDate } from '../utils/format';
 
 /* ─────────────────────────────────────────────
    Audit Log Config (for Super Admin audit tab)
@@ -108,27 +111,7 @@ function getPresetDates(preset: string): { start: string; end: string } {
 /* ─────────────────────────────────────────────
    Status Badge Helper
 ───────────────────────────────────────────── */
-function RequestStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { bg: string; text: string; label: string }> = {
-    PAID:                 { bg: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300', text: 'text-emerald-700', label: 'Paid' },
-    COMPLETED:            { bg: 'bg-teal-100 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300',             text: 'text-teal-700',    label: 'Completed' },
-    APPROVED:             { bg: 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300',             text: 'text-blue-700',    label: 'Approved' },
-    PAYMENT_PROCESSING:   { bg: 'bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300',     text: 'text-purple-700',  label: 'Processing' },
-    PENDING_APPROVAL:     { bg: 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300',         text: 'text-amber-700',   label: 'Pending' },
-    ACCOUNTANT_REVIEW:    { bg: 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300',     text: 'text-indigo-700',  label: 'Review' },
-    CORRECTION_REQUIRED:  { bg: 'bg-orange-100 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300',     text: 'text-orange-700',  label: 'Correction' },
-    REJECTED:             { bg: 'bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300',             text: 'text-rose-700',    label: 'Rejected' },
-    DRAFT:                { bg: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',             text: 'text-slate-600',   label: 'Draft' },
-  };
 
-  const c = map[status] || { bg: 'bg-slate-100 text-slate-700', text: 'text-slate-600', label: status };
-
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide ${c.bg}`}>
-      {c.label}
-    </span>
-  );
-}
 
 /* ─────────────────────────────────────────────
    Main Reports Page Component
@@ -136,6 +119,7 @@ function RequestStatusBadge({ status }: { status: string }) {
 export const ReportsPage: React.FC = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const canExportBook = user?.role === 'SUPER_ADMIN' || user?.role === 'ACCOUNTANT';
 
   // Active Main Tab
   const [mainTab, setMainTab] = useState<'financial' | 'audit'>('financial');
@@ -421,16 +405,18 @@ export const ReportsPage: React.FC = () => {
         {/* Global Export Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Monthly Petty Cash Book export - most prominent */}
-          <button
-            id="report-export-monthly-book-btn"
-            onClick={handleExportMonthlyBook}
-            disabled={exportingBook}
-            className="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-            title="Export Monthly Petty Cash Book (same format as historical Excel books)"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            {exportingBook ? 'Generating...' : 'Monthly Book (.xlsx)'}
-          </button>
+          {canExportBook && (
+            <button
+              id="report-export-monthly-book-btn"
+              onClick={handleExportMonthlyBook}
+              disabled={exportingBook}
+              className="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+              title="Export Monthly Petty Cash Book (same format as historical Excel books)"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              {exportingBook ? 'Generating...' : 'Monthly Book (.xlsx)'}
+            </button>
+          )}
 
           <button
             id="report-export-excel-btn"
@@ -748,13 +734,12 @@ export const ReportsPage: React.FC = () => {
                     </tr>
                   ) : !reportData || reportData.items.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="text-center py-16 text-slate-400 text-xs">
-                        <div className="max-w-xs mx-auto space-y-1">
-                          <p className="font-semibold text-slate-600 dark:text-slate-300">No records found</p>
-                          <p className="text-[11px] text-slate-400">
-                            Try adjusting the date range, company, region, or status filters.
-                          </p>
-                        </div>
+                      <td colSpan={10}>
+                        <EmptyState
+                          icon={FileText}
+                          title="No records found"
+                          description="Try adjusting the date range, company, region, or status filters."
+                        />
                       </td>
                     </tr>
                   ) : (
@@ -770,11 +755,7 @@ export const ReportsPage: React.FC = () => {
 
                         {/* Date */}
                         <td className="px-3 py-3 text-slate-500 whitespace-nowrap">
-                          {new Date(row.requestDate).toLocaleDateString([], {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
+                          {formatDate(row.requestDate)}
                         </td>
 
                         {/* Employee */}
@@ -825,10 +806,23 @@ export const ReportsPage: React.FC = () => {
                           ${row.requestedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
 
-                        {/* Disbursed Amount */}
-                        <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                          {row.approvedAmount !== null ? (
-                            `$${row.approvedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                        {/* Disbursed Amount / Net Spent */}
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          {row.actualExpenseAmount !== null && row.actualExpenseAmount !== undefined ? (
+                            <div className="flex flex-col items-end">
+                              <span className="font-bold text-slate-900 dark:text-white">
+                                ${Number(row.actualExpenseAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </span>
+                              {row.remainingBalance !== null && Number(row.remainingBalance) > 0 ? (
+                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                  +${Number(row.remainingBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} refund
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : row.approvedAmount !== null ? (
+                            <span className="font-bold text-slate-900 dark:text-white">
+                              ${Number(row.approvedAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
                           ) : (
                             <span className="text-slate-400 font-normal">—</span>
                           )}
@@ -836,7 +830,7 @@ export const ReportsPage: React.FC = () => {
 
                         {/* Status */}
                         <td className="px-4 py-3 text-center whitespace-nowrap">
-                          <RequestStatusBadge status={row.status} />
+                          <StatusBadge status={row.status} />
                         </td>
                       </tr>
                     ))

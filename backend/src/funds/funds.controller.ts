@@ -20,7 +20,9 @@ export class FundsController {
   ) {}
 
   @Get('export/monthly-book')
-  @ApiOperation({ summary: 'Export historical-formatted Monthly Petty Cash Book (.xlsx) with embedded company logos' })
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Export historical-formatted Monthly Petty Cash Book (.xlsx) — ACCOUNTANT/SUPER_ADMIN only' })
   async exportMonthlyBook(
     @Request() req: any,
     @Response() res: any,

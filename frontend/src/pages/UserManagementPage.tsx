@@ -415,7 +415,7 @@ export const UserManagementPage: React.FC = () => {
           {activeTab === 'users' ? (
             <button
               onClick={() => setFormOpen(!formOpen)}
-              className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <UserPlus className="h-4.5 w-4.5" />
               {formOpen ? 'View Users' : 'Add User'}
@@ -423,7 +423,7 @@ export const UserManagementPage: React.FC = () => {
           ) : activeTab === 'regions' ? (
             <button
               onClick={() => setRegionFormOpen(!regionFormOpen)}
-              className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <PlusCircle className="h-4.5 w-4.5" />
               {regionFormOpen ? 'View Regions' : 'Add Region'}
@@ -431,7 +431,7 @@ export const UserManagementPage: React.FC = () => {
           ) : activeTab === 'budget-heads' ? (
             <button
               onClick={() => setBhFormOpen(!bhFormOpen)}
-              className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <PlusCircle className="h-4.5 w-4.5" />
               {bhFormOpen ? 'View Budget Heads' : 'Add Budget Head'}
@@ -553,7 +553,7 @@ export const UserManagementPage: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit"
-                  className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg cursor-pointer shadow-sm transition-all">
+                  className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-lg cursor-pointer shadow-sm transition-all">
                   Save User
                 </button>
               </div>
@@ -862,7 +862,7 @@ export const UserManagementPage: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" disabled={savingUser}
-                  className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg cursor-pointer shadow-sm transition-all disabled:opacity-60 flex items-center gap-1.5">
+                  className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-lg cursor-pointer shadow-sm transition-all disabled:opacity-60 flex items-center gap-1.5">
                   <Save className="h-3.5 w-3.5" />
                   {savingUser ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -1008,7 +1008,7 @@ export const UserManagementPage: React.FC = () => {
                 <button type="button" onClick={() => setRegionFormOpen(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-lg cursor-pointer hover:bg-slate-200">Cancel</button>
                 <button type="submit" disabled={creatingRegion}
-                  className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50 transition-all shadow-sm">
+                  className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50 transition-all shadow-sm">
                   {creatingRegion ? 'Creating...' : 'Create Region'}
                 </button>
               </div>
@@ -1130,7 +1130,7 @@ export const UserManagementPage: React.FC = () => {
                 <button type="button" onClick={() => setBhFormOpen(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-lg cursor-pointer hover:bg-slate-200">Cancel</button>
                 <button type="submit" disabled={creatingBh}
-                  className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50 transition-all shadow-sm">
+                  className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50 transition-all shadow-sm">
                   {creatingBh ? 'Creating...' : 'Create Budget Head'}
                 </button>
               </div>

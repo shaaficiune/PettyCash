@@ -143,6 +143,10 @@ export class PaymentsService {
             select: { 
               requestNumber: true, 
               id: true,
+              purpose: true,
+              receiverName: true,
+              receiverPhone: true,
+              costCenter: true,
               company: { select: { id: true, name: true } }
             } 
           } 
@@ -154,8 +158,27 @@ export class PaymentsService {
       this.prisma.payment.count({ where }),
     ]);
 
+    const itemsWithVoucher = await Promise.all(
+      items.map(async (pm) => {
+        let voucherNumber: number | null = null;
+        if (pm.companyId) {
+          voucherNumber = await this.prisma.payment.count({
+            where: {
+              companyId: pm.companyId,
+              paymentDate: { lte: pm.paymentDate },
+            },
+          });
+        }
+        return {
+          ...pm,
+          voucherNumber,
+          request: pm.request ? { ...pm.request, voucherNumber } : pm.request,
+        };
+      })
+    );
+
     return {
-      items,
+      items: itemsWithVoucher,
       meta: { page, pageSize, total }
     };
   }

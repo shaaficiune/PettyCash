@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
+import { Printer, Receipt } from 'lucide-react';
+import { PaymentVoucherModal } from '../components/PaymentVoucherModal';
+import { EmptyState } from '../components/ui/EmptyState';
+import { formatCurrency, formatDate } from '../utils/format';
 
 export const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<any[]>([]);
@@ -10,6 +14,8 @@ export const PaymentsPage: React.FC = () => {
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [paidBy, setPaidBy] = useState<string>('');
+  const [selectedPaymentForVoucher, setSelectedPaymentForVoucher] = useState<any>(null);
+  const [isVoucherOpen, setIsVoucherOpen] = useState(false);
 
   const loadPayments = async (p = 1) => {
     setLoading(true);
@@ -50,8 +56,8 @@ export const PaymentsPage: React.FC = () => {
               <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div className="w-full sm:w-auto flex-1 min-w-[120px]">
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Paid By (ID)</label>
-              <input placeholder="User ID" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary" />
+              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Paid By (User ID)</label>
+              <input placeholder="Enter User ID" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
               <button onClick={() => loadPayments(1)} className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer transition-all flex-1 sm:flex-initial text-center">Filter</button>
@@ -64,7 +70,11 @@ export const PaymentsPage: React.FC = () => {
             <span className="text-xs text-slate-400">Loading payments...</span>
           </div>
         ) : payments.length === 0 ? (
-          <div className="p-12 text-center text-xs text-slate-400">No payments recorded.</div>
+          <EmptyState
+            icon={Receipt}
+            title="No payments recorded"
+            description="There are no payment records matching your filter."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -77,6 +87,7 @@ export const PaymentsPage: React.FC = () => {
                   <th className="py-3.5 px-4 hidden lg:table-cell">Paid By</th>
                   <th className="py-3.5 px-4 hidden md:table-cell">Date</th>
                   <th className="py-3.5 px-6">Ref / Txn</th>
+                  <th className="py-3.5 px-4 text-center">Voucher</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
@@ -95,11 +106,27 @@ export const PaymentsPage: React.FC = () => {
                           {p.request?.company?.name || '—'}
                         </span>
                       </td>
-                      <td className="py-4 px-4 font-bold text-slate-800 dark:text-slate-100">{p.amountPaid}</td>
+                      <td className="py-4 px-4 font-bold text-slate-800 dark:text-slate-100">
+                        {formatCurrency(p.amountPaid, p.currency || p.request?.currency)}
+                      </td>
                       <td className="py-4 px-4 hidden md:table-cell text-slate-600 dark:text-slate-400">{p.paymentMethod}</td>
                       <td className="py-4 px-4 hidden lg:table-cell text-slate-600 dark:text-slate-400">{p.paidBy?.fullName || p.paidBy?.username}</td>
-                      <td className="py-4 px-4 hidden md:table-cell text-slate-500 dark:text-slate-400">{new Date(p.paymentDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                      <td className="py-4 px-4 hidden md:table-cell text-slate-500 dark:text-slate-400">
+                        {formatDate(p.paymentDate)}
+                      </td>
                       <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">{p.referenceNumber || p.transactionId || '-'}</td>
+                      <td className="py-4 px-4 text-center">
+                        <button
+                          onClick={() => {
+                            setSelectedPaymentForVoucher(p);
+                            setIsVoucherOpen(true);
+                          }}
+                          className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-colors cursor-pointer"
+                          title="Print Payment Voucher"
+                        >
+                          <Printer className="h-4 w-4" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -118,6 +145,17 @@ export const PaymentsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* ── Payment Voucher Printable Modal ── */}
+      <PaymentVoucherModal
+        isOpen={isVoucherOpen}
+        onClose={() => {
+          setIsVoucherOpen(false);
+          setSelectedPaymentForVoucher(null);
+        }}
+        request={selectedPaymentForVoucher?.request}
+        payment={selectedPaymentForVoucher}
+      />
     </div>
   );
 };

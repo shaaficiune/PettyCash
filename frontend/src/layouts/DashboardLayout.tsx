@@ -25,6 +25,29 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 
+// ── Human-readable page title map (UI-004) ─────────────────────────────────
+const PAGE_TITLES: Record<string, string> = {
+  '/':                     'Executive Dashboard',
+  '/requests':             'Petty Cash Requests',
+  '/requests/new':         'New Request',
+  '/funds':                'Fund Management',
+  '/transactions':         'Transaction Ledger',
+  '/settlements/pending':  'Settlement Audits',
+  '/users':                'User Directory',
+  '/reports':              'Financial Reports',
+  '/payments':             'Payments',
+};
+
+function getPageTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  // requests/edit/:id or requests/:id
+  if (/^\/requests\/edit\//.test(pathname)) return 'Edit Request';
+  if (/^\/requests\/[^/]+$/.test(pathname)) return 'Request Detail';
+  // fallback: capitalise first segment
+  const segment = pathname.split('/')[1] ?? '';
+  return segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+}
+
 export const DashboardLayout: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -329,10 +352,8 @@ export const DashboardLayout: React.FC = () => {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white capitalize truncate">
-              {location.pathname === '/' 
-                ? 'Executive Dashboard' 
-                : location.pathname.substring(1).replace('/', ' / ')}
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
+              {getPageTitle(location.pathname)}
             </h1>
 
             {/* Accountant / Admin Company Context Switcher */}
@@ -361,9 +382,9 @@ export const DashboardLayout: React.FC = () => {
                 <select
                   value={companyContext}
                   onChange={(e) => handleCompanyContextChange(e.target.value)}
-                  className="text-xs font-semibold bg-slate-100 dark:bg-slate-800 border-none outline-none rounded-md px-2 py-1 text-slate-700 dark:text-slate-300 cursor-pointer max-w-[100px]"
+                  className="text-xs font-semibold bg-slate-100 dark:bg-slate-800 border-none outline-none rounded-md px-2 py-1 text-slate-700 dark:text-slate-300 cursor-pointer max-w-[140px]"
                 >
-                  <option value="ALL">All</option>
+                  <option value="ALL">All Companies</option>
                   {companies.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
-import { Eye } from 'lucide-react';
+import { Eye, CheckCircle2 } from 'lucide-react';
+import { EmptyState } from '../components/ui/EmptyState';
+import { formatCurrency, formatDate } from '../utils/format';
 
 export const SettlementsPendingPage: React.FC = () => {
   const [settlements, setSettlements] = useState<any[]>([]);
@@ -43,9 +45,11 @@ export const SettlementsPendingPage: React.FC = () => {
             <span className="text-xs text-slate-400">Loading settlements...</span>
           </div>
         ) : settlements.length === 0 ? (
-          <div className="p-12 text-center text-xs text-slate-400">
-            No pending settlements.
-          </div>
+          <EmptyState
+            icon={CheckCircle2}
+            title="All caught up!"
+            description="No pending settlement audits found."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -68,7 +72,9 @@ export const SettlementsPendingPage: React.FC = () => {
                       className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                     >
                     <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-200">
-                      {st.request?.requestNumber}
+                      <Link to={`/requests/${st.request?.requestNumber || st.request?.id}`} className="text-primary hover:underline font-bold">
+                        {st.request?.requestNumber}
+                      </Link>
                     </td>
                     <td className="py-4 px-4">
                       <div>
@@ -86,20 +92,20 @@ export const SettlementsPendingPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4 font-bold text-slate-800 dark:text-slate-100">
-                      {st.request?.currency} {Number(st.actualExpenseAmount).toLocaleString()}
+                      {formatCurrency(st.actualExpenseAmount, st.request?.currency)}
                     </td>
                     <td className="py-4 px-4 font-semibold">
                       <span className={Number(st.remainingBalance) > 0 ? 'text-amber-600 dark:text-amber-400' : Number(st.remainingBalance) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'}>
-                        {st.request?.currency} {Number(st.remainingBalance).toLocaleString()}
+                        {formatCurrency(st.remainingBalance, st.request?.currency)}
                       </span>
                     </td>
                     <td className="py-4 px-4 text-slate-500 dark:text-slate-400 hidden md:table-cell">
-                      {new Date(st.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {formatDate(st.createdAt)}
                     </td>
                     <td className="py-4 px-6 text-center">
                       <Link
                         to={`/requests/${st.request?.requestNumber || st.request?.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition-all"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         Audit

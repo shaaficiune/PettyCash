@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Plus, Filter, FileSpreadsheet, Printer, Eye, Calendar, MapPin } from 'lucide-react';
+import { Search, Plus, Filter, FileSpreadsheet, Printer, Eye, Calendar, MapPin, Receipt } from 'lucide-react';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import { EmptyState } from '../components/ui/EmptyState';
+import { formatCurrency, formatDate } from '../utils/format';
 
 
 const getLocalDateString = (d: Date = new Date()): string => {
@@ -239,10 +242,7 @@ export const RequestsListPage: React.FC = () => {
           {(user?.role === 'EMPLOYEE' || user?.role === 'ACCOUNTANT') && (
             <Link
               to="/requests/new"
-              className="px-3 py-1.5 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all shadow-md"
-              style={{ backgroundColor: '#E8A020' }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#D4911A')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#E8A020')}
+              className="px-3 py-1.5 bg-gold hover:bg-gold-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all shadow-md"
             >
               <Plus className="h-3.5 w-3.5" />
               New Request
@@ -421,17 +421,23 @@ export const RequestsListPage: React.FC = () => {
               <tbody>
                 {filteredRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="text-center py-12 text-sm text-slate-400">
-                      <div>No requests found matching your filters</div>
-                      {(datePreset === 'TODAY' || datePreset === 'THIS_MONTH') && (
-                        <button
-                          type="button"
-                          onClick={() => applyDatePreset('ALL')}
-                          className="mt-2 text-xs text-primary hover:underline font-semibold cursor-pointer block mx-auto"
-                        >
-                          View All Time Requests
-                        </button>
-                      )}
+                    <td colSpan={10}>
+                      <EmptyState
+                        icon={Receipt}
+                        title="No requests found"
+                        description="Try adjusting your filters or date range."
+                        action={
+                          (datePreset === 'TODAY' || datePreset === 'THIS_MONTH') ? (
+                            <button
+                              type="button"
+                              onClick={() => applyDatePreset('ALL')}
+                              className="text-xs text-primary hover:underline font-semibold cursor-pointer"
+                            >
+                              View All Time Requests
+                            </button>
+                          ) : undefined
+                        }
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -447,7 +453,7 @@ export const RequestsListPage: React.FC = () => {
                           </Link>
                         </td>
                         <td className="py-3 px-3 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">
-                          {new Date(req.requestDate || req.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {formatDate(req.requestDate || req.createdAt)}
                         </td>
                         <td className="py-3 px-4">
                           <div>
@@ -487,15 +493,20 @@ export const RequestsListPage: React.FC = () => {
                           {['APPROVED', 'PAID', 'COMPLETED'].includes(req.status) && req.approvedAmount && Number(req.approvedAmount) !== Number(req.requestedAmount) ? (
                             <div className="flex flex-col items-end">
                               <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                                {req.currency} {Number(req.approvedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatCurrency(req.approvedAmount, req.currency)}
                               </span>
                               <span className="text-[10px] text-slate-400 line-through">
-                                Req: {req.currency} {Number(req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                Req: {formatCurrency(req.requestedAmount, req.currency)}
                               </span>
                             </div>
                           ) : (
                             <span className="font-bold text-slate-800 dark:text-slate-100">
-                              {req.currency} {Number(req.approvedAmount && ['APPROVED', 'PAID', 'COMPLETED'].includes(req.status) ? req.approvedAmount : req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {formatCurrency(
+                                req.approvedAmount && ['APPROVED', 'PAID', 'COMPLETED'].includes(req.status)
+                                  ? req.approvedAmount
+                                  : req.requestedAmount,
+                                req.currency
+                              )}
                             </span>
                           )}
                         </td>
@@ -508,18 +519,8 @@ export const RequestsListPage: React.FC = () => {
                           {req.priority}
                         </span>
                       </td>
-                      <td className="py-4 px-4">
-                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
-                          req.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40' :
-                          req.status === 'PAID' ? 'bg-blue-50 text-blue-700 border border-blue-200/60 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40' :
-                          req.status === 'APPROVED' ? 'bg-teal-50 text-teal-700 border border-teal-200/60 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/40' :
-                          req.status === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40' :
-                          req.status === 'CORRECTION_REQUIRED' ? 'bg-orange-50 text-orange-700 border border-orange-200/60 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/40' :
-                          req.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40' :
-                          'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                        }`}>
-                          {req.status.replace('_', ' ')}
-                        </span>
+                      <td className="py-4 px-4 text-center">
+                        <StatusBadge status={req.status} />
                       </td>
                       <td className="py-4 px-6 text-center">
                         <Link

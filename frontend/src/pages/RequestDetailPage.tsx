@@ -7,30 +7,10 @@ import {
   RefreshCw, User, Building2, MapPin, Tag, Calendar, FileText,
   Paperclip, CheckCircle2, AlertCircle, CircleDollarSign,
   Banknote, Edit3, Send, ReceiptText, ClipboardCheck, Loader2,
+  Printer,
 } from 'lucide-react';
-
-// ─── Status helpers ────────────────────────────────────────────────────────────
-const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string; darkBg: string; darkText: string; darkBorder: string }> = {
-  DRAFT: { label: 'Draft', color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200', darkBg: 'dark:bg-slate-800', darkText: 'dark:text-slate-300', darkBorder: 'dark:border-slate-700' },
-  PENDING_APPROVAL: { label: 'Pending Approval', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', darkBg: 'dark:bg-amber-950/40', darkText: 'dark:text-amber-300', darkBorder: 'dark:border-amber-800/40' },
-  ACCOUNTANT_REVIEW: { label: 'Accountant Review', color: 'text-sky-700', bg: 'bg-sky-50', border: 'border-sky-200', darkBg: 'dark:bg-sky-950/40', darkText: 'dark:text-sky-300', darkBorder: 'dark:border-sky-800/40' },
-  CORRECTION_REQUIRED: { label: 'Correction Required', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', darkBg: 'dark:bg-orange-950/40', darkText: 'dark:text-orange-300', darkBorder: 'dark:border-orange-800/40' },
-  REJECTED: { label: 'Rejected', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200', darkBg: 'dark:bg-rose-950/40', darkText: 'dark:text-rose-300', darkBorder: 'dark:border-rose-800/40' },
-  APPROVED: { label: 'Approved', color: 'text-teal-700', bg: 'bg-teal-50', border: 'border-teal-200', darkBg: 'dark:bg-teal-950/40', darkText: 'dark:text-teal-300', darkBorder: 'dark:border-teal-800/40' },
-  PAID: { label: 'Paid', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', darkBg: 'dark:bg-blue-950/40', darkText: 'dark:text-blue-300', darkBorder: 'dark:border-blue-800/40' },
-  COMPLETED: { label: 'Completed', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', darkBg: 'dark:bg-emerald-950/40', darkText: 'dark:text-emerald-300', darkBorder: 'dark:border-emerald-800/40' },
-};
-
-const StatusBadge: React.FC<{ status: string; size?: 'sm' | 'md' }> = ({ status, size = 'md' }) => {
-  const m = STATUS_META[status] || STATUS_META.DRAFT;
-  return (
-    <span className={`inline-flex items-center gap-1.5 font-semibold rounded-full border
-      ${size === 'md' ? 'text-xs px-3 py-1' : 'text-[10px] px-2 py-0.5'}
-      ${m.bg} ${m.color} ${m.border} ${m.darkBg} ${m.darkText} ${m.darkBorder}`}>
-      {m.label}
-    </span>
-  );
-};
+import { PaymentVoucherModal } from '../components/PaymentVoucherModal';
+import { StatusBadge } from '../components/ui/StatusBadge';
 
 // ─── Timeline ────────────────────────────────────────────────────────────────
 const TIMELINE_STEPS = [
@@ -146,6 +126,8 @@ export const RequestDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isVoucherOpen, setIsVoucherOpen] = useState(false);
+  const [selectedPaymentForVoucher, setSelectedPaymentForVoucher] = useState<any>(null);
 
   // Action states
   const [actionComments, setActionComments] = useState('');
@@ -287,15 +269,31 @@ export const RequestDetailPage: React.FC = () => {
           <ArrowLeft className="h-4 w-4" />
           Back to Requests
         </button>
-        {canEdit && (
-          <Link
-            to={`/requests/edit/${request.requestNumber || request.id}`}
-            className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-sm shadow-amber-500/20 transition-all"
-          >
-            <Edit3 className="h-3.5 w-3.5" />
-            Edit Request
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {(request.status === 'PAID' || request.status === 'COMPLETED') && (
+            <button
+              id="btn-print-voucher-top"
+              onClick={() => {
+                setSelectedPaymentForVoucher(null);
+                setIsVoucherOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+              title="Print Historical Payment Voucher"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              <span>Print Payment Voucher</span>
+            </button>
+          )}
+          {canEdit && (
+            <Link
+              to={`/requests/edit/${request.requestNumber || request.id}`}
+              className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-sm shadow-amber-500/20 transition-all"
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              Edit Request
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* ── Error Banner ── */}
@@ -569,7 +567,7 @@ export const RequestDetailPage: React.FC = () => {
               <button
                 onClick={() => handleReview(request.status === 'PENDING_APPROVAL' ? 'ACCOUNTANT_REVIEW' : 'APPROVED')}
                 disabled={actionLoading}
-                className="px-5 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-60"
+                className="px-5 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-60"
               >
                 {actionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
                 {request.status === 'PENDING_APPROVAL' ? 'Approve → Forward to CFO' : 'Final Approve (Ready for Payment)'}
@@ -711,7 +709,7 @@ export const RequestDetailPage: React.FC = () => {
               <button
                 onClick={handleSubmitSettlement}
                 disabled={actionLoading}
-                className="px-5 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+                className="px-5 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-60"
               >
                 {actionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckSquare className="h-3.5 w-3.5" />}
                 Submit Settlement
@@ -728,9 +726,23 @@ export const RequestDetailPage: React.FC = () => {
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Banknote className="h-4 w-4 text-emerald-500" /> Payment History
             </h3>
-            <span className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-200/60">
-              {request.payments.length} record{request.payments.length > 1 ? 's' : ''}
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                id="btn-print-voucher-payment-history"
+                onClick={() => {
+                  setSelectedPaymentForVoucher(request.payments[0]);
+                  setIsVoucherOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                title="Print Payment Voucher"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>Print Voucher</span>
+              </button>
+              <span className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-200/60">
+                {request.payments.length} record{request.payments.length > 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
           <div className="p-5 space-y-3">
             {request.payments.map((pm: any) => (
@@ -743,6 +755,17 @@ export const RequestDetailPage: React.FC = () => {
                     <span className="text-slate-400 text-[11px]">
                       {new Date(pm.paymentDate || pm.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
+                    <button
+                      onClick={() => {
+                        setSelectedPaymentForVoucher(pm);
+                        setIsVoucherOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded hover:bg-emerald-100 transition-colors cursor-pointer"
+                      title="Print Voucher for this Payment"
+                    >
+                      <Printer className="h-3 w-3" />
+                      <span>Voucher</span>
+                    </button>
                   </div>
                   <div className="text-left sm:text-right">
                     <p className="text-[10px] text-slate-400 uppercase font-bold">Amount Paid</p>
@@ -833,6 +856,14 @@ export const RequestDetailPage: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* ── Payment Voucher Printable Modal ── */}
+      <PaymentVoucherModal
+        isOpen={isVoucherOpen}
+        onClose={() => setIsVoucherOpen(false)}
+        request={request}
+        payment={selectedPaymentForVoucher}
+      />
     </div>
   );
 };

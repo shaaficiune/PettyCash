@@ -501,7 +501,7 @@ export const RequestFormPage: React.FC = () => {
                   : undefined
               }
               onClick={() => handleSubmit('PENDING_APPROVAL')}
-              className="px-4 py-2 bg-[#E8A020] hover:bg-[#D4911A] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Send className="h-4 w-4" />
               {submitting ? 'Submitting...' : 'Submit Request'}

@@ -5,8 +5,11 @@ import api from '../services/api';
 import {
   Wallet, FileText, Clock, CheckCircle2, XCircle,
   PlusCircle, ArrowRight, Building2,
-  Loader2,
+  Loader2, Receipt,
 } from 'lucide-react';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import { EmptyState } from '../components/ui/EmptyState';
+import { formatCurrency, formatDate } from '../utils/format';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -18,22 +21,7 @@ const COMPANY_COLORS: Record<string, string> = {
 const fmtMoney = (n: number) =>
   `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  const map: Record<string, string> = {
-    COMPLETED:          'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40',
-    PAID:               'bg-blue-50 text-blue-700 border border-blue-200/60 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40',
-    APPROVED:           'bg-teal-50 text-teal-700 border border-teal-200/60 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/40',
-    PENDING_APPROVAL:   'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40',
-    CORRECTION_REQUIRED:'bg-orange-50 text-orange-700 border border-orange-200/60 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/40',
-    REJECTED:           'bg-rose-50 text-rose-700 border border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40',
-    DRAFT:              'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
-  };
-  return (
-    <span className={`text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full whitespace-nowrap ${map[status] || map.DRAFT}`}>
-      {status.replace(/_/g, ' ')}
-    </span>
-  );
-};
+
 
 // ─── Shared Summary Card ──────────────────────────────────────────────────────
 interface CardProps {
@@ -110,8 +98,18 @@ const RequestsTable: React.FC<ReqTableProps> = ({
       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
         {rows.length === 0 ? (
           <tr>
-            <td colSpan={8} className="text-center py-10 text-sm text-slate-400">
-              {emptyMessage ?? 'No requests found.'}
+            <td colSpan={8}>
+              {emptyMessage ? (
+                <div className="py-8 text-center text-sm text-slate-400">
+                  {emptyMessage}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={Receipt}
+                  title="No requests found"
+                  description="There are no requests matching this view."
+                />
+              )}
             </td>
           </tr>
         ) : (
@@ -126,7 +124,7 @@ const RequestsTable: React.FC<ReqTableProps> = ({
                   </Link>
                 </td>
                 <td className="py-4 px-4 text-slate-500 hidden sm:table-cell">
-                  {new Date(req.requestDate || req.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {formatDate(req.requestDate || req.createdAt)}
                 </td>
                 {showEmployee && (
                   <td className="py-4 px-4 font-medium text-slate-800 dark:text-slate-200">{req.user?.fullName}</td>
@@ -145,15 +143,20 @@ const RequestsTable: React.FC<ReqTableProps> = ({
                   {['APPROVED', 'PAID', 'COMPLETED'].includes(req.status) && req.approvedAmount && Number(req.approvedAmount) !== Number(req.requestedAmount) ? (
                     <div>
                       <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                        {req.currency} {Number(req.approvedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatCurrency(req.approvedAmount, req.currency)}
                       </span>
                       <span className="block text-[10px] text-slate-400 line-through">
-                        Req: {req.currency} {Number(req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        Req: {formatCurrency(req.requestedAmount, req.currency)}
                       </span>
                     </div>
                   ) : (
                     <span className="font-bold text-slate-800 dark:text-slate-100">
-                      {req.currency} {Number(req.approvedAmount && ['APPROVED', 'PAID', 'COMPLETED'].includes(req.status) ? req.approvedAmount : req.requestedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(
+                        req.approvedAmount && ['APPROVED', 'PAID', 'COMPLETED'].includes(req.status)
+                          ? req.approvedAmount
+                          : req.requestedAmount,
+                        req.currency
+                      )}
                     </span>
                   )}
                 </td>
@@ -465,10 +468,7 @@ const EmployeeDashboard: React.FC = () => {
         </div>
         <Link
           to="/requests/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-white font-bold rounded-xl shadow-md transition-all text-xs"
-          style={{ backgroundColor: '#E8A020' }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#D4911A')}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#E8A020')}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gold hover:bg-gold-600 text-white font-bold rounded-xl shadow-md transition-all text-xs"
         >
           <PlusCircle className="h-4 w-4" />
           New Petty Cash Request

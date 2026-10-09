@@ -49,7 +49,7 @@ export const LoginPage: React.FC = () => {
       <div className="w-full max-w-sm relative z-10">
         {/* Brand Header */}
         <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-[#E8A020] text-white flex items-center justify-center mx-auto mb-3.5 shadow-lg shadow-amber-500/25">
+          <div className="w-14 h-14 rounded-2xl bg-gold text-white flex items-center justify-center mx-auto mb-3.5 shadow-lg shadow-amber-500/25">
             <Wallet className="h-7 w-7" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Petty Cash System</h1>
@@ -77,7 +77,7 @@ export const LoginPage: React.FC = () => {
                   placeholder="Enter username"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#062020]/80 border border-teal-700/50 text-white placeholder-teal-400/40 rounded-xl text-sm outline-none focus:border-[#E8A020] focus:ring-1 focus:ring-[#E8A020]/40 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#062020]/80 border border-teal-700/50 text-white placeholder-teal-400/40 rounded-xl text-sm outline-none focus:border-gold focus:ring-1 focus:ring-gold/40 transition-all"
                   autoComplete="username"
                 />
               </div>
@@ -93,7 +93,7 @@ export const LoginPage: React.FC = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#062020]/80 border border-teal-700/50 text-white placeholder-teal-400/40 rounded-xl text-sm outline-none focus:border-[#E8A020] focus:ring-1 focus:ring-[#E8A020]/40 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#062020]/80 border border-teal-700/50 text-white placeholder-teal-400/40 rounded-xl text-sm outline-none focus:border-gold focus:ring-1 focus:ring-gold/40 transition-all"
                   autoComplete="current-password"
                 />
               </div>
@@ -102,7 +102,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-2.5 bg-[#E8A020] hover:bg-[#D4911A] text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
+              className="w-full mt-2 py-2.5 bg-gold hover:bg-gold-600 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>

@@ -99,7 +99,7 @@ export const FirstLoginResetPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-[#E8A020] hover:bg-[#D4911A] text-white text-sm font-semibold rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            className="w-full py-2.5 bg-gold hover:bg-gold-600 text-white text-sm font-semibold rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50"
           >
             {loading ? 'Updating Password...' : 'Save & Continue'}
           </button>
