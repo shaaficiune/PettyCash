@@ -17,13 +17,30 @@ import {
   Wallet,
   Menu,
   X,
-  UserCircle,
   KeyRound,
   Eye,
   EyeOff,
-  ChevronUp
+  ChevronUp,
+  Settings
 } from 'lucide-react';
 import api from '../services/api';
+import {
+  Button,
+  Input,
+  Label,
+  Badge,
+  Avatar,
+  AvatarFallback,
+  Separator,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  Alert,
+  AlertDescription,
+} from '../components/ui';
 
 // ── Human-readable page title map (UI-004) ─────────────────────────────────
 const PAGE_TITLES: Record<string, string> = {
@@ -34,16 +51,14 @@ const PAGE_TITLES: Record<string, string> = {
   '/transactions':         'Transaction Ledger',
   '/settlements/pending':  'Settlement Audits',
   '/users':                'User Directory',
-  '/reports':              'Financial Reports',
+  '/settings':             'System Settings & Audit',
   '/payments':             'Payments',
 };
 
 function getPageTitle(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
-  // requests/edit/:id or requests/:id
   if (/^\/requests\/edit\//.test(pathname)) return 'Edit Request';
   if (/^\/requests\/[^/]+$/.test(pathname)) return 'Request Detail';
-  // fallback: capitalise first segment
   const segment = pathname.split('/')[1] ?? '';
   return segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
 }
@@ -149,7 +164,6 @@ export const DashboardLayout: React.FC = () => {
     }
   };
 
-  // Mark all notifications as read
   const markAllRead = async () => {
     try {
       await api.put('/notifications/read-all');
@@ -162,7 +176,6 @@ export const DashboardLayout: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchNotifications();
-      // Poll every 30 seconds for live updates
       const interval = setInterval(fetchNotifications, 30000);
       return () => clearInterval(interval);
     }
@@ -179,12 +192,10 @@ export const DashboardLayout: React.FC = () => {
 
   if (!user) return null;
 
-  // Set Company Context globally in session storage to read in query pages
   const handleCompanyContextChange = (value: string) => {
     setCompanyContext(value);
     sessionStorage.setItem('companyFilter', value);
 
-    // ── Brand context switch — updates --primary token system-wide ──────────
     const selectedCompany = companies.find(c => c.id === value);
     if (selectedCompany?.name?.toLowerCase() === 'somtel') {
       document.documentElement.setAttribute('data-company', 'somtel');
@@ -192,7 +203,6 @@ export const DashboardLayout: React.FC = () => {
       document.documentElement.removeAttribute('data-company');
     }
 
-    // Reload components in outlet by triggering a custom event
     window.dispatchEvent(new Event('companyFilterChanged'));
   };
 
@@ -205,14 +215,14 @@ export const DashboardLayout: React.FC = () => {
     { label: 'Transaction Ledger', path: '/transactions', icon: Coins, roles: ['SUPER_ADMIN', 'ACCOUNTANT'] },
     { label: 'Settlement Audits', path: '/settlements/pending', icon: FileCheck, roles: ['ACCOUNTANT', 'SUPER_ADMIN'] },
     { label: 'User Directory', path: '/users', icon: Users, roles: ['SUPER_ADMIN'] },
-    { label: 'Reports', path: '/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'ACCOUNTANT'] },
+    { label: 'Settings', path: '/settings', icon: Settings, roles: ['SUPER_ADMIN', 'ACCOUNTANT'] },
   ];
 
-
   const unreadCount = notifications.filter(n => !n.isRead).length;
+  const userInitials = user.fullName.split(' ').map(n => n[0]).join('').slice(0, 2);
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+    <div className="min-h-screen flex bg-background text-foreground transition-colors duration-200">
       
       {/* Mobile Backdrop */}
       {mobileMenuOpen && (
@@ -223,13 +233,13 @@ export const DashboardLayout: React.FC = () => {
       )}
 
       {/* SIDEBAR */}
-      <aside className={`w-64 border-r border-[#072424] dark:border-slate-800 bg-[#0a2e2e] dark:bg-slate-950 flex flex-col transition-colors duration-300 h-screen fixed inset-y-0 left-0 z-50 md:sticky md:top-0 md:translate-x-0 ${
+      <aside className={`w-64 border-r border-[#072424] dark:border-border bg-[#0a2e2e] dark:bg-card flex flex-col transition-colors duration-200 h-screen fixed inset-y-0 left-0 z-50 md:sticky md:top-0 md:translate-x-0 ${
         mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
       }`}>
         {/* Logo Header */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 dark:border-slate-800 flex-shrink-0">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 dark:border-border flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white">
+            <div className="h-8 w-8 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white shadow-sm">
               <Wallet className="h-4 w-4" />
             </div>
             <div className="flex flex-col">
@@ -250,7 +260,7 @@ export const DashboardLayout: React.FC = () => {
           </button>
         </div>
 
-        {/* Navigation Links — scrolls independently */}
+        {/* Navigation Links */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {navItems
             .filter(item => item.roles.includes(user.role))
@@ -263,31 +273,33 @@ export const DashboardLayout: React.FC = () => {
                   to={item.path}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     isActive 
-                      ? 'bg-white/15 dark:bg-white/10 text-white font-semibold' 
-                      : 'text-white/65 dark:text-slate-300 hover:bg-white/10 dark:hover:bg-white/5 hover:text-white'
+                      ? 'bg-white/15 dark:bg-accent text-white font-semibold shadow-sm' 
+                      : 'text-white/70 dark:text-muted-foreground hover:bg-white/10 dark:hover:bg-accent/60 hover:text-white'
                   }`}
                 >
-                  <item.icon className={`h-4.5 w-4.5 ${isActive ? 'text-white' : 'text-white/55'}`} />
+                  <item.icon className={`h-4.5 w-4.5 ${isActive ? 'text-white' : 'text-white/60 dark:text-muted-foreground'}`} />
                   {item.label}
                 </Link>
               );
             })}
         </nav>
 
-        {/* User profile footer — dropdown trigger */}
-        <div ref={profileDropdownRef} className="flex-shrink-0 p-4 border-t border-white/10 dark:border-slate-800 bg-[#0a2e2e] dark:bg-slate-900/90 relative">
+        {/* User profile footer */}
+        <div ref={profileDropdownRef} className="flex-shrink-0 p-4 border-t border-white/10 dark:border-border bg-[#0a2e2e] dark:bg-card/90 relative">
 
-          {/* Profile Dropdown Popover — appears above the card */}
+          {/* Profile Dropdown Popover */}
           {showProfileDropdown && (
-            <div className="absolute bottom-full left-3 right-3 mb-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden z-[60]">
+            <div className="absolute bottom-full left-3 right-3 mb-2 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-[60] animate-in fade-in-0 zoom-in-95 duration-150">
               {/* User info header */}
-              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                <div className="h-9 w-9 rounded-lg bg-[#0a2e2e] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                  {user.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                </div>
+              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border bg-muted/30">
+                <Avatar size="sm">
+                  <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xs">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.fullName}</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  <p className="text-xs font-bold text-foreground truncate">{user.fullName}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">
                     {user.email || user.username}
                   </p>
                 </div>
@@ -296,19 +308,18 @@ export const DashboardLayout: React.FC = () => {
               {/* Change Password */}
               <button
                 onClick={openChangePassword}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer"
               >
-                <KeyRound className="h-4 w-4 text-slate-400" />
+                <KeyRound className="h-4 w-4 text-muted-foreground" />
                 Change Password
               </button>
 
-              {/* Divider */}
-              <div className="h-px bg-slate-100 dark:bg-slate-800" />
+              <Separator />
 
               {/* Log out */}
               <button
                 onClick={() => { setShowProfileDropdown(false); logout(); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
               >
                 <LogOut className="h-4 w-4" />
                 Log out
@@ -323,16 +334,18 @@ export const DashboardLayout: React.FC = () => {
               showProfileDropdown ? 'bg-white/15' : 'hover:bg-white/10'
             }`}
           >
-            <div className="h-9 w-9 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 group-hover:bg-white/25 transition-colors">
-              {user.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-            </div>
+            <Avatar size="sm">
+              <AvatarFallback className="bg-white/15 border border-white/20 text-white font-bold text-xs group-hover:bg-white/25 transition-colors">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold truncate text-white">{user.fullName}</p>
-              <p className="text-[11px] text-white/55 truncate">
+              <p className="text-[11px] text-white/60 truncate">
                 {user.email || user.username}
               </p>
             </div>
-            <ChevronUp className={`h-3.5 w-3.5 text-white/40 transition-transform duration-200 flex-shrink-0 ${
+            <ChevronUp className={`h-3.5 w-3.5 text-white/50 transition-transform duration-200 flex-shrink-0 ${
               showProfileDropdown ? 'rotate-0' : 'rotate-180'
             }`} />
           </button>
@@ -343,28 +356,28 @@ export const DashboardLayout: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0">
         
         {/* HEADER NAVBAR */}
-        <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md flex items-center justify-between px-4 sm:px-8 z-10 transition-colors duration-300">
+        <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-8 z-10 transition-colors">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-2 -ml-1 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer shrink-0"
+              className="md:hidden p-2 -ml-1 text-muted-foreground hover:bg-accent rounded-lg cursor-pointer shrink-0"
               aria-label="Open sidebar"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
+            <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight truncate">
               {getPageTitle(location.pathname)}
             </h1>
 
             {/* Accountant / Admin Company Context Switcher */}
             {(user.role === 'ACCOUNTANT' || user.role === 'SUPER_ADMIN') && (
               <div className="hidden sm:flex items-center gap-2 ml-4">
-                <Building2 className="h-4 w-4 text-slate-400 shrink-0" />
-                <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Company View:</span>
+                <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">Company View:</span>
                 <select
                   value={companyContext}
                   onChange={(e) => handleCompanyContextChange(e.target.value)}
-                  className="text-xs font-semibold bg-slate-100 dark:bg-slate-800 border-none outline-none rounded-md px-2.5 py-1 text-slate-700 dark:text-slate-300 cursor-pointer"
+                  className="text-xs font-semibold bg-muted/60 border border-input rounded-md px-2.5 py-1 text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="ALL">All Companies</option>
                   {companies.map(c => (
@@ -375,14 +388,14 @@ export const DashboardLayout: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Mobile Company Switcher */}
             {(user.role === 'ACCOUNTANT' || user.role === 'SUPER_ADMIN') && (
               <div className="sm:hidden flex items-center">
                 <select
                   value={companyContext}
                   onChange={(e) => handleCompanyContextChange(e.target.value)}
-                  className="text-xs font-semibold bg-slate-100 dark:bg-slate-800 border-none outline-none rounded-md px-2 py-1 text-slate-700 dark:text-slate-300 cursor-pointer max-w-[140px]"
+                  className="text-xs font-semibold bg-muted/60 border border-input rounded-md px-2 py-1 text-foreground cursor-pointer max-w-[130px] focus:outline-none"
                 >
                   <option value="ALL">All Companies</option>
                   {companies.map(c => (
@@ -393,32 +406,38 @@ export const DashboardLayout: React.FC = () => {
             )}
 
             {/* Theme Toggle */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer"
+              className="rounded-full text-muted-foreground hover:text-foreground"
+              aria-label="Toggle theme"
             >
-              {darkMode ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5" />}
-            </button>
+              {darkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+            </Button>
 
             {/* Notification Hub */}
             <div className="relative">
-              <button
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 relative cursor-pointer"
+                className="rounded-full text-muted-foreground hover:text-foreground relative"
+                aria-label="Notifications"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 h-4 w-4 bg-rose-500 text-[10px] font-bold text-white rounded-full flex items-center justify-center animate-pulse">
+                  <span className="absolute top-1 right-1 h-3.5 w-3.5 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center animate-pulse">
                     {unreadCount}
                   </span>
                 )}
-              </button>
+              </Button>
 
               {/* Notification Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 py-2">
-                  <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Notifications ({unreadCount} new)</span>
+                <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-card border border-border rounded-xl shadow-xl z-20 py-2 animate-in fade-in-0 zoom-in-95 duration-150">
+                  <div className="px-4 py-2 border-b border-border flex justify-between items-center bg-muted/30">
+                    <span className="text-xs font-bold text-foreground">Notifications ({unreadCount} new)</span>
                     {unreadCount > 0 && (
                       <button 
                         onClick={markAllRead} 
@@ -430,20 +449,20 @@ export const DashboardLayout: React.FC = () => {
                   </div>
                   <div className="max-h-64 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-xs text-slate-400">
+                      <div className="px-4 py-6 text-center text-xs text-muted-foreground">
                         No notifications found
                       </div>
                     ) : (
                       notifications.map((notif) => (
                         <div 
                           key={notif.id} 
-                          className={`px-4 py-3 border-b border-slate-100 dark:border-slate-800/40 text-left transition-colors ${
-                            !notif.isRead ? 'bg-primary/5 dark:bg-primary/5' : ''
+                          className={`px-4 py-3 border-b border-border/50 text-left transition-colors ${
+                            !notif.isRead ? 'bg-primary/5 dark:bg-primary/10' : ''
                           }`}
                         >
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{notif.title}</p>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{notif.message}</p>
-                          <span className="text-[9px] text-slate-400 block mt-1">
+                          <p className="text-xs font-bold text-foreground">{notif.title}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{notif.message}</p>
+                          <span className="text-[9px] text-muted-foreground/70 block mt-1">
                             {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -457,190 +476,161 @@ export const DashboardLayout: React.FC = () => {
         </header>
 
         {/* DYNAMIC SCROLLABLE BODY PAGE */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-5 min-w-0">
-          {/* Outlet injects nested pages */}
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 min-w-0">
           <Outlet />
         </main>
       </div>
 
       {/* ── CHANGE PASSWORD MODAL ──────────────────────────────────────── */}
-      {showCpModal && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowCpModal(false); }}
-        >
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
-
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-[#0a2e2e] to-[#0d3d3d]">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-white">
-                  <KeyRound className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-white">Change Password</h2>
-                  <p className="text-[11px] text-white/60">Update your account login password</p>
-                </div>
+      <Dialog open={showCpModal} onOpenChange={setShowCpModal}>
+        <DialogContent onClose={() => setShowCpModal(false)} className="sm:max-w-md p-0 overflow-hidden">
+          {/* Header Banner */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-gradient-to-r from-[#0a2e2e] to-[#0d3d3d] text-white">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-white">
+                <KeyRound className="h-5 w-5" />
               </div>
-              <button
-                onClick={() => setShowCpModal(false)}
-                className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="px-6 py-5 space-y-4">
-              {/* Info note */}
-              <div className="flex items-start gap-2.5 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
-                <KeyRound className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
-                  After changing your password, you will be signed out and need to log in again.
-                </p>
-              </div>
-
-              {/* Current Password */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Current Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="cp-old-pass"
-                    type={cpShowOld ? 'text' : 'password'}
-                    value={cpOldPass}
-                    onChange={e => { setCpOldPass(e.target.value); setCpError(''); }}
-                    className="w-full px-3 py-2.5 pr-10 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0a2e2e] dark:focus:ring-teal-500 transition"
-                    placeholder="Enter your current password"
-                    autoComplete="current-password"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setCpShowOld(!cpShowOld)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                  >
-                    {cpShowOld ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
+                <DialogTitle className="text-sm font-bold text-white">Change Password</DialogTitle>
+                <DialogDescription className="text-[11px] text-white/70">Update your account login password</DialogDescription>
               </div>
-
-              {/* New Password */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  New Password
-                  <span className="ml-1 text-slate-400 font-normal">(min. 8 characters)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    id="cp-new-pass"
-                    type={cpShowNew ? 'text' : 'password'}
-                    value={cpNewPass}
-                    onChange={e => { setCpNewPass(e.target.value); setCpError(''); }}
-                    className="w-full px-3 py-2.5 pr-10 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0a2e2e] dark:focus:ring-teal-500 transition"
-                    placeholder="Enter new password"
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setCpShowNew(!cpShowNew)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                  >
-                    {cpShowNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {/* Password strength hint */}
-                {cpNewPass.length > 0 && (
-                  <div className="mt-1.5 flex items-center gap-1.5">
-                    <div className={`h-1 flex-1 rounded-full transition-colors ${
-                      cpNewPass.length >= 12 ? 'bg-emerald-500' : cpNewPass.length >= 8 ? 'bg-amber-400' : 'bg-rose-400'
-                    }`} />
-                    <span className={`text-[10px] font-semibold ${
-                      cpNewPass.length >= 12 ? 'text-emerald-500' : cpNewPass.length >= 8 ? 'text-amber-500' : 'text-rose-400'
-                    }`}>
-                      {cpNewPass.length >= 12 ? 'Strong' : cpNewPass.length >= 8 ? 'Good' : 'Too short'}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Confirm New Password */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="cp-confirm-pass"
-                    type={cpShowConfirm ? 'text' : 'password'}
-                    value={cpConfirm}
-                    onChange={e => { setCpConfirm(e.target.value); setCpError(''); }}
-                    onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
-                    className={`w-full px-3 py-2.5 pr-10 text-sm border rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0a2e2e] dark:focus:ring-teal-500 transition ${
-                      cpConfirm && cpNewPass !== cpConfirm
-                        ? 'border-rose-400 dark:border-rose-500'
-                        : cpConfirm && cpNewPass === cpConfirm
-                        ? 'border-emerald-400 dark:border-emerald-500'
-                        : 'border-slate-300 dark:border-slate-600'
-                    }`}
-                    placeholder="Re-enter new password"
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setCpShowConfirm(!cpShowConfirm)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                  >
-                    {cpShowConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {cpConfirm && cpNewPass !== cpConfirm && (
-                  <p className="text-[10px] text-rose-400 mt-1">Passwords do not match</p>
-                )}
-                {cpConfirm && cpNewPass === cpConfirm && cpNewPass.length >= 8 && (
-                  <p className="text-[10px] text-emerald-500 mt-1">✓ Passwords match</p>
-                )}
-              </div>
-
-              {/* Error */}
-              {cpError && (
-                <p className="text-xs text-rose-500 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg px-3 py-2">
-                  {cpError}
-                </p>
-              )}
-
-              {/* Success */}
-              {cpSuccess && (
-                <p className="text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2 font-semibold">
-                  ✓ Password changed successfully. Signing you out...
-                </p>
-              )}
             </div>
-
-            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50">
-              <button
-                onClick={() => setShowCpModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleChangePassword}
-                disabled={cpSaving || cpSuccess}
-                className="flex items-center gap-2 px-4 py-2 bg-[#0a2e2e] hover:bg-[#0d3d3d] disabled:opacity-60 text-white text-xs font-semibold rounded-lg transition cursor-pointer"
-              >
-                {cpSaving ? (
-                  <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <KeyRound className="h-3.5 w-3.5" />
-                )}
-                {cpSaving ? 'Updating...' : 'Update Password'}
-              </button>
-            </div>
-
           </div>
-        </div>
-      )}
+
+          <div className="px-6 py-5 space-y-4">
+            <Alert variant="warning" className="py-2.5">
+              <AlertDescription className="text-xs leading-relaxed">
+                After changing your password, you will be signed out and need to log in again.
+              </AlertDescription>
+            </Alert>
+
+            {/* Current Password */}
+            <div className="space-y-1.5">
+              <Label required>Current Password</Label>
+              <div className="relative">
+                <Input
+                  id="cp-old-pass"
+                  type={cpShowOld ? 'text' : 'password'}
+                  value={cpOldPass}
+                  onChange={e => { setCpOldPass(e.target.value); setCpError(''); }}
+                  placeholder="Enter your current password"
+                  autoComplete="current-password"
+                  className="pr-10"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setCpShowOld(!cpShowOld)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  {cpShowOld ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* New Password */}
+            <div className="space-y-1.5">
+              <Label required>
+                New Password
+                <span className="ml-1 text-muted-foreground font-normal">(min. 8 characters)</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="cp-new-pass"
+                  type={cpShowNew ? 'text' : 'password'}
+                  value={cpNewPass}
+                  onChange={e => { setCpNewPass(e.target.value); setCpError(''); }}
+                  placeholder="Enter new password"
+                  autoComplete="new-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setCpShowNew(!cpShowNew)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  {cpShowNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {cpNewPass.length > 0 && (
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <div className={`h-1 flex-1 rounded-full transition-colors ${
+                    cpNewPass.length >= 12 ? 'bg-emerald-500' : cpNewPass.length >= 8 ? 'bg-amber-400' : 'bg-rose-400'
+                  }`} />
+                  <span className={`text-[10px] font-semibold ${
+                    cpNewPass.length >= 12 ? 'text-emerald-500' : cpNewPass.length >= 8 ? 'text-amber-500' : 'text-rose-400'
+                  }`}>
+                    {cpNewPass.length >= 12 ? 'Strong' : cpNewPass.length >= 8 ? 'Good' : 'Too short'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Confirm New Password */}
+            <div className="space-y-1.5">
+              <Label required>Confirm New Password</Label>
+              <div className="relative">
+                <Input
+                  id="cp-confirm-pass"
+                  type={cpShowConfirm ? 'text' : 'password'}
+                  value={cpConfirm}
+                  onChange={e => { setCpConfirm(e.target.value); setCpError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
+                  placeholder="Re-enter new password"
+                  autoComplete="new-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setCpShowConfirm(!cpShowConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  {cpShowConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {cpConfirm && cpNewPass !== cpConfirm && (
+                <p className="text-[10px] text-destructive mt-1 font-medium">Passwords do not match</p>
+              )}
+              {cpConfirm && cpNewPass === cpConfirm && cpNewPass.length >= 8 && (
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">✓ Passwords match</p>
+              )}
+            </div>
+
+            {cpError && (
+              <Alert variant="destructive">
+                <AlertDescription>{cpError}</AlertDescription>
+              </Alert>
+            )}
+
+            {cpSuccess && (
+              <Alert variant="success">
+                <AlertDescription>✓ Password changed successfully. Signing you out...</AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter className="px-6 py-4 border-t border-border bg-muted/20">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCpModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleChangePassword}
+              isLoading={cpSaving}
+              disabled={cpSaving || cpSuccess}
+            >
+              Update Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
+export default DashboardLayout;

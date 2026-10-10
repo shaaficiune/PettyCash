@@ -38,20 +38,28 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, or same-origin server requests)
+      // Allow requests with no origin (same-origin, mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
-      if (
-        process.env.NODE_ENV !== 'production' ||
-        allowedOrigins.includes('*') ||
-        allowedOrigins.includes(origin) ||
-        origin === 'http://localhost' ||
-        origin === 'https://localhost' ||
-        origin.startsWith('http://localhost:') ||
-        origin.startsWith('https://localhost:') ||
-        origin.startsWith('http://127.0.0.1:')
-      ) {
-        return callback(null, true);
+
+      // Wildcard: allow all (dev convenience, never set in production)
+      if (allowedOrigins.includes('*')) return callback(null, true);
+
+      // Explicitly configured origins always allowed
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      // Localhost only allowed in non-production environments
+      if (process.env.NODE_ENV !== 'production') {
+        if (
+          origin === 'http://localhost' ||
+          origin === 'https://localhost' ||
+          origin.startsWith('http://localhost:') ||
+          origin.startsWith('https://localhost:') ||
+          origin.startsWith('http://127.0.0.1:')
+        ) {
+          return callback(null, true);
+        }
       }
+
       return callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

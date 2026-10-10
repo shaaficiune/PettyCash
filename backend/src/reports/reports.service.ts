@@ -263,13 +263,13 @@ export class ReportsService {
     };
   }
 
-  async getAuditLogs() {
+  async getAuditLogs(take: number = 300) {
     return this.prisma.auditLog.findMany({
       include: {
         user: { select: { fullName: true, username: true, phone: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: 200,
+      take: take,
     });
   }
 
@@ -886,14 +886,14 @@ export class ReportsService {
       .map(
         (c) => `
       <tr>
-        <td style="font-weight:bold; border:1px solid #cbd5e1; padding:8px;">${c.categoryName}</td>
-        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#c2410c;">$${c.somtelSpent.toFixed(2)}</td>
-        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#1d4ed8;">$${c.bluekomSpent.toFixed(2)}</td>
-        <td style="text-align:right; font-weight:bold; border:1px solid #cbd5e1; padding:8px;">$${c.totalSpent.toFixed(2)}</td>
-        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#64748b;">$${c.totalBudget.toFixed(2)}</td>
-        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px;">$${c.remainingBudget.toFixed(2)}</td>
-        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${c.percentageUsed}%</td>
-        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${c.status}</td>
+        <td style="font-weight:bold; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(c.categoryName)}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#c2410c;">$${escapeHtml(c.somtelSpent.toFixed(2))}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#1d4ed8;">$${escapeHtml(c.bluekomSpent.toFixed(2))}</td>
+        <td style="text-align:right; font-weight:bold; border:1px solid #cbd5e1; padding:8px;">$${escapeHtml(c.totalSpent.toFixed(2))}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#64748b;">$${escapeHtml(c.totalBudget.toFixed(2))}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px;">$${escapeHtml(c.remainingBudget.toFixed(2))}</td>
+        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(String(c.percentageUsed))}%</td>
+        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(c.status)}</td>
       </tr>`
       )
       .join('');

@@ -6,6 +6,10 @@ import { Eye, CheckCircle2 } from 'lucide-react';
 import { EmptyState } from '../components/ui/EmptyState';
 import { formatCurrency, formatDate } from '../utils/format';
 import { DataTable, DataTableColumnHeader } from '../components/ui/data-table';
+import {
+  Button,
+  Badge,
+} from '../components/ui';
 
 export const SettlementsPendingPage: React.FC = () => {
   const [settlements, setSettlements] = useState<any[]>([]);
@@ -43,7 +47,7 @@ export const SettlementsPendingPage: React.FC = () => {
             checked={table.getIsAllPageRowsSelected()}
             onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
             aria-label="Select all"
-            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+            className="rounded border-input text-primary focus:ring-ring h-4 w-4 cursor-pointer"
           />
         ),
         cell: ({ row }) => (
@@ -52,7 +56,7 @@ export const SettlementsPendingPage: React.FC = () => {
             checked={row.getIsSelected()}
             onChange={(e) => row.toggleSelected(!!e.target.checked)}
             aria-label="Select row"
-            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+            className="rounded border-input text-primary focus:ring-ring h-4 w-4 cursor-pointer"
           />
         ),
         enableSorting: false,
@@ -86,11 +90,11 @@ export const SettlementsPendingPage: React.FC = () => {
           const st = row.original;
           return (
             <div>
-              <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+              <p className="font-semibold text-foreground text-xs">
                 {st.request?.user?.fullName}
               </p>
               {st.request?.user?.employeeNumber && (
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[10px] text-muted-foreground">
                   Emp #: {st.request?.user?.employeeNumber}
                 </p>
               )}
@@ -107,16 +111,11 @@ export const SettlementsPendingPage: React.FC = () => {
         cell: ({ row }) => {
           const st = row.original;
           const isSomtel = st.request?.company?.name === 'Somtel';
+          const isBluekom = st.request?.company?.name === 'Bluekom';
           return (
-            <span
-              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded whitespace-nowrap ${
-                isSomtel
-                  ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
-                  : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400'
-              }`}
-            >
+            <Badge variant={isSomtel ? 'warning' : isBluekom ? 'info' : 'secondary'} size="sm">
               {st.request?.company?.name || '—'}
-            </span>
+            </Badge>
           );
         },
       },
@@ -130,7 +129,7 @@ export const SettlementsPendingPage: React.FC = () => {
         cell: ({ row }) => {
           const st = row.original;
           return (
-            <div className="text-right font-bold text-slate-800 dark:text-slate-100">
+            <div className="text-right font-bold text-foreground">
               {formatCurrency(st.actualExpenseAmount, st.request?.currency)}
             </div>
           );
@@ -152,8 +151,8 @@ export const SettlementsPendingPage: React.FC = () => {
                 bal > 0
                   ? 'text-amber-600 dark:text-amber-400'
                   : bal < 0
-                  ? 'text-rose-600 dark:text-rose-400'
-                  : 'text-slate-600 dark:text-slate-400'
+                  ? 'text-destructive'
+                  : 'text-muted-foreground'
               }`}
             >
               {formatCurrency(st.remainingBalance, st.request?.currency)}
@@ -167,7 +166,7 @@ export const SettlementsPendingPage: React.FC = () => {
           <DataTableColumnHeader column={column} title="Submitted Date" />
         ),
         cell: ({ row }) => (
-          <span className="text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
+          <span className="text-muted-foreground text-xs whitespace-nowrap">
             {formatDate(row.original.createdAt)}
           </span>
         ),
@@ -179,12 +178,11 @@ export const SettlementsPendingPage: React.FC = () => {
           const st = row.original;
           return (
             <div className="text-center">
-              <Link
-                to={`/requests/${st.request?.requestNumber || st.request?.id}`}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition-all"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                Audit
+              <Link to={`/requests/${st.request?.requestNumber || st.request?.id}`}>
+                <Button variant="outline" size="xs" className="gap-1.5">
+                  <Eye className="h-3.5 w-3.5" />
+                  Audit
+                </Button>
               </Link>
             </div>
           );
@@ -197,8 +195,8 @@ export const SettlementsPendingPage: React.FC = () => {
   return (
     <div className="space-y-4 font-sans">
       <div>
-        <h2 className="text-lg font-bold text-slate-800 dark:text-white">Settlement Audits</h2>
-        <p className="text-xs text-slate-500">Review employee expenses and receipts</p>
+        <h2 className="text-lg font-bold text-foreground">Settlement Audits</h2>
+        <p className="text-xs text-muted-foreground">Review employee expenses and receipts</p>
       </div>
 
       <DataTable

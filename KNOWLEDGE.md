@@ -193,11 +193,11 @@ DRAFT → PENDING_APPROVAL → APPROVED → PAYMENT_PROCESSING → PAID → COMP
 | Disabled user blocking | JWT validation checks `status === ACTIVE` on every request |
 | Role enforcement | `@Roles()` decorator + `RolesGuard` on all protected routes |
 | Data isolation | Employees see only their own data; cross-tenant access blocked |
-| File upload safety | Whitelist extensions + **MIME-type double-check** + 20MB limit + unique filenames |
-| Security headers | Helmet.js enabled |
-| CORS | Locked to `ALLOWED_ORIGINS` + **exact localhost matching** (no prefix bypass) |
+| File upload safety | Whitelist extensions + **explicit MIME-type check** (no octet-stream bypass) + 20MB limit + unique filenames |
+| Security headers | Helmet.js + Nginx: X-Frame-Options, X-Content-Type, XSS-Protection, Referrer-Policy, **CSP**, **Permissions-Policy** |
+| CORS | Production: `ALLOWED_ORIGINS` only. Dev: localhost allowed. **localhost never allowed in production** |
 | Input validation | NestJS `ValidationPipe` with `whitelist: true` |
-| Swagger | Disabled in production (`ENABLE_SWAGGER=false`) |
+| Swagger | Disabled in production (`ENABLE_SWAGGER=false`). Nginx `/swagger` route removed |
 | **Login rate limiting** | `@Throttle(10 req/min)` on `/api/auth/login` per real client IP |
 | **Trust Proxy** | `app.set('trust proxy', 1)` — reads real IP via Cloudflare CF-Connecting-IP |
 | **Audit log sanitization** | All `password*`, `token`, `refreshToken` fields auto-masked as `********` in AuditLog |
@@ -207,7 +207,11 @@ DRAFT → PENDING_APPROVAL → APPROVED → PAYMENT_PROCESSING → PAID → COMP
 | **Production domain** | `https://pettycash.bluekompl.com` (Cloudflare Tunnel, HTTPS at edge) |
 | **Password min length** | `@MinLength(8)` enforced on all password-change/reset endpoints |
 | **Safe deploy** | `update-server.sh` applies schema updates without a data-loss override and revokes legacy plaintext refresh tokens |
+| **pageSize cap** | All paginated endpoints cap `pageSize` at 100 max to prevent data exfiltration |
+| **Notification isolation** | Settlement notifications scoped to same-company accountants only (companyId filter) |
+| **HTML export escaping** | `escapeHtml()` applied to all user-sourced fields in both PDF and Excel exports |
 
+> 📄 See [`SECURITY_PLAN.md`](./SECURITY_PLAN.md) for full audit findings, fix history, open issues, and deployment steps.
 
 ---
 
@@ -1152,4 +1156,127 @@ To deploy these changes to the live production server (Ubuntu VPS):
    - Rebuilds production assets (`npm run build`)
    - Restarts the PM2 backend service (`pm2 restart petty-cash-backend --update-env`)
    - Reloads Nginx (`sudo systemctl reload nginx`)
+
+---
+
+## 13. 🎨 FULL shadcn/ui UI/UX STANDARDIZATION (Oct 2026)
+
+### Overview
+The entire Petty Cash App frontend was upgraded to use the **shadcn/ui** design system as the primary component library across all pages, layouts, and forms. This was done incrementally — page by page — without altering any API routes, database schema, or business logic.
+
+**Brand tokens preserved throughout:**
+- Deep Teal: `#0a2e2e` (`--primary` CSS variable)
+- Golden Amber: `#E8A020` (`--gold` CSS variable, `bg-gold` Tailwind class)
+
+---
+
+### Phase 1: Shared UI Primitive Components
+
+All new primitives live under `frontend/src/components/ui/`:
+
+| File | Exports | Description |
+|------|---------|-------------|
+| `lib/utils.ts` | `cn()` | `clsx` + `tailwind-merge` canonical utility |
+| `ui/button.tsx` | `Button` | Variants: `default`, `gold`, `destructive`, `outline`, `secondary`, `ghost`, `link`, `teal`, `success`. Sizes: `default`, `sm`, `xs`, `lg`, `icon`, `icon-sm` |
+| `ui/card.tsx` | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Consistent surface cards |
+| `ui/input.tsx` | `Input` | Accessible styled input with error states |
+| `ui/textarea.tsx` | `Textarea` | Matching multi-line textarea |
+| `ui/label.tsx` | `Label` | Form label with optional `required` indicator |
+| `ui/select.tsx` | `Select` | Styled `<select>` dropdown |
+| `ui/badge.tsx` | `Badge` | Variants: `default`, `secondary`, `destructive`, `outline`, `gold`, `success`, `warning`, `info` |
+| `ui/dialog.tsx` | `Dialog`, `DialogContent`, `DialogHeader`, `DialogFooter`, `DialogTitle`, `DialogDescription` | Accessible modal with Escape key support and focus trap |
+| `ui/tabs.tsx` | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | Controlled & uncontrolled tab navigation |
+| `ui/separator.tsx` | `Separator` | Horizontal/vertical divider line |
+| `ui/avatar.tsx` | `Avatar`, `AvatarFallback` | Avatar with initials fallback |
+| `ui/alert.tsx` | `Alert`, `AlertTitle`, `AlertDescription` | Semantic alert variants |
+| `ui/index.ts` | re-exports all above | Unified barrel export |
+
+---
+
+### Phase 2: Pages & Layouts Upgraded
+
+| Page / Layout | Key Changes |
+|---------------|-------------|
+| `LoginPage.tsx` | `Card`, `Input`, `Label`, `Button`, `Alert` |
+| `FirstLoginResetPage.tsx` | `Card`, `Input`, `Label`, `Button`, `Alert` |
+| `DashboardLayout.tsx` | `Avatar`, `Button`, `Select`, `Dialog` (password change), `Input`, `Label`, `Alert`, `Separator` |
+| `DashboardPage.tsx` | shadcn `Card` for KPI summary cards, `Button` for quick actions, `Badge` for company labels |
+| `RequestFormPage.tsx` | `Card`, `Input`, `Textarea`, `Select`, `Label`, `Button`, `Alert` throughout form |
+| `RequestDetailPage.tsx` | Hero card, approval/disbursement/settlement drawers use `Card`, `Button`, `Input`, `Select`, `Badge`, `Alert` |
+| `RequestsListPage.tsx` | Filter toolbar: `Input`, `Select`, `Button`; Priority `Badge`; Export buttons use `Button` |
+| `TransactionsPage.tsx` | Toolbar `Input`/`Button`; transaction detail popup uses shadcn `Dialog` |
+| `PaymentsPage.tsx` | Filter row, CSV export, and action buttons use shadcn `Button` and `Select` |
+| `SettlementsPendingPage.tsx` | Table action buttons use `Button`; company labels use `Badge` |
+| `FundManagementPage.tsx` | Fund init form, rollover card, stat cards, top-up form, ledger, close-month `Dialog` |
+| `UserManagementPage.tsx` | Tab navigation → shadcn `Tabs`/`TabsList`/`TabsTrigger`; Edit User → `Dialog`; Create User form, Regions form, Budget Head form → `Card`, `Input`, `Label`, `Select`, `Button`, `Alert`; status cells → `Badge`; role cells → `Badge` |
+| `ReportsPage.tsx` | Main tab nav → shadcn `Tabs`; KPI strip → `Card`; toolbar → `Card` + `Input` + `Select` + `Button`; summary footer → `Card` + `Badge`; audit search → `Card` + `Input` + `Badge`; export buttons → `Button` |
+
+---
+
+### Phase 3: Verification
+
+| Check | Result |
+|-------|--------|
+| `npx tsc --noEmit` | ✅ **0 errors** |
+| `npm run build` | ✅ **Exit 0** — 1733 modules, built in ~13s |
+| Dev server (`:5173`) | ✅ Running via `npm run dev -- --force` |
+| Backend (`:3000`) | ✅ Running via `npm run start:dev` |
+
+---
+
+### Phase 4: Deployment
+
+To push all UI/UX standardization changes to production server:
+```bash
+git add .
+git commit -m "feat(ui): full shadcn/ui standardization across all pages and layouts"
+git push origin main
+# then on VPS:
+bash update-server.sh
+```
+
+---
+
+## 22. 🔐 SECURITY AUDIT & HARDENING (2026-10-10)
+
+### Overview
+A comprehensive security audit was conducted covering all backend services, frontend code, nginx configuration, Docker setup, and environment files. Seven code fixes were applied. No production data was accessed.
+
+### Files Changed
+
+| File | Fix |
+|------|-----|
+| `backend/src/requests/requests.controller.ts` | `pageSize` capped at 100 — prevents DB dump via `?pageSize=999999` |
+| `backend/src/reports/reports.service.ts` | `escapeHtml()` applied to all fields in `exportBudgetHeadsExcel()` |
+| `backend/src/settlements/settlements.service.ts` | `notifyAccountants()` now scoped to same `companyId` — prevents cross-tenant notification leak |
+| `backend/src/notifications/notifications.service.ts` | Removed `console.log()` that printed sensitive payment/request data to server logs |
+| `backend/src/attachments/attachments.controller.ts` | Removed `application/octet-stream` from allowed MIME types; removed `|| !mime` bypass |
+| `backend/src/main.ts` | CORS restructured: `localhost` only allowed in non-production. Production enforces `ALLOWED_ORIGINS` strictly |
+| `nginx-ubuntu.conf` | Added `Content-Security-Policy` and `Permissions-Policy` headers |
+
+### Confirmed Already Secure (No Change Needed)
+- JWT secrets: `setup.sh` generates strong 128-char secrets ✅
+- Swagger: `ENABLE_SWAGGER=false` already set ✅
+- SQL injection: all `$executeRawUnsafe` use parameterized `$1` placeholders ✅
+- Account lockout, refresh token hashing, path traversal prevention ✅
+
+### Open Security Issues (See SECURITY_PLAN.md)
+- **S-01:** Tokens in `localStorage` — migrate to `httpOnly` cookies (Next Sprint)
+- **S-02:** MinIO default credentials (`minioadmin`) — rotate manually on server
+- **S-06:** Global rate limit (300/min) — reduce to 100/min (Next Sprint)
+
+### Deployment Steps for These Fixes
+```bash
+# 1. Push code (Windows)
+git add -A
+git commit -m "security: fix CORS, MIME bypass, XSS export, notification leak, pageSize cap, sensitive logs"
+git push origin main
+
+# 2. Deploy everything — nginx config is now applied automatically
+cd ~/app && bash update-server.sh
+# update-server.sh now:
+#   → git pull → npm install → prisma → build → sync nginx-ubuntu.conf → pm2 restart → nginx reload
+```
+
+> 📄 Full audit details: [`SECURITY_PLAN.md`](./SECURITY_PLAN.md)
 

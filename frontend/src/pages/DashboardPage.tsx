@@ -17,15 +17,19 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from '../components/ui/table';
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  Button,
+  Badge,
+} from '../components/ui';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const fmtMoney = (n: number) =>
   `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-
-
 
 // ─── Shared Summary Card ──────────────────────────────────────────────────────
 interface CardProps {
@@ -38,21 +42,24 @@ interface CardProps {
   topBarClass?: string;
   to?: string;
 }
+
 const SummaryCard: React.FC<CardProps> = ({ label, value, sub, icon: Icon, iconClass, bgClass, topBarClass, to }) => {
   const cardContent = (
-    <div className={`relative bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl px-4 py-3.5 shadow-sm hover:shadow-md transition-all overflow-hidden flex items-center gap-3.5 ${
+    <Card className={`relative overflow-hidden transition-all duration-200 hover:shadow-md ${
       to ? 'hover:border-primary/40 cursor-pointer group' : ''
     }`}>
       {topBarClass && <div className={`absolute inset-x-0 top-0 h-[2px] ${topBarClass}`} />}
-      <div className={`flex-shrink-0 h-9 w-9 rounded-lg ${bgClass} flex items-center justify-center`}>
-        <Icon className={`h-4 w-4 ${iconClass}`} />
+      <div className="p-4 sm:p-5 flex items-center gap-3.5">
+        <div className={`flex-shrink-0 h-10 w-10 rounded-xl ${bgClass} flex items-center justify-center transition-transform group-hover:scale-105`}>
+          <Icon className={`h-5 w-5 ${iconClass}`} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
+          <p className="text-lg sm:text-xl font-bold text-foreground leading-tight tracking-tight mt-0.5">{value}</p>
+          {sub && <p className="text-[11px] text-muted-foreground/80 truncate mt-0.5">{sub}</p>}
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">{label}</p>
-        <p className="text-lg font-bold text-slate-900 dark:text-white leading-tight tracking-tight">{value}</p>
-        {sub && <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">{sub}</p>}
-      </div>
-    </div>
+    </Card>
   );
 
   if (to) {
@@ -65,7 +72,7 @@ const SummaryCard: React.FC<CardProps> = ({ label, value, sub, icon: Icon, iconC
 // ─── Section Header ───────────────────────────────────────────────────────────
 const SectionHeader: React.FC<{ title: string; to?: string; linkLabel?: string }> = ({ title, to, linkLabel }) => (
   <div className="flex items-center justify-between mb-4">
-    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{title}</h3>
+    <h3 className="text-sm font-bold text-foreground tracking-tight">{title}</h3>
     {to && (
       <Link to={to} className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline">
         {linkLabel || 'View all'} <ArrowRight className="h-3.5 w-3.5" />
@@ -82,12 +89,13 @@ interface ReqTableProps {
   showRemarks?: boolean;
   emptyMessage?: React.ReactNode;
 }
+
 const RequestsTable: React.FC<ReqTableProps> = ({
   rows, showCompany = false, showEmployee = true, showRemarks = false, emptyMessage,
 }) => (
-  <div className="rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+  <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
     <Table>
-      <TableHeader className="bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
+      <TableHeader className="bg-muted/40 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">
         <TableRow>
           <TableHead className="py-3 px-4">Request #</TableHead>
           <TableHead className="py-3 px-4 hidden sm:table-cell">Date</TableHead>
@@ -104,7 +112,7 @@ const RequestsTable: React.FC<ReqTableProps> = ({
           <TableRow>
             <TableCell colSpan={8} className="p-0">
               {emptyMessage ? (
-                <div className="py-8 text-center text-sm text-slate-400">
+                <div className="py-8 text-center text-sm text-muted-foreground">
                   {emptyMessage}
                 </div>
               ) : (
@@ -121,40 +129,38 @@ const RequestsTable: React.FC<ReqTableProps> = ({
             const isSomtel = req.company?.name === 'Somtel';
             const isBluekom = req.company?.name === 'Bluekom';
             return (
-              <TableRow key={req.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                <TableCell className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">
+              <TableRow key={req.id} className="hover:bg-muted/40 transition-colors">
+                <TableCell className="py-3 px-4 font-semibold text-foreground">
                   <Link to={`/requests/${req.requestNumber || req.id}`} className="text-sm font-bold text-primary hover:underline">
                     {req.requestNumber}
                   </Link>
                 </TableCell>
-                <TableCell className="py-3 px-4 text-slate-500 hidden sm:table-cell text-xs">
+                <TableCell className="py-3 px-4 text-muted-foreground hidden sm:table-cell text-xs">
                   {formatDate(req.requestDate || req.createdAt)}
                 </TableCell>
                 {showEmployee && (
-                  <TableCell className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200 text-xs">{req.user?.fullName}</TableCell>
+                  <TableCell className="py-3 px-4 font-medium text-foreground text-xs">{req.user?.fullName}</TableCell>
                 )}
                 {showCompany && (
                   <TableCell className="py-3 px-4 hidden sm:table-cell">
-                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                      isSomtel ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20' : isBluekom ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20' : 'bg-slate-100 text-slate-600'
-                    }`}>
+                    <Badge variant={isSomtel ? 'warning' : isBluekom ? 'info' : 'secondary'} size="sm">
                       {req.company?.name}
-                    </span>
+                    </Badge>
                   </TableCell>
                 )}
-                <TableCell className="py-3 px-4 text-slate-500 truncate max-w-[140px] hidden md:table-cell text-xs">{req.purpose}</TableCell>
+                <TableCell className="py-3 px-4 text-muted-foreground truncate max-w-[140px] hidden md:table-cell text-xs">{req.purpose}</TableCell>
                 <TableCell className="py-3 px-4 whitespace-nowrap text-xs">
                   {['APPROVED', 'PAID', 'COMPLETED'].includes(req.status) && req.approvedAmount && Number(req.approvedAmount) !== Number(req.requestedAmount) ? (
                     <div>
                       <span className="font-bold text-emerald-600 dark:text-emerald-400">
                         {formatCurrency(req.approvedAmount, req.currency)}
                       </span>
-                      <span className="block text-[10px] text-slate-400 line-through">
+                      <span className="block text-[10px] text-muted-foreground line-through">
                         Req: {formatCurrency(req.requestedAmount, req.currency)}
                       </span>
                     </div>
                   ) : (
-                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                    <span className="font-bold text-foreground">
                       {formatCurrency(
                         req.approvedAmount && ['APPROVED', 'PAID', 'COMPLETED'].includes(req.status)
                           ? req.approvedAmount
@@ -166,7 +172,7 @@ const RequestsTable: React.FC<ReqTableProps> = ({
                 </TableCell>
                 <TableCell className="py-3 px-4"><StatusBadge status={req.status} /></TableCell>
                 {showRemarks && (
-                  <TableCell className="py-3 px-4 text-slate-500 max-w-[160px] truncate hidden lg:table-cell text-xs">
+                  <TableCell className="py-3 px-4 text-muted-foreground max-w-[160px] truncate hidden lg:table-cell text-xs">
                     {req.correctionNotes || req.remarks || '—'}
                   </TableCell>
                 )}
@@ -178,7 +184,6 @@ const RequestsTable: React.FC<ReqTableProps> = ({
     </Table>
   </div>
 );
-
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. SUPER ADMIN DASHBOARD
@@ -212,7 +217,7 @@ const SuperAdminDashboard: React.FC = () => {
   // Build company balance cards — show remainingBalance (live available after deductions)
   const companyCards = funds?.perCompany?.map((c: any) => ({
     label: `${c.name} Available`,
-    value: fmtMoney(c.balance),          // balance = remainingBalance from backend
+    value: fmtMoney(c.balance),
     sub: `Allocated: ${fmtMoney(c.allocated)} · ${MONTHS[period.month - 1]} ${period.year}`,
     icon: Building2,
     iconClass: c.name === 'Bluekom' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400',
@@ -220,8 +225,6 @@ const SuperAdminDashboard: React.FC = () => {
     topBarClass: c.name === 'Bluekom' ? 'bg-blue-600' : 'bg-orange-600',
   })) || [];
 
-  // Previous-month carry-forward cards — only shown when current month has no fund yet.
-  // Reuses the exact same SummaryCard component & existing company color scheme.
   const carryFwd = funds?.prevMonthCarryForward;
   const carryCards: CardProps[] = carryFwd?.perCompany?.map((c: any) => ({
     label: `${c.name} — ${MONTHS[carryFwd.month - 1]} Balance`,
@@ -252,7 +255,7 @@ const SuperAdminDashboard: React.FC = () => {
       sub: "This month's submissions",
       icon: FileText,
       iconClass: 'text-slate-600 dark:text-slate-400',
-      bgClass: 'bg-slate-100 dark:bg-slate-800',
+      bgClass: 'bg-muted',
       topBarClass: 'bg-slate-400 dark:bg-slate-600',
       to: '/requests',
     },
@@ -280,7 +283,6 @@ const SuperAdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards only */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {mainCards.map((c, i) => <SummaryCard key={i} {...c} />)}
       </div>
@@ -319,7 +321,7 @@ const AccountantDashboard: React.FC = () => {
 
   const companyCards = funds?.perCompany?.map((c: any) => ({
     label: `${c.name} Available`,
-    value: fmtMoney(c.balance),          // balance = remainingBalance from backend
+    value: fmtMoney(c.balance),
     sub: `Allocated: ${fmtMoney(c.allocated)} · ${MONTHS[period.month - 1]} ${period.year}`,
     icon: Building2,
     iconClass: c.name === 'Bluekom' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400',
@@ -327,7 +329,6 @@ const AccountantDashboard: React.FC = () => {
     topBarClass: c.name === 'Bluekom' ? 'bg-blue-600' : 'bg-orange-600',
   })) || [];
 
-  // Previous-month carry-forward cards — only shown when current month has no fund yet.
   const carryFwd = funds?.prevMonthCarryForward;
   const carryCards: CardProps[] = carryFwd?.perCompany?.map((c: any) => ({
     label: `${c.name} — ${MONTHS[carryFwd.month - 1]} Balance`,
@@ -358,7 +359,7 @@ const AccountantDashboard: React.FC = () => {
       sub: "This month's submissions",
       icon: FileText,
       iconClass: 'text-slate-600 dark:text-slate-400',
-      bgClass: 'bg-slate-100 dark:bg-slate-800',
+      bgClass: 'bg-muted',
       topBarClass: 'bg-slate-400 dark:bg-slate-600',
       to: '/requests',
     },
@@ -386,7 +387,6 @@ const AccountantDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards only */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {mainCards.map((c, i) => <SummaryCard key={i} {...c} />)}
       </div>
@@ -467,15 +467,14 @@ const EmployeeDashboard: React.FC = () => {
       {/* Top Action Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">My Dashboard</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Overview of your petty cash activity</p>
+          <h2 className="text-lg font-bold text-foreground">My Dashboard</h2>
+          <p className="text-xs text-muted-foreground">Overview of your petty cash activity</p>
         </div>
-        <Link
-          to="/requests/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gold hover:bg-gold-600 text-white font-bold rounded-xl shadow-md transition-all text-xs"
-        >
-          <PlusCircle className="h-4 w-4" />
-          New Petty Cash Request
+        <Link to="/requests/new">
+          <Button variant="gold" size="sm" className="gap-2 shadow-sm">
+            <PlusCircle className="h-4 w-4" />
+            New Petty Cash Request
+          </Button>
         </Link>
       </div>
 
@@ -485,25 +484,27 @@ const EmployeeDashboard: React.FC = () => {
       </div>
 
       {/* My Recent Requests */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+      <Card className="shadow-xs overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border">
           <SectionHeader title="My Recent Requests" to="/requests" />
-        </div>
-        <RequestsTable
-          rows={myRequests}
-          showEmployee={false}
-          showCompany={false}
-          showRemarks
-          emptyMessage={
-            <span>
-              No requests yet.{' '}
-              <Link to="/requests/new" className="text-primary hover:underline font-semibold">
-                Submit your first request →
-              </Link>
-            </span>
-          }
-        />
-      </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <RequestsTable
+            rows={myRequests}
+            showEmployee={false}
+            showCompany={false}
+            showRemarks
+            emptyMessage={
+              <span>
+                No requests yet.{' '}
+                <Link to="/requests/new" className="text-primary hover:underline font-semibold">
+                  Submit your first request →
+                </Link>
+              </span>
+            }
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };
@@ -512,7 +513,7 @@ const EmployeeDashboard: React.FC = () => {
 const Loader: React.FC = () => (
   <div className="flex items-center justify-center h-64 gap-3">
     <Loader2 className="h-7 w-7 animate-spin text-primary" />
-    <span className="text-sm text-slate-400 font-medium">Loading dashboard…</span>
+    <span className="text-sm text-muted-foreground font-medium">Loading dashboard…</span>
   </div>
 );
 
@@ -527,3 +528,5 @@ export const DashboardPage: React.FC = () => {
   if (user.role === 'ACCOUNTANT')   return <AccountantDashboard />;
   return <EmployeeDashboard />;
 };
+
+export default DashboardPage;

@@ -2,7 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Lock, AlertCircle, ShieldCheck } from 'lucide-react';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Button,
+  Input,
+  Label,
+  Alert,
+  AlertDescription,
+} from '../components/ui';
 
 export const FirstLoginResetPage: React.FC = () => {
   const { user, updateUserContext } = useAuth();
@@ -43,7 +55,7 @@ export const FirstLoginResetPage: React.FC = () => {
       localStorage.setItem('accessToken', res.data.accessToken);
       localStorage.setItem('refreshToken', res.data.refreshToken);
       updateUserContext({ resetPasswordRequired: false });
-      
+
       // Navigate to dashboard
       navigate('/');
     } catch (err: any) {
@@ -54,57 +66,71 @@ export const FirstLoginResetPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 font-sans">
-      <div className="w-full max-w-md p-8 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl relative z-10">
-        <div className="text-center mb-6">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary mb-4">
-            <Lock className="h-6 w-6" />
+    <div className="min-h-screen flex items-center justify-center bg-background font-sans p-4">
+      <Card className="w-full max-w-md border-border shadow-xl">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 text-primary">
+            <ShieldCheck className="h-6 w-6" />
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Security Update Required</h2>
-          <p className="text-xs text-slate-400 mt-2">
+          <CardTitle className="text-xl">Security Update Required</CardTitle>
+          <CardDescription className="text-xs">
             Hi {user.fullName}, you are logged in using a temporary password. You must set a new secure password to proceed.
-          </p>
-        </div>
+          </CardDescription>
+        </CardHeader>
 
-        {error && (
-          <div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-lg flex items-start gap-2.5 text-xs text-rose-400">
-            <AlertCircle className="h-4.5 w-4.5 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">New Password</label>
-            <input
-              type="password"
-              placeholder="Min 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder-slate-500"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label required>New Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="password"
+                  placeholder="Min 8 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-9"
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Confirm New Password</label>
-            <input
-              type="password"
-              placeholder="Re-enter password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder-slate-500"
-            />
-          </div>
+            <div className="space-y-1.5">
+              <Label required>Confirm New Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="password"
+                  placeholder="Re-enter password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pl-9"
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-gold hover:bg-gold-600 text-white text-sm font-semibold rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50"
-          >
-            {loading ? 'Updating Password...' : 'Save & Continue'}
-          </button>
-        </form>
-      </div>
+            <Button
+              type="submit"
+              variant="gold"
+              size="lg"
+              isLoading={loading}
+              className="w-full mt-2"
+            >
+              Save & Continue
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };
+
+export default FirstLoginResetPage;

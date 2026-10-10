@@ -10,7 +10,7 @@ import { RequestFormPage } from './pages/RequestFormPage';
 import { RequestDetailPage } from './pages/RequestDetailPage';
 import { SettlementsPendingPage } from './pages/SettlementsPendingPage';
 import { UserManagementPage } from './pages/UserManagementPage';
-import { ReportsPage } from './pages/ReportsPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { FundManagementPage } from './pages/FundManagementPage';
@@ -123,12 +123,16 @@ const App: React.FC = () => {
                 } 
               />
               <Route 
-                path="reports" 
+                path="settings" 
                 element={
                   <AccountantRoute>
-                    <ReportsPage />
+                    <SettingsPage />
                   </AccountantRoute>
                 } 
+              />
+              <Route 
+                path="reports" 
+                element={<Navigate to="/settings" replace />} 
               />
               <Route 
                 path="payments" 

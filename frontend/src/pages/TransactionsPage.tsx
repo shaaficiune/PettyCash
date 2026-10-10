@@ -10,11 +10,24 @@ import {
   Calendar,
   MapPin,
   Filter,
-  X,
 } from 'lucide-react';
 import { EmptyState } from '../components/ui/EmptyState';
 import { formatCurrency, formatDate } from '../utils/format';
 import { DataTable, DataTableColumnHeader } from '../components/ui/data-table';
+import {
+  Button,
+  Badge,
+  Card,
+  CardContent,
+  Select,
+  Input,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../components/ui';
 
 export const TransactionsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -22,6 +35,7 @@ export const TransactionsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [exportingExcel, setExportingExcel] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingBook, setExportingBook] = useState(false);
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
 
   // Filters
@@ -121,13 +135,13 @@ export const TransactionsPage: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `petty_cash_ledger_${new Date().toISOString().slice(0, 10)}.xls`;
+      a.download = `transactions_${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error('Excel Export failed', e);
+    } catch (err) {
+      console.error('Failed to export transactions to Excel', err);
     } finally {
       setExportingExcel(false);
     }
@@ -144,24 +158,63 @@ export const TransactionsPage: React.FC = () => {
     if (endDate) params.append('endDate', endDate);
 
     const printWindow = window.open('about:blank', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to view and print the PDF report.');
+      setExportingPdf(false);
+      return;
+    }
+
     try {
       const res = await api.get(`/funds/transactions/export-pdf?${params.toString()}`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(res.data);
-      if (printWindow) {
-        printWindow.location.href = url;
-        window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
-      }
-    } catch (e) {
-      if (printWindow) printWindow.close();
-      console.error('PDF export failed', e);
+      printWindow.location.href = url;
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      printWindow.close();
+      console.error('Failed to export transactions to PDF', err);
     } finally {
       setExportingPdf(false);
     }
   };
 
-  // Define shadcn/ui TanStack Columns for Transactions
+  const handleExportMonthlyBook = async () => {
+    setExportingBook(true);
+    try {
+      let month = new Date().getMonth() + 1;
+      let year = new Date().getFullYear();
+      if (startDate) {
+        const d = new Date(startDate);
+        month = d.getMonth() + 1;
+        year = d.getFullYear();
+      }
+      const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
+      const params: Record<string, string> = { month: String(month), year: String(year) };
+      if (companyFilter !== 'ALL') params.companyId = companyFilter;
+      const res = await api.get('/funds/export/monthly-book', { params, responseType: 'blob' });
+      const contentDisposition = res.headers['content-disposition'] || '';
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const filename = match ? match[1] : `Petty_Cash_Book_${monthNames[month - 1]}_${year}.xlsx`;
+      const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export monthly book', err);
+    } finally {
+      setExportingBook(false);
+    }
+  };
+
+  // Define Columns for TanStack Table
   const columns: ColumnDef<any>[] = useMemo(
     () => [
+      // ── Checkbox ──────────────────────────────────
       {
         id: 'select',
         header: ({ table }) => (
@@ -170,7 +223,7 @@ export const TransactionsPage: React.FC = () => {
             checked={table.getIsAllPageRowsSelected()}
             onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
             aria-label="Select all"
-            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+            className="rounded border-input text-primary focus:ring-ring h-4 w-4 cursor-pointer"
           />
         ),
         cell: ({ row }) => (
@@ -179,205 +232,301 @@ export const TransactionsPage: React.FC = () => {
             checked={row.getIsSelected()}
             onChange={(e) => row.toggleSelected(!!e.target.checked)}
             aria-label="Select row"
-            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+            className="rounded border-input text-primary focus:ring-ring h-4 w-4 cursor-pointer"
           />
         ),
         enableSorting: false,
         enableHiding: false,
       },
+
+      // ── Date ──────────────────────────────────────
       {
-        accessorKey: 'date',
+        accessorKey: 'createdAt',
+        meta: { title: 'Date' },
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Date" />
         ),
         cell: ({ row }) => {
           const t = row.original;
+          const d = new Date(t.createdAt);
           return (
-            <span className="whitespace-nowrap text-slate-600 dark:text-slate-300 font-semibold text-xs">
-              {formatDate(t.date || t.createdAt)}
-            </span>
+            <div className="min-w-[80px]">
+              <p className="font-semibold text-foreground text-xs leading-none whitespace-nowrap">
+                {formatDate(t.createdAt)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
           );
         },
       },
+
+      // ── Company ───────────────────────────────────
       {
         id: 'company',
-        accessorFn: (row) => row.company?.name || '',
+        meta: { title: 'Company' },
+        accessorFn: (row) => row.company?.name || row.request?.company?.name || '',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Company" />
         ),
         cell: ({ row }) => {
-          const t = row.original;
-          const isSomtel = t.company?.name === 'Somtel';
+          const cName = row.original.company?.name || row.original.request?.company?.name || '—';
           return (
-            <span
-              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap ${
-                isSomtel
-                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                  : 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-              }`}
+            <Badge
+              variant={cName === 'Somtel' ? 'warning' : cName === 'Bluekom' ? 'info' : 'secondary'}
+              size="sm"
+              className="whitespace-nowrap"
             >
-              {t.company?.name || 'N/A'}
-            </span>
+              {cName}
+            </Badge>
           );
         },
       },
+
+      // ── Req # ─────────────────────────────────────
       {
-        id: 'reference',
-        accessorFn: (row) => row.request?.requestNumber || row.referenceNumber || '',
+        id: 'reqNumber',
+        meta: { title: 'Req #' },
+        accessorFn: (row) => row.request?.requestNumber || '',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Req / Invoice #" />
+          <DataTableColumnHeader column={column} title="Req #" />
         ),
         cell: ({ row }) => {
-          const t = row.original;
+          const reqNum = row.original.request?.requestNumber;
           return (
-            <div className="flex flex-col gap-0.5 whitespace-nowrap">
-              {t.request?.requestNumber && (
-                <span className="font-semibold text-primary text-xs">
-                  #{t.request.requestNumber}
+            <div className="min-w-[80px]">
+              {reqNum ? (
+                <span className="font-bold text-primary text-xs whitespace-nowrap">
+                  #{reqNum}
                 </span>
-              )}
-              {(t.referenceNumber || t.request?.invoiceNumber) && (
-                <span className="text-[11px] text-slate-400 font-mono">
-                  {t.referenceNumber || t.request?.invoiceNumber}
-                </span>
-              )}
-              {!t.request?.requestNumber && !t.referenceNumber && (
-                <span className="text-slate-400 text-xs">—</span>
+              ) : (
+                <span className="text-muted-foreground text-xs">—</span>
               )}
             </div>
           );
         },
       },
+
+      // ── Invoice Number ────────────────────────────
+      {
+        id: 'invoiceNumber',
+        meta: { title: 'Invoice #' },
+        accessorFn: (row) =>
+          row.referenceNumber || row.request?.invoiceNumber || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Invoice #" />
+        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          const invoice = t.referenceNumber || t.request?.invoiceNumber;
+          return (
+            <div className="min-w-[90px]">
+              {invoice ? (
+                <span className="font-mono font-bold text-xs text-foreground whitespace-nowrap">
+                  {invoice}
+                </span>
+              ) : (
+                <span className="text-muted-foreground text-xs">—</span>
+              )}
+            </div>
+          );
+        },
+      },
+
+      // ── Employee (Requester) ──────────────────────
       {
         id: 'employee',
-        accessorFn: (row) => row.employee?.fullName || row.request?.user?.fullName || '',
+        meta: { title: 'Employee' },
+        accessorFn: (row) => row.request?.user?.fullName || row.employee?.fullName || '',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Employee" />
         ),
         cell: ({ row }) => {
           const t = row.original;
-          const emp = t.employee?.fullName || t.request?.user?.fullName;
+          // Priority to the employee who made the request, not the admin/payer
+          const emp = t.request?.user?.fullName || t.employee?.fullName;
           return (
-            <span className="font-medium text-slate-800 dark:text-slate-200 text-xs truncate max-w-[140px] block">
-              {emp || '—'}
-            </span>
+            <div className="min-w-[110px] max-w-[150px]">
+              <p className="font-medium text-foreground text-xs truncate">
+                {emp || '—'}
+              </p>
+            </div>
           );
         },
       },
+
+      // ── Recipient Name ────────────────────────────
       {
-        id: 'recipient',
+        id: 'recipientName',
+        meta: { title: 'Recipient Name' },
         accessorFn: (row) => row.request?.receiverName || row.request?.vendorName || '',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Recipient" />
+          <DataTableColumnHeader column={column} title="Recipient Name" />
         ),
         cell: ({ row }) => {
           const t = row.original;
-          const name = t.request?.receiverName || t.request?.vendorName;
-          const phone = t.request?.receiverPhone;
-          return name ? (
-            <div>
-              <p className="font-medium text-slate-800 dark:text-slate-200 text-xs truncate max-w-[130px]">
-                {name}
+          const rec = t.request?.receiverName || t.request?.vendorName;
+          return (
+            <div className="min-w-[110px] max-w-[150px]">
+              <p className="text-xs text-foreground truncate font-medium">
+                {rec || <span className="text-muted-foreground">—</span>}
               </p>
-              {phone && <p className="text-[10px] text-slate-400 font-mono">{phone}</p>}
             </div>
-          ) : (
-            <span className="text-slate-400 text-xs">—</span>
           );
         },
       },
+
+      // ── Recipient Tel / Account ───────────────────
+      {
+        id: 'recipientContact',
+        meta: { title: 'Tel / Account' },
+        accessorFn: (row) => row.request?.receiverPhone || row.request?.receiverAccount || '',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Tel / Account" />
+        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          const phone = t.request?.receiverPhone;
+          const account = t.request?.receiverAccount;
+          const contact = phone || account;
+          return (
+            <div className="min-w-[100px]">
+              {contact ? (
+                <span className="font-mono text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                  {contact}
+                </span>
+              ) : (
+                <span className="text-muted-foreground text-xs">—</span>
+              )}
+            </div>
+          );
+        },
+      },
+
+      // ── Region ────────────────────────────────────
       {
         id: 'region',
+        meta: { title: 'Region' },
         accessorFn: (row) => row.request?.region?.name || '',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Region" />
         ),
         cell: ({ row }) => {
           const region = row.original.request?.region?.name;
-          return region ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-              {region}
-            </span>
-          ) : (
-            <span className="text-slate-400 text-xs">—</span>
+          return (
+            <div className="min-w-[80px] max-w-[120px]">
+              {region ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 whitespace-nowrap truncate">
+                  {region}
+                </span>
+              ) : (
+                <span className="text-muted-foreground text-xs">—</span>
+              )}
+            </div>
           );
         },
       },
+
+      // ── Category (Budget Head) ────────────────────
       {
         id: 'category',
-        accessorFn: (row) => row.request?.budgetHead?.name || row.description || '',
+        meta: { title: 'Category' },
+        accessorFn: (row) => row.request?.budgetHead?.name || '',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Category" />
         ),
         cell: ({ row }) => {
-          const category = row.original.request?.budgetHead?.name;
+          const bh = row.original.request?.budgetHead;
           return (
-            <span className="text-slate-600 dark:text-slate-400 text-xs truncate max-w-[130px] block">
-              {category || '—'}
-            </span>
+            <div className="min-w-[90px] max-w-[140px]">
+              {bh?.name ? (
+                <span className="text-xs text-foreground truncate font-medium">
+                  {bh.name}
+                </span>
+              ) : (
+                <span className="text-muted-foreground text-xs">—</span>
+              )}
+            </div>
           );
         },
       },
+
+      // ── Type ──────────────────────────────────────
       {
         accessorKey: 'transactionType',
+        meta: { title: 'Type' },
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Type" />
         ),
         cell: ({ row }) => {
           const type = row.original.transactionType;
           return (
-            <span
-              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap border ${
-                type === 'ALLOCATION' || type === 'TRANSFER_IN'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40'
-                  : type === 'PAYMENT' || type === 'TRANSFER_OUT'
-                  ? 'bg-rose-50 text-rose-700 border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40'
-                  : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-              }`}
+            <Badge
+              variant={
+                type === 'EXPENSE'
+                  ? 'destructive'
+                  : type === 'ALLOCATION'
+                  ? 'success'
+                  : type === 'REFUND'
+                  ? 'warning'
+                  : 'secondary'
+              }
+              size="sm"
+              className="whitespace-nowrap"
             >
               {type}
-            </span>
+            </Badge>
           );
         },
       },
+
+      // ── Debit (-) ─────────────────────────────────
       {
         accessorKey: 'debit',
+        meta: { title: 'Debit' },
         header: ({ column }) => (
           <div className="text-right">
-            <DataTableColumnHeader column={column} title="Debit" />
+            <DataTableColumnHeader column={column} title="Debit (−)" />
           </div>
         ),
         cell: ({ row }) => {
           const t = row.original;
           return (
-            <div className="text-right font-bold text-rose-600 dark:text-rose-400 text-xs whitespace-nowrap">
+            <div className="text-right font-bold text-destructive text-xs whitespace-nowrap min-w-[80px]">
               {t.debit && Number(t.debit) > 0
                 ? `−${formatCurrency(t.debit, t.currency || t.company?.currency || 'USD')}`
-                : '—'}
+                : <span className="text-muted-foreground font-normal">—</span>}
             </div>
           );
         },
       },
+
+      // ── Credit (+) ────────────────────────────────
       {
         accessorKey: 'credit',
+        meta: { title: 'Credit' },
         header: ({ column }) => (
           <div className="text-right">
-            <DataTableColumnHeader column={column} title="Credit" />
+            <DataTableColumnHeader column={column} title="Credit (+)" />
           </div>
         ),
         cell: ({ row }) => {
           const t = row.original;
           return (
-            <div className="text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
+            <div className="text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap min-w-[80px]">
               {t.credit && Number(t.credit) > 0
                 ? `+${formatCurrency(t.credit, t.currency || t.company?.currency || 'USD')}`
-                : '—'}
+                : <span className="text-muted-foreground font-normal">—</span>}
             </div>
           );
         },
       },
+
+      // ── Balance ───────────────────────────────────
       {
         accessorKey: 'balanceAfter',
+        meta: { title: 'Balance' },
         header: ({ column }) => (
           <div className="text-right">
             <DataTableColumnHeader column={column} title="Balance" />
@@ -386,27 +535,30 @@ export const TransactionsPage: React.FC = () => {
         cell: ({ row }) => {
           const t = row.original;
           return (
-            <div className="text-right font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap">
+            <div className="text-right font-bold text-foreground text-xs whitespace-nowrap min-w-[80px]">
               {formatCurrency(t.balanceAfter || 0, t.currency || t.company?.currency || 'USD')}
             </div>
           );
         },
       },
+
+      // ── Action ────────────────────────────────────
       {
         id: 'actions',
         header: () => <div className="text-center">Action</div>,
+        enableHiding: false,
         cell: ({ row }) => {
           const t = row.original;
           return (
             <div className="text-center">
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => setSelectedTx(t)}
-                className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                 title="View Details"
               >
                 <Eye className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </div>
           );
         },
@@ -420,324 +572,319 @@ export const TransactionsPage: React.FC = () => {
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
             Transactions Ledger
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Chronological log of petty cash allocations, disbursements, payments, and financial movements
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportMonthlyBook}
+            disabled={exportingBook}
+            className="gap-1.5 text-teal-700 dark:text-teal-400 border-border hover:bg-teal-50 dark:hover:bg-teal-950/30"
+            title="Export Monthly Petty Cash Book (.xlsx)"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
+            {exportingBook ? 'Generating...' : 'Monthly Book (.xlsx)'}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleExportExcel}
             disabled={exportingExcel}
-            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+            className="gap-1.5 text-emerald-700 dark:text-emerald-400 border-border hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
           >
-            <FileSpreadsheet className="h-3.5 w-3.5" />
+            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
             {exportingExcel ? 'Exporting...' : 'Export Excel'}
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleExportPdf}
             disabled={exportingPdf}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+            className="gap-1.5 text-rose-700 dark:text-rose-400 border-border hover:bg-rose-50 dark:hover:bg-rose-950/30"
           >
-            <Printer className="h-3.5 w-3.5" />
+            <Printer className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
             {exportingPdf ? 'Preparing...' : 'Export PDF'}
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={loadTransactions}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
+            className="gap-1.5"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Refresh
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* FILTER HUB */}
-      <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs flex flex-col gap-2.5 transition-colors">
-        <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
-          {/* DATE PRESET SELECT */}
-          <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
-            <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <select
-              value={datePreset}
-              onChange={(e) => applyDatePreset(e.target.value as any)}
-              className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full font-medium"
-            >
-              <option value="ALL">All Dates</option>
-              <option value="TODAY">Today</option>
-              <option value="THIS_WEEK">This Week</option>
-              <option value="THIS_MONTH">This Month</option>
-              <option value="CUSTOM">Custom Range...</option>
-            </select>
-          </div>
+      <Card className="shadow-xs">
+        <CardContent className="p-3 space-y-2.5">
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+            {/* DATE PRESET SELECT */}
+            <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Select
+                value={datePreset}
+                onChange={(e) => applyDatePreset(e.target.value as any)}
+                className="font-medium text-xs h-8"
+              >
+                <option value="ALL">All Dates</option>
+                <option value="TODAY">Today</option>
+                <option value="THIS_WEEK">This Week</option>
+                <option value="THIS_MONTH">This Month</option>
+                <option value="CUSTOM">Custom Range...</option>
+              </Select>
+            </div>
 
-          {/* REGION FILTER - GROUPED BY COMPANY */}
-          <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
-            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <select
-              value={regionFilter}
-              onChange={(e) => setRegionFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
-            >
-              <option value="">All Regions</option>
-              {(() => {
-                const groups: { [key: string]: any[] } = {};
-                regions.forEach((r) => {
-                  const cName = r.company?.name || 'Other';
-                  if (!groups[cName]) groups[cName] = [];
-                  groups[cName].push(r);
-                });
-                const compKeys = Object.keys(groups);
-                if (compKeys.length <= 1) {
-                  return regions.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ));
-                }
-                return compKeys.map((cName) => (
-                  <optgroup key={cName} label={`── ${cName} ──`}>
-                    {groups[cName].map((r) => (
+            {/* REGION FILTER - GROUPED BY COMPANY */}
+            <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Select
+                value={regionFilter}
+                onChange={(e) => setRegionFilter(e.target.value)}
+                className="text-xs h-8"
+              >
+                <option value="">All Regions</option>
+                {(() => {
+                  const groups: { [key: string]: any[] } = {};
+                  regions.forEach((r) => {
+                    const cName = r.company?.name || 'Other';
+                    if (!groups[cName]) groups[cName] = [];
+                    groups[cName].push(r);
+                  });
+                  const compKeys = Object.keys(groups);
+                  if (compKeys.length <= 1) {
+                    return regions.map((r) => (
                       <option key={r.id} value={r.id}>
                         {r.name}
                       </option>
-                    ))}
-                  </optgroup>
-                ));
-              })()}
-            </select>
+                    ));
+                  }
+                  return compKeys.map((cName) => (
+                    <optgroup key={cName} label={`── ${cName} ──`}>
+                      {groups[cName].map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ));
+                })()}
+              </Select>
+            </div>
+
+            {/* MOVEMENT TYPE FILTER */}
+            <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="text-xs h-8"
+              >
+                <option value="">All Movement Types</option>
+                <option value="ALLOCATION">ALLOCATION (Credit)</option>
+                <option value="EXPENSE">EXPENSE (Debit)</option>
+                <option value="REFUND">REFUND (Credit)</option>
+              </Select>
+            </div>
           </div>
 
-          {/* MOVEMENT TYPE FILTER */}
-          <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
-            <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
-            >
-              <option value="">All Movement Types</option>
-              <option value="PAYMENT">Payment / Expense</option>
-              <option value="ALLOCATION">Fund Allocation</option>
-              <option value="CARRY_FORWARD">Carry Forward</option>
-              <option value="TRANSFER_IN">Transfer In</option>
-              <option value="TRANSFER_OUT">Transfer Out</option>
-              <option value="ADJUSTMENT">Adjustment</option>
-              <option value="REIMBURSEMENT">Reimbursement</option>
-            </select>
-          </div>
-        </div>
-
-        {/* CUSTOM DATE RANGE BAR */}
-        {(datePreset === 'CUSTOM' || startDate || endDate) && (
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-xs">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                Date Range:
+          {/* CUSTOM RANGE PICKER / BAR */}
+          {datePreset === 'CUSTOM' && (
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border text-xs">
+              <span className="text-[11px] font-semibold text-muted-foreground">
+                Custom Range:
               </span>
-              <span className="text-[11px] text-slate-400">From:</span>
-              <input
+              <span className="text-[11px] text-muted-foreground">From:</span>
+              <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => {
                   setStartDate(e.target.value);
                   setDatePreset('CUSTOM');
                 }}
-                className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+                className="h-7 w-auto px-2 py-0 text-xs"
               />
-              <span className="text-[11px] text-slate-400">To:</span>
-              <input
+              <span className="text-[11px] text-muted-foreground">To:</span>
+              <Input
                 type="date"
                 value={endDate}
                 onChange={(e) => {
                   setEndDate(e.target.value);
                   setDatePreset('CUSTOM');
                 }}
-                className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+                className="h-7 w-auto px-2 py-0 text-xs"
               />
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            <button
-              onClick={() => {
-                setDatePreset('ALL');
-                setStartDate('');
-                setEndDate('');
-                setTypeFilter('');
-                setRegionFilter('');
-              }}
-              className="text-xs text-rose-500 hover:text-rose-600 font-medium cursor-pointer"
-            >
-              Reset Filters
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* SHADCN/UI UPGRADED DATA TABLE */}
+      {/* DATA TABLE */}
       <DataTable
         columns={columns}
         data={transactions}
         isLoading={loading}
-        searchPlaceholder="Search by request #, employee, recipient, or ref..."
+        searchPlaceholder="Filter transactions by ref, name, description..."
         pageSize={20}
         pageSizeOptions={[10, 20, 50, 100]}
         emptyState={
           <EmptyState
             icon={DollarSign}
             title="No transactions found"
-            description="No transaction ledger entries match your filter criteria."
+            description="No ledger movements matching the selected criteria."
           />
         }
       />
 
-      {/* TRANSACTION DETAILS MODAL */}
-      {selectedTx && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-slate-800 dark:text-white text-sm">
-                  Transaction Details
-                </h3>
-                <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                  ID: {selectedTx.id}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedTx(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      {/* TRANSACTION DETAILS DIALOG */}
+      <Dialog open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
+        {selectedTx && (
+          <DialogContent onClose={() => setSelectedTx(null)} className="sm:max-w-md p-0 overflow-hidden">
+            <DialogHeader className="p-5 pb-3 border-b border-border">
+              <DialogTitle className="text-base flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+                Transaction Detail
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Ref: {selectedTx.referenceNumber || selectedTx.id} · {formatDate(selectedTx.createdAt)}
+              </DialogDescription>
+            </DialogHeader>
 
-            {/* Modal Body */}
-            <div className="p-5 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Date</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">
-                    {new Date(selectedTx.date || selectedTx.createdAt).toLocaleString()}
-                  </span>
-                </div>
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Company</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">
-                    {selectedTx.company?.name || '—'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Type</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
+            <div className="p-5 space-y-3.5 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-3 bg-muted/40 rounded-xl">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Type</span>
+                  <Badge
+                    variant={
+                      selectedTx.transactionType === 'EXPENSE'
+                        ? 'destructive'
+                        : selectedTx.transactionType === 'ALLOCATION'
+                        ? 'success'
+                        : 'warning'
+                    }
+                    size="sm"
+                    className="mt-1"
+                  >
                     {selectedTx.transactionType}
-                  </span>
+                  </Badge>
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Request #</span>
-                  <span className="font-bold text-primary">
+                <div className="p-3 bg-muted/40 rounded-xl">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Request #</span>
+                  <span className="font-bold text-primary block mt-1">
                     {selectedTx.request?.requestNumber ? `#${selectedTx.request.requestNumber}` : '—'}
                   </span>
                 </div>
               </div>
 
               {(selectedTx.referenceNumber || selectedTx.request?.invoiceNumber) && (
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Invoice #</span>
-                  <span className="font-bold font-mono text-slate-800 dark:text-slate-200 text-xs">
+                <div className="p-3 bg-muted/40 rounded-xl flex items-center justify-between text-xs">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Invoice #</span>
+                  <span className="font-bold font-mono text-foreground">
                     {selectedTx.referenceNumber || selectedTx.request?.invoiceNumber}
                   </span>
                 </div>
               )}
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl space-y-2">
+              <div className="p-3 bg-muted/40 rounded-xl space-y-2 text-xs">
                 <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Employee / Initiator</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">
-                    {selectedTx.employee?.fullName || selectedTx.request?.user?.fullName || '—'}
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Employee (Requester)</span>
+                  <span className="font-medium text-foreground">
+                    {selectedTx.request?.user?.fullName || selectedTx.employee?.fullName || '—'}
                   </span>
                 </div>
+                {selectedTx.employee?.fullName && selectedTx.request?.user?.fullName && selectedTx.employee.fullName !== selectedTx.request.user.fullName && (
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Processed / Paid By</span>
+                    <span className="font-medium text-foreground">
+                      {selectedTx.employee.fullName}
+                    </span>
+                  </div>
+                )}
                 <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Recipient / Merchant</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Recipient / Merchant</span>
+                  <span className="font-medium text-foreground">
                     {selectedTx.request?.receiverName || selectedTx.request?.vendorName || '—'}
                     {selectedTx.request?.receiverPhone && ` (${selectedTx.request.receiverPhone})`}
                   </span>
                 </div>
                 {selectedTx.request?.region?.name && (
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Region</span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Region</span>
+                    <span className="font-medium text-foreground">
                       {selectedTx.request.region.name}
                     </span>
                   </div>
                 )}
                 {selectedTx.request?.budgetHead?.name && (
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Category / Budget Head</span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Category / Budget Head</span>
+                    <span className="font-medium text-foreground">
                       {selectedTx.request.budgetHead.name}
                     </span>
                   </div>
                 )}
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Description / Purpose</span>
-                <p className="font-medium text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">
+              <div className="p-3 bg-muted/40 rounded-xl text-xs">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Description / Purpose</span>
+                <p className="font-medium text-foreground mt-1 leading-relaxed">
                   {selectedTx.description || selectedTx.request?.purpose || 'No description provided'}
                 </p>
                 {selectedTx.remarks && (
-                  <p className="text-[11px] text-slate-400 mt-1 italic">
+                  <p className="text-[11px] text-muted-foreground mt-1 italic">
                     Remarks: {selectedTx.remarks}
                   </p>
                 )}
               </div>
 
               {/* Financial Movement Breakdown */}
-              <div className="p-4 bg-slate-100 dark:bg-slate-800/60 rounded-xl grid grid-cols-3 gap-2 text-center">
+              <div className="p-4 bg-muted rounded-xl grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Debit</span>
-                  <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold block">Debit</span>
+                  <span className="text-xs font-bold text-destructive">
                     {selectedTx.debit ? `−${formatCurrency(selectedTx.debit, selectedTx.currency || selectedTx.company?.currency || 'USD')}` : '—'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Credit</span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold block">Credit</span>
                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                     {selectedTx.credit ? `+${formatCurrency(selectedTx.credit, selectedTx.currency || selectedTx.company?.currency || 'USD')}` : '—'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Balance After</span>
-                  <span className="text-xs font-bold text-slate-800 dark:text-white">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold block">Balance After</span>
+                  <span className="text-xs font-bold text-foreground">
                     {formatCurrency(selectedTx.balanceAfter || 0, selectedTx.currency || selectedTx.company?.currency || 'USD')}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-              <button
+            <DialogFooter className="p-4 border-t border-border bg-muted/20">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setSelectedTx(null)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors"
               >
                 Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 };

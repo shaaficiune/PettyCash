@@ -65,10 +65,11 @@ export class SettlementsService {
       },
     });
 
-    // Notify accountants
+    // Notify accountants — scoped to request's company to prevent cross-tenant data leaks
     await this.notifyAccountants(
       `Settlement submitted: ${request.requestNumber}`,
-      `Employee submitted settlement details for request ${request.requestNumber}. Actual spent: ${request.currency} ${dto.actualExpenseAmount}.`
+      `Employee submitted settlement details for request ${request.requestNumber}. Actual spent: ${request.currency} ${dto.actualExpenseAmount}.`,
+      request.companyId
     );
 
     return settlement;
@@ -155,13 +156,16 @@ export class SettlementsService {
     });
   }
 
-  private async notifyAccountants(title: string, message: string) {
-    const accountants = await this.prisma.user.findMany({
-      where: {
-        role: { name: RoleName.ACCOUNTANT },
-        status: 'ACTIVE',
-      },
-    });
+  private async notifyAccountants(title: string, message: string, companyId?: string) {
+    const where: any = {
+      role: { name: RoleName.ACCOUNTANT },
+      status: 'ACTIVE',
+    };
+    // Scope to the request's company only — prevents cross-tenant notification leaks
+    if (companyId) {
+      where.companyId = companyId;
+    }
+    const accountants = await this.prisma.user.findMany({ where });
 
     for (const acc of accountants) {
       await this.notifications.create(acc.id, title, message);

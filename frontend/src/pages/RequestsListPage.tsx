@@ -17,6 +17,14 @@ import { StatusBadge } from '../components/ui/StatusBadge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { formatCurrency, formatDate } from '../utils/format';
 import { DataTable, DataTableColumnHeader } from '../components/ui/data-table';
+import {
+  Button,
+  Badge,
+  Card,
+  CardContent,
+  Select,
+  Input,
+} from '../components/ui';
 
 const getLocalDateString = (d: Date = new Date()): string => {
   const year = d.getFullYear();
@@ -100,7 +108,6 @@ export const RequestsListPage: React.FC = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    // Load regions for filter dropdown
     const compFilter = sessionStorage.getItem('companyFilter') || 'ALL';
     const params: any = {};
     if (compFilter !== 'ALL') params.companyId = compFilter;
@@ -192,13 +199,11 @@ export const RequestsListPage: React.FC = () => {
     }
   };
 
-  // Filter client-side by priority (status/region/date are handled server-side)
   const filteredData = useMemo(() => {
     if (!priorityFilter) return requests;
     return requests.filter((req) => req.priority === priorityFilter);
   }, [requests, priorityFilter]);
 
-  // Define shadcn/ui TanStack Columns
   const columns: ColumnDef<any>[] = useMemo(
     () => [
       {
@@ -209,7 +214,7 @@ export const RequestsListPage: React.FC = () => {
             checked={table.getIsAllPageRowsSelected()}
             onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
             aria-label="Select all"
-            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+            className="rounded border-input text-primary focus:ring-ring h-4 w-4 cursor-pointer"
           />
         ),
         cell: ({ row }) => (
@@ -218,7 +223,7 @@ export const RequestsListPage: React.FC = () => {
             checked={row.getIsSelected()}
             onChange={(e) => row.toggleSelected(!!e.target.checked)}
             aria-label="Select row"
-            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+            className="rounded border-input text-primary focus:ring-ring h-4 w-4 cursor-pointer"
           />
         ),
         enableSorting: false,
@@ -249,15 +254,14 @@ export const RequestsListPage: React.FC = () => {
         cell: ({ row }) => {
           const req = row.original;
           return (
-            <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">
+            <span className="text-muted-foreground text-xs">
               {formatDate(req.requestDate || req.createdAt)}
             </span>
           );
         },
       },
       {
-        id: 'requester',
-        accessorFn: (row) => row.user?.fullName || '',
+        id: 'employee',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Employee" />
         ),
@@ -265,20 +269,12 @@ export const RequestsListPage: React.FC = () => {
           const req = row.original;
           return (
             <div>
-              <p className="font-medium text-slate-800 dark:text-slate-200">
+              <p className="font-medium text-foreground text-xs leading-none">
                 {req.user?.fullName}
               </p>
-              {req.company?.name && (
-                <span
-                  className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                    req.company.name === 'Somtel'
-                      ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                      : 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                  }`}
-                >
-                  {req.company.name}
-                </span>
-              )}
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {req.region?.name || req.company?.name}
+              </p>
             </div>
           );
         },
@@ -290,56 +286,30 @@ export const RequestsListPage: React.FC = () => {
         ),
         cell: ({ row }) => {
           const req = row.original;
-          return req.receiverName ? (
+          return (
             <div>
-              <p className="font-medium text-slate-800 dark:text-slate-200 text-xs">
-                {req.receiverName}
-              </p>
+              <span className="font-medium text-foreground text-xs block">
+                {req.receiverName || '—'}
+              </span>
               {req.receiverPhone && (
-                <p className="text-[11px] text-slate-400 font-mono">
+                <span className="text-[10px] text-muted-foreground font-mono">
                   {req.receiverPhone}
-                </p>
+                </span>
               )}
             </div>
-          ) : (
-            <span className="text-slate-400 text-xs">—</span>
           );
         },
       },
       {
-        id: 'region',
-        accessorFn: (row) => row.region?.name || '',
+        accessorKey: 'purpose',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Region" />
+          <DataTableColumnHeader column={column} title="Purpose" />
         ),
-        cell: ({ row }) => {
-          const req = row.original;
-          return req.region?.name ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-              {req.region.name}
-            </span>
-          ) : (
-            <span className="text-slate-400 text-xs">—</span>
-          );
-        },
-      },
-      {
-        id: 'category',
-        accessorFn: (row) =>
-          row.budgetHead ? `${row.budgetHead.code} – ${row.budgetHead.name}` : row.requestType || '',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Category" />
+        cell: ({ row }) => (
+          <span className="text-muted-foreground text-xs max-w-[200px] truncate block" title={row.original.purpose}>
+            {row.original.purpose}
+          </span>
         ),
-        cell: ({ row }) => {
-          const req = row.original;
-          return (
-            <span className="text-slate-600 dark:text-slate-400 text-xs">
-              {req.budgetHead
-                ? `${req.budgetHead.code} – ${req.budgetHead.name}`
-                : req.requestType || '—'}
-            </span>
-          );
-        },
       },
       {
         accessorKey: 'requestedAmount',
@@ -363,12 +333,12 @@ export const RequestsListPage: React.FC = () => {
                   <span className="font-bold text-emerald-600 dark:text-emerald-400">
                     {formatCurrency(req.approvedAmount, req.currency)}
                   </span>
-                  <span className="text-[10px] text-slate-400 line-through">
+                  <span className="text-[10px] text-muted-foreground line-through">
                     Req: {formatCurrency(req.requestedAmount, req.currency)}
                   </span>
                 </div>
               ) : (
-                <span className="font-bold text-slate-800 dark:text-slate-100">
+                <span className="font-bold text-foreground">
                   {formatCurrency(
                     isApproved && req.approvedAmount ? req.approvedAmount : req.requestedAmount,
                     req.currency
@@ -387,17 +357,18 @@ export const RequestsListPage: React.FC = () => {
         cell: ({ row }) => {
           const priority = row.original.priority;
           return (
-            <span
-              className={`text-xs font-semibold px-2.5 py-0.5 rounded border ${
+            <Badge
+              variant={
                 priority === 'URGENT' || priority === 'HIGH'
-                  ? 'bg-rose-50 text-rose-700 border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40'
+                  ? 'destructive'
                   : priority === 'MEDIUM'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40'
-                  : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-              }`}
+                  ? 'warning'
+                  : 'secondary'
+              }
+              size="sm"
             >
               {priority}
-            </span>
+            </Badge>
           );
         },
       },
@@ -421,12 +392,11 @@ export const RequestsListPage: React.FC = () => {
           const req = row.original;
           return (
             <div className="text-center">
-              <Link
-                to={`/requests/${req.requestNumber || req.id}`}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-xs font-semibold transition-all shadow-xs"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                View
+              <Link to={`/requests/${req.requestNumber || req.id}`}>
+                <Button variant="outline" size="xs" className="gap-1">
+                  <Eye className="h-3 w-3" />
+                  View
+                </Button>
               </Link>
             </div>
           );
@@ -441,194 +411,203 @@ export const RequestsListPage: React.FC = () => {
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-baseline gap-2 min-w-0">
-          <h2 className="text-base font-bold text-slate-800 dark:text-white whitespace-nowrap leading-none">
+          <h2 className="text-base font-bold text-foreground whitespace-nowrap leading-none">
             Petty Cash Requests
           </h2>
-          <span className="hidden sm:inline text-slate-300 dark:text-slate-600 text-xs">·</span>
-          <p className="hidden sm:block text-[11px] text-slate-400 truncate">
+          <span className="hidden sm:inline text-muted-foreground/60 text-xs">·</span>
+          <p className="hidden sm:block text-[11px] text-muted-foreground truncate">
             Manage and review petty cash requests
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2 shrink-0">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleExportExcel}
-            className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            className="gap-1.5 text-emerald-700 dark:text-emerald-400 border-border shadow-xs hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
           >
             <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
             Export Excel
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleExportPdf}
-            className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            className="gap-1.5 text-rose-700 dark:text-rose-400 border-border shadow-xs hover:bg-rose-50 dark:hover:bg-rose-950/30"
           >
             <Printer className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
             Export PDF
-          </button>
+          </Button>
 
           {(user?.role === 'EMPLOYEE' || user?.role === 'ACCOUNTANT') && (
-            <Link
-              to="/requests/new"
-              className="px-3 py-1.5 bg-gold hover:bg-gold-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all shadow-md"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              New Request
+            <Link to="/requests/new">
+              <Button variant="gold" size="sm" className="gap-1.5 shadow-sm">
+                <Plus className="h-3.5 w-3.5" />
+                New Request
+              </Button>
             </Link>
           )}
         </div>
       </div>
 
       {/* FILTER HUB */}
-      <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm flex flex-col gap-2.5 transition-colors">
-        <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
-          {/* Date Select Dropdown */}
-          <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
-            <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <select
-              value={datePreset}
-              onChange={(e) => applyDatePreset(e.target.value as any)}
-              className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full font-medium"
-            >
-              <option value="TODAY">Today</option>
-              <option value="THIS_WEEK">This Week</option>
-              <option value="THIS_MONTH">This Month</option>
-              <option value="CUSTOM">Custom Date...</option>
-              <option value="ALL">All Time</option>
-            </select>
-          </div>
-
-          {/* Region Filter - Accountant and Admin only */}
-          {!isEmployee && (
+      <Card className="shadow-xs">
+        <CardContent className="p-3 space-y-2.5">
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+            {/* Date Select Dropdown */}
             <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
-              <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <select
-                value={regionFilter}
-                onChange={(e) => setRegionFilter(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Select
+                value={datePreset}
+                onChange={(e) => applyDatePreset(e.target.value as any)}
+                className="font-medium text-xs h-8"
               >
-                <option value="">All Regions</option>
-                {(() => {
-                  const groups: { [key: string]: any[] } = {};
-                  regions.forEach((r) => {
-                    const cName = r.company?.name || 'Other';
-                    if (!groups[cName]) groups[cName] = [];
-                    groups[cName].push(r);
-                  });
-                  const compKeys = Object.keys(groups);
-                  if (compKeys.length <= 1) {
-                    return regions.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ));
-                  }
-                  return compKeys.map((cName) => (
-                    <optgroup key={cName} label={`── ${cName} ──`}>
-                      {groups[cName].map((r) => (
+                <option value="TODAY">Today</option>
+                <option value="THIS_WEEK">This Week</option>
+                <option value="THIS_MONTH">This Month</option>
+                <option value="CUSTOM">Custom Date...</option>
+                <option value="ALL">All Time</option>
+              </Select>
+            </div>
+
+            {/* Region Filter - Accountant and Admin only */}
+            {!isEmployee && (
+              <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Select
+                  value={regionFilter}
+                  onChange={(e) => setRegionFilter(e.target.value)}
+                  className="text-xs h-8"
+                >
+                  <option value="">All Regions</option>
+                  {(() => {
+                    const groups: { [key: string]: any[] } = {};
+                    regions.forEach((r) => {
+                      const cName = r.company?.name || 'Other';
+                      if (!groups[cName]) groups[cName] = [];
+                      groups[cName].push(r);
+                    });
+                    const compKeys = Object.keys(groups);
+                    if (compKeys.length <= 1) {
+                      return regions.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.name}
                         </option>
-                      ))}
-                    </optgroup>
-                  ));
-                })()}
-              </select>
-            </div>
-          )}
-
-          {/* Status Filter */}
-          <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
-            <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
-            >
-              <option value="">All Statuses</option>
-              <option value="DRAFT">Draft</option>
-              <option value="PENDING_APPROVAL">Pending Approval (Accountant)</option>
-              <option value="ACCOUNTANT_REVIEW">Accountant Reviewed (CFO)</option>
-              <option value="CORRECTION_REQUIRED">Correction Required</option>
-              <option value="APPROVED">Approved</option>
-              <option value="PAID">Paid</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="REJECTED">Rejected</option>
-            </select>
-          </div>
-
-          {/* Priority Filter */}
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none cursor-pointer w-full sm:w-28"
-          >
-            <option value="">All Priorities</option>
-            <option value="LOW">Low</option>
-            <option value="NORMAL">Normal</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
-            <option value="URGENT">Urgent</option>
-          </select>
-        </div>
-
-        {/* Custom Range Picker / Active Filter Reset Bar */}
-        {(datePreset === 'CUSTOM' ||
-          regionFilter ||
-          statusFilter ||
-          priorityFilter ||
-          datePreset !== 'TODAY') && (
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-xs">
-            {datePreset === 'CUSTOM' ? (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                  Custom Dates:
-                </span>
-                <span className="text-[11px] text-slate-400">From:</span>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    setStartDate(e.target.value);
-                    setDatePreset('CUSTOM');
-                  }}
-                  className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-                />
-                <span className="text-[11px] text-slate-400">To:</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(e.target.value);
-                    setDatePreset('CUSTOM');
-                  }}
-                  className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-                />
-              </div>
-            ) : (
-              <div className="text-[11px] text-slate-400">
-                Date Preset:{' '}
-                <span className="font-semibold text-primary">
-                  {datePreset === 'TODAY'
-                    ? 'Today'
-                    : datePreset === 'THIS_WEEK'
-                    ? 'This Week'
-                    : datePreset === 'THIS_MONTH'
-                    ? 'This Month'
-                    : 'All Time'}
-                </span>
+                      ));
+                    }
+                    return compKeys.map((cName) => (
+                      <optgroup key={cName} label={`── ${cName} ──`}>
+                        {groups[cName].map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ));
+                  })()}
+                </Select>
               </div>
             )}
 
-            <button
-              onClick={handleResetFilters}
-              className="text-[11px] text-primary hover:underline font-semibold cursor-pointer ml-auto"
-            >
-              Reset Filters
-            </button>
+            {/* Status Filter */}
+            <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="text-xs h-8"
+              >
+                <option value="">All Statuses</option>
+                <option value="DRAFT">Draft</option>
+                <option value="PENDING_APPROVAL">Pending Approval (Accountant)</option>
+                <option value="ACCOUNTANT_REVIEW">Accountant Reviewed (CFO)</option>
+                <option value="CORRECTION_REQUIRED">Correction Required</option>
+                <option value="APPROVED">Approved</option>
+                <option value="PAID">Paid</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="REJECTED">Rejected</option>
+              </Select>
+            </div>
+
+            {/* Priority Filter */}
+            <div className="w-full sm:w-28">
+              <Select
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                className="text-xs h-8"
+              >
+                <option value="">All Priorities</option>
+                <option value="LOW">Low</option>
+                <option value="NORMAL">Normal</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="URGENT">Urgent</option>
+              </Select>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Custom Range Picker / Active Filter Reset Bar */}
+          {(datePreset === 'CUSTOM' ||
+            regionFilter ||
+            statusFilter ||
+            priorityFilter ||
+            datePreset !== 'TODAY') && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border text-xs">
+              {datePreset === 'CUSTOM' ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-semibold text-muted-foreground">
+                    Custom Dates:
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">From:</span>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setDatePreset('CUSTOM');
+                    }}
+                    className="h-7 w-auto px-2 py-0 text-xs"
+                  />
+                  <span className="text-[11px] text-muted-foreground">To:</span>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setDatePreset('CUSTOM');
+                    }}
+                    className="h-7 w-auto px-2 py-0 text-xs"
+                  />
+                </div>
+              ) : (
+                <div className="text-[11px] text-muted-foreground">
+                  Date Preset:{' '}
+                  <span className="font-semibold text-primary">
+                    {datePreset === 'TODAY'
+                      ? 'Today'
+                      : datePreset === 'THIS_WEEK'
+                      ? 'This Week'
+                      : datePreset === 'THIS_MONTH'
+                      ? 'This Month'
+                      : 'All Time'}
+                  </span>
+                </div>
+              )}
+
+              <Button
+                variant="link"
+                size="xs"
+                onClick={handleResetFilters}
+                className="text-[11px] ml-auto p-0 h-auto"
+              >
+                Reset Filters
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* SHADCN/UI UPGRADED DATA TABLE */}
       <DataTable
@@ -645,13 +624,13 @@ export const RequestsListPage: React.FC = () => {
             description="Try adjusting your filters or date range."
             action={
               datePreset === 'TODAY' || datePreset === 'THIS_MONTH' ? (
-                <button
-                  type="button"
+                <Button
+                  variant="link"
+                  size="xs"
                   onClick={() => applyDatePreset('ALL')}
-                  className="text-xs text-primary hover:underline font-semibold cursor-pointer"
                 >
                   View All Time Requests
-                </button>
+                </Button>
               ) : undefined
             }
           />
@@ -660,3 +639,5 @@ export const RequestsListPage: React.FC = () => {
     </div>
   );
 };
+
+export default RequestsListPage;

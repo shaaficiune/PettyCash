@@ -16,7 +16,6 @@ export class NotificationsService {
     });
 
     // In a real application, you could emit a WebSocket event or queue an email here
-    console.log(`[Notification Alert] User: ${userId} | ${title}: ${message}`);
     return notification;
   }
 

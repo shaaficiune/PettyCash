@@ -866,10 +866,10 @@ export class FundsService {
       const refNum = t.request?.requestNumber
         ? (invNum ? `#${t.request.requestNumber} (Inv: ${invNum})` : `#${t.request.requestNumber}`)
         : (invNum || '-');
-      const employeeName = t.employee?.fullName || t.request?.user?.fullName || '-';
+      const employeeName = t.request?.user?.fullName || t.employee?.fullName || '-';
       const receiverName = t.request?.receiverName || t.request?.vendorName || '-';
       const regionName = t.request?.region?.name || '-';
-      const categoryName = t.request?.budgetHead ? `${t.request.budgetHead.code} - ${t.request.budgetHead.name}` : '-';
+      const categoryName = t.request?.budgetHead ? t.request.budgetHead.name : '-';
       const debitVal = t.debit ? Number(t.debit) : 0;
       const creditVal = t.credit ? Number(t.credit) : 0;
       const balanceVal = t.balanceAfter ? Number(t.balanceAfter) : 0;
@@ -974,7 +974,7 @@ export class FundsService {
       const refNum = t.request?.requestNumber
         ? (invNum ? `#${t.request.requestNumber}<br><span style="font-size:9px; color:#64748b;">Inv: ${escapeHtml(invNum)}</span>` : `#${t.request.requestNumber}`)
         : (invNum || '—');
-      const employeeName = t.employee?.fullName || t.request?.user?.fullName || '—';
+      const employeeName = t.request?.user?.fullName || t.employee?.fullName || '—';
       const receiverName = t.request?.receiverName ? `${t.request.receiverName}${t.request.receiverPhone ? ` (${t.request.receiverPhone})` : ''}` : (t.request?.vendorName || '—');
       const regionName = t.request?.region?.name || '—';
       const categoryName = t.request?.budgetHead ? t.request.budgetHead.name : '—';

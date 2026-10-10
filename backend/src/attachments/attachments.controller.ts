@@ -56,12 +56,13 @@ export class AttachmentsController {
           'image/png',
           'image/jpeg',
           'image/pjpeg',
-          'application/octet-stream',
+          // Note: 'application/octet-stream' intentionally excluded — prevents MIME spoofing
         ];
         const ext = extname(file.originalname).toLowerCase();
         const mime = file.mimetype?.toLowerCase();
 
-        if (allowedExtensions.includes(ext) && (allowedMimeTypes.includes(mime) || !mime)) {
+        // Require both extension AND an explicit matching MIME type (|| !mime removed to close bypass)
+        if (allowedExtensions.includes(ext) && mime && allowedMimeTypes.includes(mime)) {
           cb(null, true);
         } else {
           cb(new BadRequestException(`Unsupported file format. Allowed types: ${allowedExtensions.join(', ')}`), false);

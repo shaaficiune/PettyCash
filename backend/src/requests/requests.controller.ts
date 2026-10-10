@@ -39,8 +39,8 @@ export class RequestsController {
     @Query('page') page = '1',
     @Query('pageSize') pageSize = '20'
   ) {
-    const pageNum = parseInt(page as any, 10) || 1;
-    const size = parseInt(pageSize as any, 10) || 20;
+    const pageNum = Math.max(1, parseInt(page as any, 10) || 1);
+    const size = Math.min(100, Math.max(1, parseInt(pageSize as any, 10) || 20));
     return this.requestsService.findAll(
       req.user,
       companyId,

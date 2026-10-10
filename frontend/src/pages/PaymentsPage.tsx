@@ -7,6 +7,14 @@ import { PaymentVoucherModal } from '../components/PaymentVoucherModal';
 import { EmptyState } from '../components/ui/EmptyState';
 import { formatCurrency, formatDate } from '../utils/format';
 import { DataTable, DataTableColumnHeader } from '../components/ui/data-table';
+import {
+  Button,
+  Badge,
+  Card,
+  CardContent,
+  Input,
+  Label,
+} from '../components/ui';
 
 export const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<any[]>([]);
@@ -58,7 +66,9 @@ export const PaymentsPage: React.FC = () => {
     const a = document.createElement('a');
     a.href = url;
     a.download = `payments_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     URL.revokeObjectURL(url);
   };
 
@@ -72,7 +82,7 @@ export const PaymentsPage: React.FC = () => {
             checked={table.getIsAllPageRowsSelected()}
             onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
             aria-label="Select all"
-            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+            className="rounded border-input text-primary focus:ring-ring h-4 w-4 cursor-pointer"
           />
         ),
         cell: ({ row }) => (
@@ -81,7 +91,7 @@ export const PaymentsPage: React.FC = () => {
             checked={row.getIsSelected()}
             onChange={(e) => row.toggleSelected(!!e.target.checked)}
             aria-label="Select row"
-            className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+            className="rounded border-input text-primary focus:ring-ring h-4 w-4 cursor-pointer"
           />
         ),
         enableSorting: false,
@@ -117,17 +127,9 @@ export const PaymentsPage: React.FC = () => {
           const isSomtel = p.request?.company?.name === 'Somtel';
           const isBluekom = p.request?.company?.name === 'Bluekom';
           return (
-            <span
-              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded whitespace-nowrap ${
-                isSomtel
-                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                  : isBluekom
-                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-              }`}
-            >
+            <Badge variant={isSomtel ? 'warning' : isBluekom ? 'info' : 'secondary'} size="sm">
               {p.request?.company?.name || '—'}
-            </span>
+            </Badge>
           );
         },
       },
@@ -135,14 +137,14 @@ export const PaymentsPage: React.FC = () => {
         accessorKey: 'amountPaid',
         header: ({ column }) => (
           <div className="text-right">
-            <DataTableColumnHeader column={column} title="Amount" />
+            <DataTableColumnHeader column={column} title="Amount Paid" />
           </div>
         ),
         cell: ({ row }) => {
           const p = row.original;
           return (
-            <div className="text-right font-bold text-slate-800 dark:text-slate-100">
-              {formatCurrency(p.amountPaid, p.currency || p.request?.currency)}
+            <div className="text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+              {formatCurrency(p.amountPaid, p.request?.currency || 'USD')}
             </div>
           );
         },
@@ -152,11 +154,14 @@ export const PaymentsPage: React.FC = () => {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Method" />
         ),
-        cell: ({ row }) => (
-          <span className="text-slate-600 dark:text-slate-400 text-xs">
-            {row.original.paymentMethod || '—'}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const p = row.original;
+          return (
+            <Badge variant="default" size="sm">
+              {p.paymentMethod || 'EDAHAB'}
+            </Badge>
+          );
+        },
       },
       {
         id: 'paidBy',
@@ -164,53 +169,75 @@ export const PaymentsPage: React.FC = () => {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Paid By" />
         ),
-        cell: ({ row }) => (
-          <span className="text-slate-600 dark:text-slate-400 text-xs">
-            {row.original.paidBy?.fullName || row.original.paidBy?.username || '—'}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const p = row.original;
+          return (
+            <span className="text-foreground font-medium text-xs">
+              {p.paidBy?.fullName || p.paidBy?.username || '—'}
+            </span>
+          );
+        },
       },
       {
         accessorKey: 'paymentDate',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Date" />
         ),
-        cell: ({ row }) => (
-          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">
-            {formatDate(row.original.paymentDate)}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const p = row.original;
+          return (
+            <span className="text-muted-foreground text-xs">
+              {formatDate(p.paymentDate || p.createdAt)}
+            </span>
+          );
+        },
       },
       {
-        id: 'referenceNumber',
-        accessorFn: (row) => row.referenceNumber || row.transactionId || '',
+        id: 'references',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Ref / Txn" />
+          <DataTableColumnHeader column={column} title="Ref / Invoice / Txn" />
         ),
-        cell: ({ row }) => (
-          <span className="text-xs font-mono text-slate-700 dark:text-slate-300">
-            {row.original.referenceNumber || row.original.transactionId || '—'}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const p = row.original;
+          return (
+            <div className="text-xs">
+              {p.referenceNumber && (
+                <span className="font-mono text-foreground font-medium block">
+                  Inv: {p.referenceNumber}
+                </span>
+              )}
+              {p.transactionId && (
+                <span className="font-mono text-[11px] text-muted-foreground block">
+                  Txn: {p.transactionId}
+                </span>
+              )}
+              {!p.referenceNumber && !p.transactionId && (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </div>
+          );
+        },
       },
       {
-        id: 'voucher',
+        id: 'actions',
         header: () => <div className="text-center">Voucher</div>,
         cell: ({ row }) => {
           const p = row.original;
           return (
             <div className="text-center">
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="xs"
                 onClick={() => {
                   setSelectedPaymentForVoucher(p);
                   setIsVoucherOpen(true);
                 }}
-                className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-colors cursor-pointer"
+                className="gap-1 text-emerald-700 dark:text-emerald-400 border-border hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                 title="Print Payment Voucher"
               >
-                <Printer className="h-4 w-4" />
-              </button>
+                <Printer className="h-3.5 w-3.5" />
+                <span>Print</span>
+              </Button>
             </div>
           );
         },
@@ -221,72 +248,80 @@ export const PaymentsPage: React.FC = () => {
 
   return (
     <div className="space-y-4 font-sans">
+      {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white">Payments</h2>
-          <p className="text-xs text-slate-500">Disbursements and payment records</p>
+          <h2 className="text-lg font-bold text-foreground">Disbursement Records</h2>
+          <p className="text-xs text-muted-foreground">Historical ledger of all petty cash payments made</p>
         </div>
-
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={exportCsv}
-          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer"
+          className="gap-1.5 self-start sm:self-auto"
         >
-          <Download className="h-3.5 w-3.5" />
+          <Download className="h-4 w-4" />
           Export CSV
-        </button>
+        </Button>
       </div>
 
-      {/* Date & User Filters */}
-      <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-xs flex flex-wrap gap-2.5 items-end">
-        <div className="flex-1 min-w-[130px]">
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">From</label>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-        <div className="flex-1 min-w-[130px]">
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">To</label>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-        <div className="flex-1 min-w-[120px]">
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Paid By (User ID)</label>
-          <input
-            placeholder="User ID"
-            value={paidBy}
-            onChange={(e) => setPaidBy(e.target.value)}
-            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => loadPayments()}
-            className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer transition-all"
-          >
-            Apply
-          </button>
-          {(fromDate || toDate || paidBy) && (
-            <button
-              onClick={() => {
-                setFromDate('');
-                setToDate('');
-                setPaidBy('');
-                setTimeout(() => loadPayments(), 0);
-              }}
-              className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+      {/* FILTER BAR */}
+      <Card className="shadow-xs">
+        <CardContent className="p-3 flex flex-wrap gap-2.5 items-end">
+          <div className="flex-1 min-w-[130px] space-y-1">
+            <Label className="text-[11px]">From</Label>
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="flex-1 min-w-[130px] space-y-1">
+            <Label className="text-[11px]">To</Label>
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="flex-1 min-w-[120px] space-y-1">
+            <Label className="text-[11px]">Paid By (User ID)</Label>
+            <Input
+              placeholder="User ID"
+              value={paidBy}
+              onChange={(e) => setPaidBy(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => loadPayments()}
+              className="h-8"
             >
-              Reset
-            </button>
-          )}
-        </div>
-      </div>
+              Apply
+            </Button>
+            {(fromDate || toDate || paidBy) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFromDate('');
+                  setToDate('');
+                  setPaidBy('');
+                  setTimeout(() => loadPayments(), 0);
+                }}
+                className="h-8"
+              >
+                Reset
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* SHADCN/UI DATA TABLE */}
       <DataTable

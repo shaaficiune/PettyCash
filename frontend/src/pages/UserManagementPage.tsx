@@ -1,7 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { ColumnDef } from '@tanstack/react-table';
-import { UserPlus, UserCheck, ShieldAlert, KeyRound, Save, PlusCircle, Trash2, Users, MapPin, BookOpen, Pencil, X, Search, Filter } from 'lucide-react';
+import {
+  UserPlus,
+  UserCheck,
+  ShieldAlert,
+  KeyRound,
+  Save,
+  PlusCircle,
+  Trash2,
+  Users,
+  MapPin,
+  BookOpen,
+  Pencil,
+  Search,
+  Filter,
+  ArrowLeft,
+  Building,
+} from 'lucide-react';
 import {
   DataTable,
   DataTableColumnHeader,
@@ -12,6 +28,16 @@ import {
   TableHead,
   TableCell,
 } from '../components/ui/data-table';
+import { Button } from '../components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select } from '../components/ui/select';
+import { Badge } from '../components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { cn } from '../lib/utils';
 
 export const UserManagementPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'budgets' | 'regions' | 'budget-heads'>('users');
@@ -114,7 +140,8 @@ export const UserManagementPage: React.FC = () => {
     setCreatingRegion(true);
     try {
       await api.post('/companies/regions', { name: newRegionName, companyId: newRegionCompanyId });
-      setNewRegionName(''); setNewRegionCompanyId('');
+      setNewRegionName('');
+      setNewRegionCompanyId('');
       setRegionFormOpen(false);
       await loadUsersAndFilters();
     } catch (err: any) {
@@ -159,8 +186,16 @@ export const UserManagementPage: React.FC = () => {
     setBhError(null);
     setCreatingBh(true);
     try {
-      await api.post('/companies/budget-heads', { name: newBhName, code: newBhCode, description: newBhDescription || undefined, companyId: newBhCompanyId });
-      setNewBhName(''); setNewBhCode(''); setNewBhDescription(''); setNewBhCompanyId('');
+      await api.post('/companies/budget-heads', {
+        name: newBhName,
+        code: newBhCode,
+        description: newBhDescription || undefined,
+        companyId: newBhCompanyId,
+      });
+      setNewBhName('');
+      setNewBhCode('');
+      setNewBhDescription('');
+      setNewBhCompanyId('');
       setBhFormOpen(false);
       await loadUsersAndFilters();
     } catch (err: any) {
@@ -172,7 +207,11 @@ export const UserManagementPage: React.FC = () => {
 
   const handleSaveBudgetHead = async (id: string) => {
     try {
-      await api.patch(`/companies/budget-heads/${id}`, { name: editingBhName, code: editingBhCode, description: editingBhDesc || undefined });
+      await api.patch(`/companies/budget-heads/${id}`, {
+        name: editingBhName,
+        code: editingBhCode,
+        description: editingBhDesc || undefined,
+      });
       setEditingBhId(null);
       await loadUsersAndFilters();
     } catch (err: any) {
@@ -204,7 +243,7 @@ export const UserManagementPage: React.FC = () => {
     const cId = editingUser?.company?.id;
     if (cId) {
       api.get(`/companies/regions?companyId=${cId}`)
-        .then(res => setEditRegions(res.data))
+        .then((res) => setEditRegions(res.data))
         .catch(() => {});
     }
   }, [editingUser]);
@@ -250,7 +289,7 @@ export const UserManagementPage: React.FC = () => {
   useEffect(() => {
     if (companyId) {
       api.get(`/companies/regions?companyId=${companyId}`)
-        .then(res => setCompanyRegions(res.data))
+        .then((res) => setCompanyRegions(res.data))
         .catch(() => console.error('Failed to load regions'));
     } else {
       setCompanyRegions([]);
@@ -273,7 +312,7 @@ export const UserManagementPage: React.FC = () => {
         phone,
         companyId,
         regionId: userRegionId || undefined,
-        role
+        role,
       });
 
       // Clear Form
@@ -306,7 +345,7 @@ export const UserManagementPage: React.FC = () => {
     const newStatus = userObj.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     try {
       await api.put(`/users/${userObj.id}`, { status: newStatus });
-      setUsers(users.map(u => u.id === userObj.id ? { ...u, status: newStatus } : u));
+      setUsers(users.map((u) => (u.id === userObj.id ? { ...u, status: newStatus } : u)));
     } catch (e) {
       console.error('Failed to toggle status', e);
     }
@@ -434,13 +473,14 @@ export const UserManagementPage: React.FC = () => {
           const isBluekom = u.company?.name === 'Bluekom';
           return (
             <span
-              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+              className={cn(
+                'text-[10px] font-bold uppercase px-2 py-0.5 rounded',
                 isSomtel
                   ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
                   : isBluekom
                   ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
                   : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-              }`}
+              )}
             >
               {u.company?.name || 'N/A'}
             </span>
@@ -473,9 +513,9 @@ export const UserManagementPage: React.FC = () => {
         cell: ({ row }) => {
           const u = row.original;
           return (
-            <span className="text-xs font-bold uppercase px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded border border-slate-200/60 dark:border-slate-700">
+            <Badge variant="outline" className="font-bold uppercase tracking-wider text-[10px]">
               {u.role?.name || u.role}
-            </span>
+            </Badge>
           );
         },
       },
@@ -487,15 +527,9 @@ export const UserManagementPage: React.FC = () => {
         cell: ({ row }) => {
           const u = row.original;
           return (
-            <span
-              className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                u.status === 'ACTIVE'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40'
-                  : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-              }`}
-            >
+            <Badge variant={u.status === 'ACTIVE' ? 'success' : 'secondary'}>
               {u.status}
-            </span>
+            </Badge>
           );
         },
       },
@@ -507,35 +541,42 @@ export const UserManagementPage: React.FC = () => {
           return (
             <div className="text-center whitespace-nowrap">
               <div className="inline-flex items-center gap-1.5">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="xs"
                   onClick={() => handleOpenEdit(u)}
                   title="Edit user details"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-primary/8 hover:bg-primary/15 text-primary border border-primary/20 hover:border-primary/40 transition-all cursor-pointer"
+                  className="gap-1 text-[11px]"
                 >
-                  <Pencil className="h-3 w-3" />
+                  <Pencil className="h-3 w-3 text-primary" />
                   Edit
-                </button>
+                </Button>
 
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="xs"
                   onClick={() => handleResetPassword(u.id)}
                   title="Generate new one-time password"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 hover:border-amber-300 transition-all cursor-pointer"
+                  className="gap-1 text-[11px] text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/40 hover:bg-amber-50 dark:hover:bg-amber-950/30"
                 >
                   <KeyRound className="h-3 w-3" />
                   Reset PW
-                </button>
+                </Button>
 
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="xs"
                   onClick={() => handleToggleStatus(u)}
                   title={u.status === 'ACTIVE' ? 'Disable this account' : 'Re-activate this account'}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                  className={cn(
+                    'gap-1 text-[11px]',
                     u.status === 'ACTIVE'
-                      ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/40 hover:border-rose-300'
-                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/40 hover:border-emerald-300'
-                  }`}
+                      ? 'text-rose-700 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/40 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                      : 'text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
+                  )}
                 >
                   {u.status === 'ACTIVE' ? (
                     <>
@@ -546,18 +587,20 @@ export const UserManagementPage: React.FC = () => {
                       <UserCheck className="h-3 w-3" /> Activate
                     </>
                   )}
-                </button>
+                </Button>
 
                 {u.status === 'DISABLED' && (
-                  <button
+                  <Button
                     type="button"
+                    variant="destructive"
+                    size="xs"
                     onClick={() => handleDeleteUser(u)}
                     title="Permanently delete this account"
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-800 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40 hover:border-rose-300 transition-all cursor-pointer"
+                    className="gap-1 text-[11px]"
                   >
                     <Trash2 className="h-3 w-3" />
                     Delete
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -570,72 +613,74 @@ export const UserManagementPage: React.FC = () => {
 
   return (
     <div className="space-y-4 font-sans">
+      {/* Page Header and Tab Navigation */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white">User Directory</h2>
-          <p className="text-xs text-slate-500">Manage user accounts, roles, regional assignments, and budget limits</p>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <Users className="h-6 w-6 text-primary" />
+            User &amp; Organization Directory
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Manage user accounts, roles, regional assignments, and monthly budget limits
+          </p>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto justify-between sm:justify-end">
-          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex gap-1 border border-slate-200/60 dark:border-slate-700 overflow-x-auto max-w-full">
-            <button
-              onClick={() => { setActiveTab('users'); setFormOpen(false); }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                activeTab === 'users' ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Users
-            </button>
-            <button
-              onClick={() => { setActiveTab('budgets'); setFormOpen(false); }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                activeTab === 'budgets' ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Region Budgets
-            </button>
-            <button
-              onClick={() => { setActiveTab('regions'); setFormOpen(false); setRegionFormOpen(false); }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                activeTab === 'regions' ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Regions
-            </button>
-            <button
-              onClick={() => { setActiveTab('budget-heads'); setFormOpen(false); setBhFormOpen(false); }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                activeTab === 'budget-heads' ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Budget Heads
-            </button>
-          </div>
+          <Tabs
+            value={activeTab}
+            onValueChange={(val: any) => {
+              setActiveTab(val);
+              setFormOpen(false);
+              setRegionFormOpen(false);
+              setBhFormOpen(false);
+            }}
+          >
+            <TabsList>
+              <TabsTrigger value="users" className="gap-1.5 text-xs">
+                <Users className="h-3.5 w-3.5" /> Users
+              </TabsTrigger>
+              <TabsTrigger value="budgets" className="gap-1.5 text-xs">
+                <MapPin className="h-3.5 w-3.5" /> Region Budgets
+              </TabsTrigger>
+              <TabsTrigger value="regions" className="gap-1.5 text-xs">
+                <Building className="h-3.5 w-3.5" /> Regions
+              </TabsTrigger>
+              <TabsTrigger value="budget-heads" className="gap-1.5 text-xs">
+                <BookOpen className="h-3.5 w-3.5" /> Budget Heads
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {activeTab === 'users' ? (
-            <button
+            <Button
+              variant="gold"
+              size="sm"
               onClick={() => setFormOpen(!formOpen)}
-              className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              className="gap-1.5 text-xs shadow-sm"
             >
-              <UserPlus className="h-4.5 w-4.5" />
+              <UserPlus className="h-4 w-4" />
               {formOpen ? 'View Users' : 'Add User'}
-            </button>
+            </Button>
           ) : activeTab === 'regions' ? (
-            <button
+            <Button
+              variant="gold"
+              size="sm"
               onClick={() => setRegionFormOpen(!regionFormOpen)}
-              className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              className="gap-1.5 text-xs shadow-sm"
             >
-              <PlusCircle className="h-4.5 w-4.5" />
+              <PlusCircle className="h-4 w-4" />
               {regionFormOpen ? 'View Regions' : 'Add Region'}
-            </button>
+            </Button>
           ) : activeTab === 'budget-heads' ? (
-            <button
+            <Button
+              variant="gold"
+              size="sm"
               onClick={() => setBhFormOpen(!bhFormOpen)}
-              className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              className="gap-1.5 text-xs shadow-sm"
             >
-              <PlusCircle className="h-4.5 w-4.5" />
+              <PlusCircle className="h-4 w-4" />
               {bhFormOpen ? 'View Budget Heads' : 'Add Budget Head'}
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -643,205 +688,233 @@ export const UserManagementPage: React.FC = () => {
       {/* TAB: Users */}
       {activeTab === 'users' && (
         formOpen ? (
-          /* CREATE USER FORM */
-          <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md transition-colors max-w-2xl mx-auto">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6">Add New User</h3>
-            {error && (
-              <div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded text-xs text-rose-600 dark:text-rose-400">
-                {error}
+          /* CREATE USER FORM CARD */
+          <Card className="max-w-2xl mx-auto shadow-md">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <UserPlus className="h-5 w-5 text-gold" /> Add New User
+                  </CardTitle>
+                  <CardDescription>
+                    Register a new user account with role privileges and company assignment.
+                  </CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                </Button>
               </div>
-            )}
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Full Name *</label>
-                  <input
-                    type="text"
-                    placeholder="Full name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
-                  />
+            </CardHeader>
+            <CardContent>
+              {error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label required>Full Name</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. Ahmed Ali"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label required>Username</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. ahmed.ali"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Username *</label>
-                  <input
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
-                  />
-                </div>
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Email (Optional)</Label>
+                    <Input
+                      type="email"
+                      placeholder="email@company.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Email (Optional)</label>
-                  <input
-                    type="email"
-                    placeholder="email@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
-                  />
+                  <div className="space-y-1.5">
+                    <Label required>Phone Number</Label>
+                    <Input
+                      type="text"
+                      placeholder="+252 61 XXX XXXX"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Phone Number *</label>
-                  <input
-                    type="text"
-                    placeholder="+252 61 XXX XXXX"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none"
-                    required
-                  />
-                </div>
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label required>Company</Label>
+                    <Select
+                      value={companyId}
+                      onChange={(e) => {
+                        setCompanyId(e.target.value);
+                        setUserRegionId('');
+                      }}
+                      required
+                    >
+                      <option value="">Select Company</option>
+                      {companies.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Company *</label>
-                  <select
-                    value={companyId}
-                    onChange={(e) => { setCompanyId(e.target.value); setUserRegionId(''); }}
-                    required
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
+                  <div className="space-y-1.5">
+                    <Label required>Role</Label>
+                    <Select
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      required
+                    >
+                      <option value="EMPLOYEE">Employee</option>
+                      <option value="ACCOUNTANT">Accountant</option>
+                      <option value="SUPER_ADMIN">Super Admin</option>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Region (Optional)</Label>
+                  <Select
+                    value={userRegionId}
+                    onChange={(e) => setUserRegionId(e.target.value)}
+                    disabled={!companyId}
                   >
-                    <option value="">Select Company</option>
-                    {companies.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                    <option value="">No Region (Default)</option>
+                    {companyRegions.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name} {r.code ? `(${r.code})` : ''}
+                      </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Role *</label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                  >
-                    <option value="EMPLOYEE">Employee</option>
-                    <option value="ACCOUNTANT">Accountant</option>
-                    <option value="SUPER_ADMIN">Super Admin</option>
-                  </select>
+                <div className="pt-4 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+                  <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" variant="gold" className="gap-1.5 shadow-sm">
+                    <Save className="h-4 w-4" /> Save User
+                  </Button>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Region (Optional)</label>
-                <select
-                  value={userRegionId}
-                  onChange={(e) => setUserRegionId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                  disabled={!companyId}
-                >
-                  <option value="">No Region (Default)</option>
-                  {companyRegions.map(r => (
-                    <option key={r.id} value={r.id}>{r.name} {r.code ? `(${r.code})` : ''}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="pt-4 flex justify-end gap-2">
-                <button type="button" onClick={() => setFormOpen(false)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-lg cursor-pointer hover:bg-slate-200">
-                  Cancel
-                </button>
-                <button type="submit"
-                  className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-lg cursor-pointer shadow-sm transition-all">
-                  Save User
-                </button>
-              </div>
-            </form>
-          </div>
+              </form>
+            </CardContent>
+          </Card>
         ) : (
           /* USERS DIRECTORY VIEW */
           <div className="space-y-3">
             {/* FILTER HUB */}
-            <div className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm flex flex-col md:flex-row gap-2 items-center transition-colors">
-              <div className="relative flex-1 w-full">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                  <Search className="h-4 w-4" />
-                </span>
-                <input
-                  type="text"
-                  placeholder="Search users..."
-                  value={searchUser}
-                  onChange={(e) => setSearchUser(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 placeholder-slate-400 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
-                />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
-                <div className="flex items-center gap-1.5 flex-1 md:flex-initial">
-                  <Filter className="h-3.5 w-3.5 text-slate-400" />
-                  <select
-                    value={userCompanyFilter}
-                    onChange={(e) => setUserCompanyFilter(e.target.value)}
-                    className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer w-full"
-                  >
-                    <option value="">All Companies</option>
-                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+            <Card className="p-3 shadow-xs">
+              <div className="flex flex-col md:flex-row gap-2.5 items-center">
+                <div className="relative flex-1 w-full">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
+                    <Search className="h-4 w-4" />
+                  </span>
+                  <Input
+                    type="text"
+                    placeholder="Search users by name, username, phone..."
+                    value={searchUser}
+                    onChange={(e) => setSearchUser(e.target.value)}
+                    className="pl-9 h-9 text-xs"
+                  />
                 </div>
 
-                <select
-                  value={userRoleFilter}
-                  onChange={(e) => setUserRoleFilter(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer w-full md:w-32"
-                >
-                  <option value="">All Roles</option>
-                  <option value="EMPLOYEE">Employee</option>
-                  <option value="ACCOUNTANT">Accountant</option>
-                  <option value="SUPER_ADMIN">Super Admin</option>
-                </select>
+                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
+                  <div className="flex items-center gap-1.5 flex-1 md:flex-initial">
+                    <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <Select
+                      value={userCompanyFilter}
+                      onChange={(e) => setUserCompanyFilter(e.target.value)}
+                      className="h-9 text-xs"
+                    >
+                      <option value="">All Companies</option>
+                      {companies.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
 
-                <select
-                  value={userStatusFilter}
-                  onChange={(e) => setUserStatusFilter(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer w-full md:w-28"
-                >
-                  <option value="">All Statuses</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="DISABLED">Disabled</option>
-                </select>
+                  <Select
+                    value={userRoleFilter}
+                    onChange={(e) => setUserRoleFilter(e.target.value)}
+                    className="h-9 text-xs w-full sm:w-32"
+                  >
+                    <option value="">All Roles</option>
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="ACCOUNTANT">Accountant</option>
+                    <option value="SUPER_ADMIN">Super Admin</option>
+                  </Select>
 
-                <select
-                  value={userRegionFilter}
-                  onChange={(e) => setUserRegionFilter(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer w-full md:w-36"
-                >
-                  <option value="">All Regions</option>
-                  {(() => {
-                    const filtered = regions.filter(r => !userCompanyFilter || r.companyId === userCompanyFilter);
-                    const groups: { [key: string]: any[] } = {};
-                    filtered.forEach((r) => {
-                      const cName = r.company?.name || 'Other';
-                      if (!groups[cName]) groups[cName] = [];
-                      groups[cName].push(r);
-                    });
-                    const compKeys = Object.keys(groups);
-                    if (compKeys.length <= 1) {
-                      return filtered.map((r) => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
+                  <Select
+                    value={userStatusFilter}
+                    onChange={(e) => setUserStatusFilter(e.target.value)}
+                    className="h-9 text-xs w-full sm:w-28"
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="DISABLED">Disabled</option>
+                  </Select>
+
+                  <Select
+                    value={userRegionFilter}
+                    onChange={(e) => setUserRegionFilter(e.target.value)}
+                    className="h-9 text-xs w-full sm:w-36"
+                  >
+                    <option value="">All Regions</option>
+                    {(() => {
+                      const filtered = regions.filter((r) => !userCompanyFilter || r.companyId === userCompanyFilter);
+                      const groups: { [key: string]: any[] } = {};
+                      filtered.forEach((r) => {
+                        const cName = r.company?.name || 'Other';
+                        if (!groups[cName]) groups[cName] = [];
+                        groups[cName].push(r);
+                      });
+                      const compKeys = Object.keys(groups);
+                      if (compKeys.length <= 1) {
+                        return filtered.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.name}
+                          </option>
+                        ));
+                      }
+                      return compKeys.map((cName) => (
+                        <optgroup key={cName} label={`── ${cName} ──`}>
+                          {groups[cName].map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </optgroup>
                       ));
-                    }
-                    return compKeys.map((cName) => (
-                      <optgroup key={cName} label={`── ${cName} ──`}>
-                        {groups[cName].map((r) => (
-                          <option key={r.id} value={r.id}>{r.name}</option>
-                        ))}
-                      </optgroup>
-                    ));
-                  })()}
-                </select>
+                    })()}
+                  </Select>
+                </div>
               </div>
-            </div>
+            </Card>
+
             {/* SHADCN/UI USERS DATA TABLE */}
             <DataTable
               columns={userColumns}
@@ -855,460 +928,632 @@ export const UserManagementPage: React.FC = () => {
         )
       )}
 
-      {/* Edit User Modal */}
-      {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg p-8 relative animate-fadeIn">
-            <button
-              onClick={() => setEditingUser(null)}
-              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">Edit User</h3>
-            <p className="text-xs text-slate-500 mb-6">
-              Editing: <span className="font-semibold text-slate-700 dark:text-slate-300">{editingUser.fullName}</span>
-              &nbsp;·&nbsp;<span className="text-slate-400">{editingUser.username}</span>
-            </p>
+      {/* Edit User Modal Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => { if (!open) setEditingUser(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit User Profile</DialogTitle>
+            <DialogDescription>
+              Editing account details for{' '}
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                {editingUser?.fullName}
+              </span>{' '}
+              (@{editingUser?.username})
+            </DialogDescription>
+          </DialogHeader>
 
-            {editError && (
-              <div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded text-xs text-rose-600 dark:text-rose-400">
-                {editError}
+          {editError && (
+            <Alert variant="destructive">
+              <AlertDescription>{editError}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleUpdateUser} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label required>Full Name</Label>
+                <Input
+                  type="text"
+                  value={editForm.fullName}
+                  onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                  required
+                />
               </div>
-            )}
-
-            <form onSubmit={handleUpdateUser} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Full Name *</label>
-                  <input
-                    type="text"
-                    value={editForm.fullName}
-                    onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Email (Optional)</label>
-                  <input
-                    type="email"
-                    value={editForm.email}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                />
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Phone Number *</label>
-                  <input
-                    type="text"
-                    value={editForm.phone}
-                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    required
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Role *</label>
-                  <select
-                    value={editForm.role}
-                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
-                  >
-                    <option value="EMPLOYEE">Employee</option>
-                    <option value="ACCOUNTANT">Accountant</option>
-                    <option value="SUPER_ADMIN">Super Admin</option>
-                  </select>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label required>Phone Number</Label>
+                <Input
+                  type="text"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  required
+                />
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Region (Optional)</label>
-                <select
-                  value={editForm.regionId}
-                  onChange={(e) => setEditForm({ ...editForm, regionId: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
+              <div className="space-y-1.5">
+                <Label required>Role</Label>
+                <Select
+                  value={editForm.role}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                 >
-                  <option value="">No Region</option>
-                  {editRegions.map(r => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
-                </select>
+                  <option value="EMPLOYEE">Employee</option>
+                  <option value="ACCOUNTANT">Accountant</option>
+                  <option value="SUPER_ADMIN">Super Admin</option>
+                </Select>
               </div>
+            </div>
 
-              <div className="pt-4 flex justify-end gap-2">
-                <button type="button" onClick={() => setEditingUser(null)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-lg cursor-pointer hover:bg-slate-200">
-                  Cancel
-                </button>
-                <button type="submit" disabled={savingUser}
-                  className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-lg cursor-pointer shadow-sm transition-all disabled:opacity-60 flex items-center gap-1.5">
-                  <Save className="h-3.5 w-3.5" />
-                  {savingUser ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="space-y-1.5">
+              <Label>Region</Label>
+              <Select
+                value={editForm.regionId}
+                onChange={(e) => setEditForm({ ...editForm, regionId: e.target.value })}
+              >
+                <option value="">No Region (Default)</option>
+                {editRegions.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="gold"
+                disabled={savingUser}
+                className="gap-1.5"
+              >
+                <Save className="h-4 w-4" />
+                {savingUser ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* TAB: Region Budgets */}
       {activeTab === 'budgets' && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
-          <div className="p-4 sm:p-5 border-b border-slate-200/60 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Card className="overflow-hidden shadow-sm">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <CardTitle className="text-sm flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-primary" />
                 Region Monthly Budgets
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Monthly spending limits by operating region</p>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Monthly spending limits assigned to operational regions
+              </CardDescription>
             </div>
 
             <div className="flex items-center gap-2">
               <Filter className="h-3.5 w-3.5 text-slate-400" />
-              <select
+              <Select
                 value={regionCompanyFilter}
                 onChange={(e) => setRegionCompanyFilter(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1 text-xs focus:outline-none cursor-pointer"
+                className="h-8 text-xs w-40"
               >
                 <option value="">All Companies</option>
-                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
             </div>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                <TableRow>
-                  <TableHead className="py-3 px-6">Region Name</TableHead>
-                  <TableHead className="py-3 px-4">Company</TableHead>
-                  <TableHead className="py-3 px-4 hidden sm:table-cell">Assigned Users</TableHead>
-                  <TableHead className="py-3 px-4 hidden md:table-cell">Requests (Total)</TableHead>
-                  <TableHead className="py-3 px-4">Monthly Budget Limit ($)</TableHead>
-                  <TableHead className="py-3 px-6 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {regions
-                  .filter(r => !regionCompanyFilter || r.companyId === regionCompanyFilter || r.company?.id === regionCompanyFilter)
-                  .map((region) => {
-                  const isSomtel = region.company?.name === 'Somtel';
-                  const isBluekom = region.company?.name === 'Bluekom';
-                  return (
-                    <TableRow key={region.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                      <TableCell className="py-3.5 px-6 font-semibold text-slate-800 dark:text-slate-200">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block w-2 h-2 rounded-full bg-primary"></span>
-                          {region.name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3.5 px-4">
-                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                          isSomtel
-                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                            : isBluekom
-                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                        }`}>{region.company?.name || 'N/A'}</span>
-                      </TableCell>
-                      <TableCell className="py-3.5 px-4 hidden sm:table-cell">
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">
-                          <Users className="h-3 w-3 text-slate-400" />
-                          {region._count?.users || 0} users
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-3.5 px-4 hidden md:table-cell">
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1 rounded-md">
-                          {region._count?.requests || 0} requests
-                        </span>
-                      </TableCell>
-                    <TableCell className="py-3.5 px-4">
-                      <div className="flex items-center gap-1.5 max-w-[180px]">
-                        <span className="text-slate-400 font-semibold">$</span>
-                        <input
-                          type="number"
-                          step="100"
-                          min="0"
-                          value={editingBudgets[region.id] ?? (region.monthlyBudget || 0)}
-                          onChange={(e) => setEditingBudgets({ ...editingBudgets, [region.id]: e.target.value })}
-                          className="w-full px-3 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-3.5 px-6 text-right">
-                      <button
-                        onClick={() => handleSaveRegionBudget(region.id)}
-                        disabled={savingBudgetId === region.id}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 ml-auto"
-                      >
-                        <Save className="h-3.5 w-3.5" />
-                        {savingBudgetId === region.id ? 'Saving...' : 'Save'}
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-                {regions.length === 0 && (
+          </CardHeader>
+
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-xs text-slate-400">
-                      No regions found. Add regions from the Regions tab first.
-                    </TableCell>
+                    <TableHead className="py-3 px-6">Region Name</TableHead>
+                    <TableHead className="py-3 px-4">Company</TableHead>
+                    <TableHead className="py-3 px-4 hidden sm:table-cell">Assigned Users</TableHead>
+                    <TableHead className="py-3 px-4 hidden md:table-cell">Requests (Total)</TableHead>
+                    <TableHead className="py-3 px-4">Monthly Budget Limit ($)</TableHead>
+                    <TableHead className="py-3 px-6 text-right">Actions</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {regions
+                    .filter((r) => !regionCompanyFilter || r.companyId === regionCompanyFilter || r.company?.id === regionCompanyFilter)
+                    .map((region) => {
+                      const isSomtel = region.company?.name === 'Somtel';
+                      const isBluekom = region.company?.name === 'Bluekom';
+                      return (
+                        <TableRow key={region.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                          <TableCell className="py-3.5 px-6 font-semibold text-slate-800 dark:text-slate-200">
+                            <div className="flex items-center gap-2">
+                              <span className="inline-block w-2 h-2 rounded-full bg-primary" />
+                              {region.name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            <span
+                              className={cn(
+                                'text-[10px] font-bold uppercase px-2 py-0.5 rounded',
+                                isSomtel
+                                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
+                                  : isBluekom
+                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                              )}
+                            >
+                              {region.company?.name || 'N/A'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 hidden sm:table-cell">
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">
+                              <Users className="h-3 w-3 text-slate-400" />
+                              {region._count?.users || 0} users
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 hidden md:table-cell">
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1 rounded-md">
+                              {region._count?.requests || 0} requests
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            <div className="flex items-center gap-1.5 max-w-[180px]">
+                              <span className="text-slate-400 font-semibold">$</span>
+                              <Input
+                                type="number"
+                                step="100"
+                                min="0"
+                                value={editingBudgets[region.id] ?? (region.monthlyBudget || 0)}
+                                onChange={(e) => setEditingBudgets({ ...editingBudgets, [region.id]: e.target.value })}
+                                className="h-8 text-xs font-semibold"
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right">
+                            <Button
+                              variant="teal"
+                              size="xs"
+                              onClick={() => handleSaveRegionBudget(region.id)}
+                              disabled={savingBudgetId === region.id}
+                              className="gap-1.5 ml-auto"
+                            >
+                              <Save className="h-3.5 w-3.5" />
+                              {savingBudgetId === region.id ? 'Saving...' : 'Save'}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  {regions.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-10 text-center text-xs text-slate-400">
+                        No regions found. Add regions from the Regions tab first.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* TAB: Regions */}
       {activeTab === 'regions' && (
         regionFormOpen ? (
-          <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md transition-colors max-w-xl mx-auto">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
-              Add New Region
-            </h3>
-            {regionError && (<div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded text-xs text-rose-600 dark:text-rose-400">{regionError}</div>)}
-            <form onSubmit={handleCreateRegion} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Region Name *</label>
-                <input type="text" placeholder="Region name" value={newRegionName} onChange={(e) => setNewRegionName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
+          <Card className="max-w-xl mx-auto shadow-md">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Building className="h-5 w-5 text-primary" /> Add New Region
+                  </CardTitle>
+                  <CardDescription>Create an operational region for cost center grouping.</CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setRegionFormOpen(false)}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                </Button>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Company *</label>
-                <select value={newRegionCompanyId} onChange={(e) => setNewRegionCompanyId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none cursor-pointer">
-                  <option value="">Select Company</option>
-                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="pt-4 flex justify-end gap-2">
-                <button type="button" onClick={() => setRegionFormOpen(false)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-lg cursor-pointer hover:bg-slate-200">Cancel</button>
-                <button type="submit" disabled={creatingRegion}
-                  className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50 transition-all shadow-sm">
-                  {creatingRegion ? 'Creating...' : 'Create Region'}
-                </button>
-              </div>
-            </form>
-          </div>
+            </CardHeader>
+            <CardContent>
+              {regionError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{regionError}</AlertDescription>
+                </Alert>
+              )}
+              <form onSubmit={handleCreateRegion} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label required>Region Name</Label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. Mogadishu, Hargeisa, Garowe"
+                    value={newRegionName}
+                    onChange={(e) => setNewRegionName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label required>Company</Label>
+                  <Select
+                    value={newRegionCompanyId}
+                    onChange={(e) => setNewRegionCompanyId(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Company</option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="pt-4 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+                  <Button type="button" variant="outline" onClick={() => setRegionFormOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" variant="gold" disabled={creatingRegion} className="gap-1.5 shadow-sm">
+                    {creatingRegion ? 'Creating...' : 'Create Region'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
-            <div className="p-5 border-b border-slate-200/60 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
+          <Card className="overflow-hidden shadow-sm">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Building className="h-4 w-4 text-primary" />
                 Regions Management
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Operational regions for petty cash requests</p>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  <TableRow>
-                    <TableHead className="py-3 px-6">Region Name</TableHead>
-                    <TableHead className="py-3 px-4">Company</TableHead>
-                    <TableHead className="py-3 px-4">Requests</TableHead>
-                    <TableHead className="py-3 px-6 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {regions.map((r) => {
-                    const isSomtel = r.company?.name === 'Somtel';
-                    const isBluekom = r.company?.name === 'Bluekom';
-                    return (
-                      <TableRow key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                        <TableCell className="py-3.5 px-6">
-                          {editingRegionId === r.id ? (
-                            <input value={editingRegionName} onChange={(e) => setEditingRegionName(e.target.value)}
-                              className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary w-full max-w-[200px]" />
-                          ) : (
-                            <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{r.name}</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="py-3.5 px-4">
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                            isSomtel
-                              ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                              : isBluekom
-                              ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                              : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                          }`}>{r.company?.name || 'N/A'}</span>
-                        </TableCell>
-                      <TableCell className="py-3.5 px-4">
-                        <span className="inline-flex items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">{r._count?.requests || 0} requests</span>
-                      </TableCell>
-                      <TableCell className="py-3.5 px-6 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          {editingRegionId === r.id ? (
-                            <>
-                              <button onClick={() => handleSaveRegion(r.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 cursor-pointer">
-                                <Save className="h-3.5 w-3.5" /> Save
-                              </button>
-                              <button onClick={() => setEditingRegionId(null)} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 text-xs font-semibold rounded-lg cursor-pointer">Cancel</button>
-                            </>
-                          ) : (
-                            <button onClick={() => { setEditingRegionId(r.id); setEditingRegionName(r.name); }}
-                              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-lg cursor-pointer">Edit</button>
-                          )}
-                          <button onClick={() => handleDeleteRegion(r)} className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-all cursor-pointer">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </TableCell>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Operational regions for petty cash requests
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="py-3 px-6">Region Name</TableHead>
+                      <TableHead className="py-3 px-4">Company</TableHead>
+                      <TableHead className="py-3 px-4">Requests</TableHead>
+                      <TableHead className="py-3 px-6 text-right">Actions</TableHead>
                     </TableRow>
-                  );
-                })}
-                  {regions.length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="py-10 text-center text-xs text-slate-400">No regions found. Add one above.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {regions.map((r) => {
+                      const isSomtel = r.company?.name === 'Somtel';
+                      const isBluekom = r.company?.name === 'Bluekom';
+                      return (
+                        <TableRow key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                          <TableCell className="py-3.5 px-6">
+                            {editingRegionId === r.id ? (
+                              <Input
+                                value={editingRegionName}
+                                onChange={(e) => setEditingRegionName(e.target.value)}
+                                className="h-8 max-w-[200px] text-xs font-semibold"
+                              />
+                            ) : (
+                              <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{r.name}</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="py-3.5 px-4">
+                            <span
+                              className={cn(
+                                'text-[10px] font-bold uppercase px-2 py-0.5 rounded',
+                                isSomtel
+                                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
+                                  : isBluekom
+                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                              )}
+                            >
+                              {r.company?.name || 'N/A'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            <span className="inline-flex items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">
+                              {r._count?.requests || 0} requests
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
+                              {editingRegionId === r.id ? (
+                                <>
+                                  <Button
+                                    variant="teal"
+                                    size="xs"
+                                    onClick={() => handleSaveRegion(r.id)}
+                                    className="gap-1.5"
+                                  >
+                                    <Save className="h-3.5 w-3.5" /> Save
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="xs"
+                                    onClick={() => setEditingRegionId(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  onClick={() => {
+                                    setEditingRegionId(r.id);
+                                    setEditingRegionName(r.name);
+                                  }}
+                                >
+                                  Edit
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleDeleteRegion(r)}
+                                className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {regions.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="py-10 text-center text-xs text-slate-400">
+                          No regions found. Add one above.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         )
       )}
 
       {/* TAB: Budget Heads */}
       {activeTab === 'budget-heads' && (
         bhFormOpen ? (
-          <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-md transition-colors max-w-xl mx-auto">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-sky-500" />
-              Add New Budget Head
-            </h3>
-            {bhError && (<div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded text-xs text-rose-600 dark:text-rose-400">{bhError}</div>)}
-            <form onSubmit={handleCreateBudgetHead} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="max-w-xl mx-auto shadow-md">
+            <CardHeader>
+              <div className="flex items-center justify-between">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Budget Head Name *</label>
-                  <input type="text" placeholder="Budget head name" value={newBhName} onChange={(e) => setNewBhName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-sky-500" /> Add New Budget Head
+                  </CardTitle>
+                  <CardDescription>Expenditure classification category and account code.</CardDescription>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Code *</label>
-                  <input type="text" placeholder="BH-101" value={newBhCode} onChange={(e) => setNewBhCode(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
+                <Button variant="ghost" size="sm" onClick={() => setBhFormOpen(false)}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {bhError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{bhError}</AlertDescription>
+                </Alert>
+              )}
+              <form onSubmit={handleCreateBudgetHead} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label required>Budget Head Name</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. Office Supplies"
+                      value={newBhName}
+                      onChange={(e) => setNewBhName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label required>Code</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. BH-101"
+                      value={newBhCode}
+                      onChange={(e) => setNewBhCode(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Description (Optional)</label>
-                <input type="text" placeholder="Description (optional)" value={newBhDescription} onChange={(e) => setNewBhDescription(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Company *</label>
-                <select value={newBhCompanyId} onChange={(e) => setNewBhCompanyId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none cursor-pointer">
-                  <option value="">Select Company</option>
-                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="pt-4 flex justify-end gap-2">
-                <button type="button" onClick={() => setBhFormOpen(false)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-lg cursor-pointer hover:bg-slate-200">Cancel</button>
-                <button type="submit" disabled={creatingBh}
-                  className="px-4 py-2 bg-gold hover:bg-gold-600 text-white text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50 transition-all shadow-sm">
-                  {creatingBh ? 'Creating...' : 'Create Budget Head'}
-                </button>
-              </div>
-            </form>
-          </div>
+                <div className="space-y-1.5">
+                  <Label>Description (Optional)</Label>
+                  <Input
+                    type="text"
+                    placeholder="Short description of this expense type"
+                    value={newBhDescription}
+                    onChange={(e) => setNewBhDescription(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label required>Company</Label>
+                  <Select
+                    value={newBhCompanyId}
+                    onChange={(e) => setNewBhCompanyId(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Company</option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="pt-4 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+                  <Button type="button" variant="outline" onClick={() => setBhFormOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" variant="gold" disabled={creatingBh} className="gap-1.5 shadow-sm">
+                    {creatingBh ? 'Creating...' : 'Create Budget Head'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
-            <div className="p-5 border-b border-slate-200/60 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+          <Card className="overflow-hidden shadow-sm">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <CardTitle className="text-sm flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-sky-500" />
                 Budget Heads Management
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Expenditure categories and classification codes</p>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-slate-50 dark:bg-slate-800/60 font-bold text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  <TableRow>
-                    <TableHead className="py-3 px-6">Code</TableHead>
-                    <TableHead className="py-3 px-4">Name</TableHead>
-                    <TableHead className="py-3 px-4 hidden md:table-cell">Description</TableHead>
-                    <TableHead className="py-3 px-4">Company</TableHead>
-                    <TableHead className="py-3 px-4 hidden sm:table-cell">Requests</TableHead>
-                    <TableHead className="py-3 px-6 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {budgetHeads.map((bh) => {
-                    const isSomtel = bh.company?.name === 'Somtel';
-                    const isBluekom = bh.company?.name === 'Bluekom';
-                    return (
-                      <TableRow key={bh.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                        <TableCell className="py-3.5 px-6">
-                        {editingBhId === bh.id ? (
-                          <input value={editingBhCode} onChange={(e) => setEditingBhCode(e.target.value)}
-                            className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary w-24" />
-                        ) : (
-                          <span className="font-mono font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/30 px-2.5 py-1 rounded text-xs">{bh.code}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-3.5 px-4">
-                        {editingBhId === bh.id ? (
-                          <input value={editingBhName} onChange={(e) => setEditingBhName(e.target.value)}
-                            className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary w-full max-w-[200px]" />
-                        ) : (
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{bh.name}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-3.5 px-4 text-slate-500 max-w-[200px] hidden md:table-cell text-xs">
-                        {editingBhId === bh.id ? (
-                          <input value={editingBhDesc} onChange={(e) => setEditingBhDesc(e.target.value)} placeholder="Optional description"
-                            className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full" />
-                        ) : (
-                          <span className="truncate block">{bh.description || '—'}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-3.5 px-4">
-                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                          isSomtel
-                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                            : isBluekom
-                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                        }`}>{bh.company?.name || 'N/A'}</span>
-                      </TableCell>
-                      <TableCell className="py-3.5 px-4 hidden sm:table-cell">
-                        <span className="inline-flex items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">{bh._count?.requests || 0} requests</span>
-                      </TableCell>
-                      <TableCell className="py-3.5 px-6 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          {editingBhId === bh.id ? (
-                            <>
-                              <button onClick={() => handleSaveBudgetHead(bh.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 cursor-pointer">
-                                <Save className="h-3.5 w-3.5" /> Save
-                              </button>
-                              <button onClick={() => setEditingBhId(null)} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 text-xs font-semibold rounded-lg cursor-pointer">Cancel</button>
-                            </>
-                          ) : (
-                            <button onClick={() => { setEditingBhId(bh.id); setEditingBhName(bh.name); setEditingBhCode(bh.code); setEditingBhDesc(bh.description || ''); }}
-                              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-lg cursor-pointer">Edit</button>
-                          )}
-                          <button onClick={() => handleDeleteBudgetHead(bh)} className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-all cursor-pointer">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </TableCell>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Expenditure categories and classification codes
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="py-3 px-6">Code</TableHead>
+                      <TableHead className="py-3 px-4">Name</TableHead>
+                      <TableHead className="py-3 px-4 hidden md:table-cell">Description</TableHead>
+                      <TableHead className="py-3 px-4">Company</TableHead>
+                      <TableHead className="py-3 px-4 hidden sm:table-cell">Requests</TableHead>
+                      <TableHead className="py-3 px-6 text-right">Actions</TableHead>
                     </TableRow>
-                  );
-                })}
-                  {budgetHeads.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="py-10 text-center text-xs text-slate-400">No budget heads found. Add one above.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {budgetHeads.map((bh) => {
+                      const isSomtel = bh.company?.name === 'Somtel';
+                      const isBluekom = bh.company?.name === 'Bluekom';
+                      return (
+                        <TableRow key={bh.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                          <TableCell className="py-3.5 px-6">
+                            {editingBhId === bh.id ? (
+                              <Input
+                                value={editingBhCode}
+                                onChange={(e) => setEditingBhCode(e.target.value)}
+                                className="h-8 w-24 text-xs font-mono font-semibold"
+                              />
+                            ) : (
+                              <span className="font-mono font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/30 px-2.5 py-1 rounded text-xs">
+                                {bh.code}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            {editingBhId === bh.id ? (
+                              <Input
+                                value={editingBhName}
+                                onChange={(e) => setEditingBhName(e.target.value)}
+                                className="h-8 max-w-[200px] text-xs font-semibold"
+                              />
+                            ) : (
+                              <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{bh.name}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 text-slate-500 max-w-[200px] hidden md:table-cell text-xs">
+                            {editingBhId === bh.id ? (
+                              <Input
+                                value={editingBhDesc}
+                                onChange={(e) => setEditingBhDesc(e.target.value)}
+                                placeholder="Optional description"
+                                className="h-8 text-xs"
+                              />
+                            ) : (
+                              <span className="truncate block">{bh.description || '—'}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            <span
+                              className={cn(
+                                'text-[10px] font-bold uppercase px-2 py-0.5 rounded',
+                                isSomtel
+                                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
+                                  : isBluekom
+                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                              )}
+                            >
+                              {bh.company?.name || 'N/A'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 hidden sm:table-cell">
+                            <span className="inline-flex items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">
+                              {bh._count?.requests || 0} requests
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
+                              {editingBhId === bh.id ? (
+                                <>
+                                  <Button
+                                    variant="teal"
+                                    size="xs"
+                                    onClick={() => handleSaveBudgetHead(bh.id)}
+                                    className="gap-1.5"
+                                  >
+                                    <Save className="h-3.5 w-3.5" /> Save
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="xs"
+                                    onClick={() => setEditingBhId(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  onClick={() => {
+                                    setEditingBhId(bh.id);
+                                    setEditingBhName(bh.name);
+                                    setEditingBhCode(bh.code);
+                                    setEditingBhDesc(bh.description || '');
+                                  }}
+                                >
+                                  Edit
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleDeleteBudgetHead(bh)}
+                                className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {budgetHeads.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="py-10 text-center text-xs text-slate-400">
+                          No budget heads found. Add one above.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         )
       )}
     </div>

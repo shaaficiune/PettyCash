@@ -43,10 +43,11 @@ export class ReportsController {
 
   @Get('audit-logs')
   @UseGuards(RolesGuard)
-  @Roles(RoleName.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Retrieve system audit trail records (Super Admin only)' })
-  async getAuditLogs() {
-    return this.reportsService.getAuditLogs();
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Retrieve system audit trail records' })
+  async getAuditLogs(@Query('limit') limit?: string) {
+    const take = limit ? Math.min(parseInt(limit, 10) || 300, 1000) : 300;
+    return this.reportsService.getAuditLogs(take);
   }
 
   @Get('budget-heads')

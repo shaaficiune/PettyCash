@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, User, AlertCircle, Wallet } from 'lucide-react';
+import { Lock, User, Wallet, AlertCircle } from 'lucide-react';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  Button,
+  Input,
+  Label,
+  Alert,
+  AlertDescription,
+} from '../components/ui';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -13,7 +26,10 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) { setError('Please enter your username and password'); return; }
+    if (!username || !password) {
+      setError('Please enter your username and password');
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -56,64 +72,73 @@ export const LoginPage: React.FC = () => {
           <p className="text-xs text-teal-200/70 mt-1">Sign in to your account</p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-[#0b3333]/90 backdrop-blur-xl border border-teal-700/40 rounded-2xl p-7 shadow-2xl shadow-black/40">
-          {/* Error Message */}
-          {error && (
-            <div className="mb-5 px-3 py-2.5 rounded-lg flex items-center gap-2 text-xs text-rose-300 bg-rose-500/20 border border-rose-500/30">
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
-              <span>{error}</span>
-            </div>
-          )}
+        {/* shadcn Card */}
+        <Card className="bg-[#0b3333]/90 backdrop-blur-xl border-teal-700/40 shadow-2xl shadow-black/40 text-white">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-lg text-white">Welcome Back</CardTitle>
+            <CardDescription className="text-xs text-teal-200/70">
+              Enter your credentials to access CashDesk
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <Alert variant="destructive" className="bg-rose-500/20 border-rose-500/30 text-rose-300 py-2.5">
+                <AlertCircle className="h-4 w-4 text-rose-400" />
+                <AlertDescription className="text-xs text-rose-200">{error}</AlertDescription>
+              </Alert>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Username */}
-            <div>
-              <label className="block text-xs font-semibold text-teal-100/80 mb-1.5">Username</label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-teal-300/50" />
-                <input
-                  type="text"
-                  placeholder="Enter username"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#062020]/80 border border-teal-700/50 text-white placeholder-teal-400/40 rounded-xl text-sm outline-none focus:border-gold focus:ring-1 focus:ring-gold/40 transition-all"
-                  autoComplete="username"
-                />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-teal-100/90 text-xs font-medium">Username</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-teal-300/60 pointer-events-none z-10" />
+                  <Input
+                    type="text"
+                    placeholder="Enter username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="pl-9 bg-[#062020]/80 border-teal-700/50 text-white placeholder:text-teal-400/40 rounded-lg focus-visible:ring-gold focus-visible:border-gold h-10"
+                    autoComplete="username"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-xs font-semibold text-teal-100/80 mb-1.5">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-teal-300/50" />
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#062020]/80 border border-teal-700/50 text-white placeholder-teal-400/40 rounded-xl text-sm outline-none focus:border-gold focus:ring-1 focus:ring-gold/40 transition-all"
-                  autoComplete="current-password"
-                />
+              <div className="space-y-1.5">
+                <Label className="text-teal-100/90 text-xs font-medium">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-teal-300/60 pointer-events-none z-10" />
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-9 bg-[#062020]/80 border-teal-700/50 text-white placeholder:text-teal-400/40 rounded-lg focus-visible:ring-gold focus-visible:border-gold h-10"
+                    autoComplete="current-password"
+                  />
+                </div>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-2 py-2.5 bg-gold hover:bg-gold-600 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-        </div>
-
-        <p className="text-center text-[11px] text-teal-300/50 mt-6">
-          Somtel &bull; Bluekom
-        </p>
+              <Button
+                type="submit"
+                variant="gold"
+                size="lg"
+                isLoading={loading}
+                className="w-full mt-2 h-10 text-sm font-semibold rounded-lg shadow-md shadow-amber-500/20"
+              >
+                Sign In
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="pt-0 justify-center">
+            <p className="text-center text-[11px] text-teal-300/50">
+              Somtel &bull; Bluekom
+            </p>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );
 };
+
 export default LoginPage;
