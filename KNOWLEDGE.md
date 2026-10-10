@@ -1,7 +1,7 @@
 # 📚 PETTY CASH MANAGEMENT SYSTEM — MASTER KNOWLEDGE DOCUMENT
 **Project:** Somtel / Bluekom Petty Cash App  
 **GitHub:** https://github.com/shaaficiune/PettyCash.git  
-**Last Updated:** 2026-10-09
+**Last Updated:** 2026-10-10
 **Purpose:** Full context restoration for any future AI assistant — read this file before starting any work.
 
 ---
@@ -1279,4 +1279,63 @@ cd ~/app && bash update-server.sh
 ```
 
 > 📄 Full audit details: [`SECURITY_PLAN.md`](./SECURITY_PLAN.md)
+
+---
+
+## 23. 🎨 ENTERPRISE DESIGN UNIFICATION, COLLAPSIBLE NAVIGATION & THEME POLISH (2026-10-10)
+
+### Overview
+A comprehensive design and visual consistency pass was executed across the entire application to eliminate amateur/AI-generated template styling, neutralize conflicting company color overrides, integrate a responsive collapsible sidebar, and convert the favicon to a defringed transparent PNG.
+
+### 1. Neutralization of "AI-Feel" & Ad-Hoc Styling
+- **Design Standard:** Enforced a clean, restrained FinTech / Banking design aesthetic (Stripe/Mercury style) using central design tokens (`--primary`, `--muted`, `--border`, `--destructive`, `--foreground`).
+- **StatusBadges:** Consolidated all status variations into 4 semantic states with strict text-to-background contrast ratios:
+  - `Neutral` (`DRAFT`, `CANCELLED`): `bg-muted text-muted-foreground border-border`
+  - `Attention` (`SUBMITTED`, `UNDER_REVIEW`): `bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30`
+  - `Success` (`APPROVED`, `PAID`, `COMPLETED`): `bg-teal-500/15 text-teal-700 dark:text-teal-400 border-teal-500/30`
+  - `Negative` (`REJECTED`): `bg-destructive/15 text-destructive border-destructive/30`
+- **Removed Ad-Hoc Colors:**
+  - Standardized Export/Print buttons across the app to remove pastels and colored backgrounds.
+  - Standardized `RequestDetailPage` colors (removed colored headers and non-standard status indicators).
+  - Cleaned `LoginPage` and `FirstLoginResetPage` to match core enterprise design.
+  - Removed rogue `emerald-600` on credit amounts, replacing with `text-foreground`.
+  - Replaced `text-blue-500` icons and `text-sky-500` icons with `text-primary`.
+  - Removed decorative animations: `animate-pulse` on notifications and `scale-105` zoom hover on summary cards.
+  - Aligned core UI component variants in `badge.tsx`, `button.tsx`, and `alert.tsx` with standard Teal / Primary semantic tokens.
+
+### 2. Resolution of Somtel Color Mutation Clash
+- **Root Cause:** `[data-company="somtel"]` in `index.css` mutated `--color-primary` and `--primary` to bright orange (`#ea580c`), conflicting with the `#0a2e2e` deep teal sidebar and cards.
+- **Fix Applied:**
+  - Removed `[data-company="somtel"]` CSS overrides from `frontend/src/index.css`.
+  - Removed `document.documentElement.setAttribute('data-company', 'somtel')` in `DashboardLayout.tsx`.
+  - Replaced company badges in all tables (`DashboardPage`, `PaymentsPage`, `RequestDetailPage`, `TransactionsPage`, `SettlementsPendingPage`, `SettingsPage`, `UserManagementPage`) from `variant={isSomtel ? 'warning' : isBluekom ? 'info' : 'secondary'}` to neutral semantic badges (`bg-muted text-muted-foreground`).
+- **Result:** Whether viewing "All Companies", "Somtel", or "Bluekom", the entire application maintains an unwavering, professional Enterprise Deep Teal identity.
+
+### 3. Collapsible Navigation Sidebar
+- **Implementation:** Added desktop sidebar collapse/expand toggle in `frontend/src/layouts/DashboardLayout.tsx`.
+- **Controls:**
+  - Top header navbar: `PanelLeftClose` / `PanelLeft` button adjacent to the page title.
+  - Sidebar logo header: `ChevronLeft` collapse button, with the centered `Wallet` icon acting as an expand button when collapsed.
+- **Collapsed Mode (`w-20` / 80px):**
+  - Navigation links collapse to centered icons with native browser tooltips (`title={item.label}`).
+  - User profile button displays avatar only, and clicking opens a right-aligned popover menu (`md:left-full md:bottom-2 md:ml-3 md:w-56`), preventing menu clipping.
+  - Preferences persisted in browser storage via `localStorage.getItem('sidebar_collapsed')`.
+  - Mobile responsive drawer (`w-64`) remains intact and undisturbed.
+
+### 4. Transparent PNG Favicon (Background Removal & Defringing)
+- **Problem:** Favicon was a solid white-square JPEG (`bluekom.jpg`), creating an awkward white box in dark-themed browser tabs.
+- **Fix Applied:**
+  - Extracted the Bluekom brand emblem and removed the white background using an anti-aliased edge defringing algorithm (alpha un-premultiplication).
+  - Generated 32-bit transparent RGBA `frontend/public/favicon.png` and multi-resolution `frontend/public/favicon.ico`.
+  - Updated `frontend/index.html` to reference `<link rel="icon" type="image/png" href="/favicon.png" />` and `apple-touch-icon`.
+
+### 5. Backend Reports Service Enhancement
+- **File:** `backend/src/reports/reports.service.ts`
+- **Addition:** Added `totalPaid` (sum of `PAID` requests) and `totalCompleted` (sum of `COMPLETED` requests) to the dashboard `amounts` summary payload.
+
+### 6. Local Dev & Proxy Troubleshooting Note
+- **Vite Proxy Behavior:** If the backend process on port 3000 stops or crashes, Vite's proxy returns `500 Internal Server Error (ECONNREFUSED)`.
+- `LoginPage.tsx` catches 500 and informs the user: *"Internal server error (500). Please check backend logs."*
+- To resolve: ensure the backend is running (`npm run start:dev` or `node dist/src/main.js` on port 3000).
+
 
