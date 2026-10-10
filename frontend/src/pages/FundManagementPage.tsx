@@ -186,10 +186,10 @@ export const FundManagementPage: React.FC = () => {
     try {
       await api.post('/funds/init', {
         companyId: selectedCompanyId,
-        month: selectedMonth,
-        year: selectedYear,
-        openingBalance: fund?.openingBalance || 0,
-        additionalFunding: (fund?.additionalFunding || 0) + amount,
+        month: Number(selectedMonth),
+        year: Number(selectedYear),
+        openingBalance: Number(fund?.openingBalance || 0),
+        additionalFunding: Number(fund?.additionalFunding || 0) + amount,
       });
       setSuccessMsg(`Top-up of $${fmt(amount)} added successfully`);
       setTopUpAmount('');
