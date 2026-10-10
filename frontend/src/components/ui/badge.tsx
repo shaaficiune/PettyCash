@@ -22,13 +22,13 @@ const badgeVariants: Record<NonNullable<BadgeProps['variant']>, string> = {
   destructive:
     'border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80',
   outline: 'text-foreground border-border',
-  gold: 'border-transparent bg-gold/15 text-gold-700 dark:text-gold-400 border border-gold/30',
+  gold: 'border-transparent bg-muted text-muted-foreground',
   success:
-    'border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30',
+    'border-transparent bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30',
   warning:
     'border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30',
   info:
-    'border-transparent bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30',
+    'border-transparent bg-primary/10 text-primary border border-primary/20',
 };
 
 export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(

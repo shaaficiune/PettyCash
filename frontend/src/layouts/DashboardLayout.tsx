@@ -21,6 +21,10 @@ import {
   Eye,
   EyeOff,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeft,
+  PanelLeftClose,
   Settings
 } from 'lucide-react';
 import api from '../services/api';
@@ -72,6 +76,25 @@ export const DashboardLayout: React.FC = () => {
   const [companyContext, setCompanyContext] = useState<string>('ALL');
   const [companies, setCompanies] = useState<any[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebarCollapse = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('sidebar_collapsed', String(next));
+      } catch {
+        // ignore storage error
+      }
+      return next;
+    });
+  };
 
   // Profile dropdown
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -195,14 +218,7 @@ export const DashboardLayout: React.FC = () => {
   const handleCompanyContextChange = (value: string) => {
     setCompanyContext(value);
     sessionStorage.setItem('companyFilter', value);
-
-    const selectedCompany = companies.find(c => c.id === value);
-    if (selectedCompany?.name?.toLowerCase() === 'somtel') {
-      document.documentElement.setAttribute('data-company', 'somtel');
-    } else {
-      document.documentElement.removeAttribute('data-company');
-    }
-
+    document.documentElement.removeAttribute('data-company');
     window.dispatchEvent(new Event('companyFilterChanged'));
   };
 
@@ -233,16 +249,26 @@ export const DashboardLayout: React.FC = () => {
       )}
 
       {/* SIDEBAR */}
-      <aside className={`w-64 border-r border-[#072424] dark:border-border bg-[#0a2e2e] dark:bg-card flex flex-col transition-colors duration-200 h-screen fixed inset-y-0 left-0 z-50 md:sticky md:top-0 md:translate-x-0 ${
+      <aside className={`border-r border-[#072424] dark:border-border bg-[#0a2e2e] dark:bg-card flex flex-col transition-all duration-300 ease-in-out h-screen fixed inset-y-0 left-0 z-50 md:sticky md:top-0 md:translate-x-0 ${
+        isCollapsed ? 'w-64 md:w-20' : 'w-64'
+      } ${
         mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
       }`}>
         {/* Logo Header */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 dark:border-border flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white shadow-sm">
+        <div className={`h-16 flex items-center border-b border-white/10 dark:border-border flex-shrink-0 px-4 sm:px-6 transition-all ${
+          isCollapsed ? 'md:px-3 justify-between md:justify-center' : 'justify-between'
+        }`}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              onClick={isCollapsed ? toggleSidebarCollapse : undefined}
+              className={`h-8 w-8 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-white shadow-sm shrink-0 ${
+                isCollapsed ? 'cursor-pointer hover:bg-white/25 transition-colors' : ''
+              }`}
+              title={isCollapsed ? 'Expand sidebar' : undefined}
+            >
               <Wallet className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col">
+            </button>
+            <div className={`flex flex-col min-w-0 ${isCollapsed ? 'md:hidden' : ''}`}>
               <span className="text-base font-bold text-white tracking-tight leading-none">
                 CashDesk
               </span>
@@ -251,6 +277,20 @@ export const DashboardLayout: React.FC = () => {
               </span>
             </div>
           </div>
+
+          {/* Desktop collapse toggle button inside sidebar header */}
+          <button
+            onClick={toggleSidebarCollapse}
+            className={`hidden md:flex p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 cursor-pointer transition-colors ${
+              isCollapsed ? 'hidden' : ''
+            }`}
+            title="Collapse sidebar"
+            aria-label="Collapse sidebar"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          {/* Mobile close button */}
           <button
             onClick={() => setMobileMenuOpen(false)}
             className="md:hidden p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 cursor-pointer"
@@ -261,7 +301,7 @@ export const DashboardLayout: React.FC = () => {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-1">
           {navItems
             .filter(item => item.roles.includes(user.role))
             .map((item) => {
@@ -271,25 +311,34 @@ export const DashboardLayout: React.FC = () => {
                 <Link
                   key={item.label}
                   to={item.path}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  title={item.label}
+                  className={`flex items-center rounded-lg text-sm font-medium transition-all ${
+                    isCollapsed 
+                      ? 'md:justify-center md:px-0 md:py-3 px-3.5 py-2.5 gap-3' 
+                      : 'gap-3 px-3.5 py-2.5'
+                  } ${
                     isActive 
                       ? 'bg-white/15 dark:bg-accent text-white font-semibold shadow-sm' 
                       : 'text-white/70 dark:text-muted-foreground hover:bg-white/10 dark:hover:bg-accent/60 hover:text-white'
                   }`}
                 >
-                  <item.icon className={`h-4.5 w-4.5 ${isActive ? 'text-white' : 'text-white/60 dark:text-muted-foreground'}`} />
-                  {item.label}
+                  <item.icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? 'text-white' : 'text-white/60 dark:text-muted-foreground'}`} />
+                  <span className={`truncate ${isCollapsed ? 'md:hidden' : ''}`}>
+                    {item.label}
+                  </span>
                 </Link>
               );
             })}
         </nav>
 
         {/* User profile footer */}
-        <div ref={profileDropdownRef} className="flex-shrink-0 p-4 border-t border-white/10 dark:border-border bg-[#0a2e2e] dark:bg-card/90 relative">
+        <div ref={profileDropdownRef} className="flex-shrink-0 p-3 sm:p-4 border-t border-white/10 dark:border-border bg-[#0a2e2e] dark:bg-card/90 relative">
 
           {/* Profile Dropdown Popover */}
           {showProfileDropdown && (
-            <div className="absolute bottom-full left-3 right-3 mb-2 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-[60] animate-in fade-in-0 zoom-in-95 duration-150">
+            <div className={`absolute bottom-full mb-2 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-[60] animate-in fade-in-0 zoom-in-95 duration-150 ${
+              isCollapsed ? 'left-3 right-3 md:left-full md:bottom-2 md:ml-3 md:w-56' : 'left-3 right-3'
+            }`}>
               {/* User info header */}
               <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border bg-muted/30">
                 <Avatar size="sm">
@@ -330,22 +379,27 @@ export const DashboardLayout: React.FC = () => {
           {/* Profile card button */}
           <button
             onClick={() => setShowProfileDropdown(prev => !prev)}
-            className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer group text-left ${
+            className={`w-full flex items-center rounded-lg transition-colors cursor-pointer group text-left ${
+              isCollapsed ? 'md:justify-center md:p-2 p-2 gap-3' : 'gap-3 p-2'
+            } ${
               showProfileDropdown ? 'bg-white/15' : 'hover:bg-white/10'
             }`}
+            title={isCollapsed ? user.fullName : undefined}
           >
             <Avatar size="sm">
               <AvatarFallback className="bg-white/15 border border-white/20 text-white font-bold text-xs group-hover:bg-white/25 transition-colors">
                 {userInitials}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
+            <div className={`flex-1 min-w-0 ${isCollapsed ? 'md:hidden' : ''}`}>
               <p className="text-xs font-bold truncate text-white">{user.fullName}</p>
               <p className="text-[11px] text-white/60 truncate">
                 {user.email || user.username}
               </p>
             </div>
             <ChevronUp className={`h-3.5 w-3.5 text-white/50 transition-transform duration-200 flex-shrink-0 ${
+              isCollapsed ? 'md:hidden' : ''
+            } ${
               showProfileDropdown ? 'rotate-0' : 'rotate-180'
             }`} />
           </button>
@@ -358,6 +412,7 @@ export const DashboardLayout: React.FC = () => {
         {/* HEADER NAVBAR */}
         <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-8 z-10 transition-colors">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            {/* Mobile menu trigger */}
             <button
               onClick={() => setMobileMenuOpen(true)}
               className="md:hidden p-2 -ml-1 text-muted-foreground hover:bg-accent rounded-lg cursor-pointer shrink-0"
@@ -365,6 +420,17 @@ export const DashboardLayout: React.FC = () => {
             >
               <Menu className="h-5 w-5" />
             </button>
+
+            {/* Desktop collapse toggle */}
+            <button
+              onClick={toggleSidebarCollapse}
+              className="hidden md:flex p-2 -ml-1 text-muted-foreground hover:bg-accent hover:text-foreground rounded-lg cursor-pointer shrink-0 transition-colors"
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isCollapsed ? <PanelLeft className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+            </button>
+
             <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight truncate">
               {getPageTitle(location.pathname)}
             </h1>
@@ -427,7 +493,7 @@ export const DashboardLayout: React.FC = () => {
               >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 h-3.5 w-3.5 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center animate-pulse">
+                  <span className="absolute top-1 right-1 h-3.5 w-3.5 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center">
                     {unreadCount}
                   </span>
                 )}

@@ -110,12 +110,10 @@ export const SettlementsPendingPage: React.FC = () => {
         ),
         cell: ({ row }) => {
           const st = row.original;
-          const isSomtel = st.request?.company?.name === 'Somtel';
-          const isBluekom = st.request?.company?.name === 'Bluekom';
           return (
-            <Badge variant={isSomtel ? 'warning' : isBluekom ? 'info' : 'secondary'} size="sm">
+            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">
               {st.request?.company?.name || '—'}
-            </Badge>
+            </span>
           );
         },
       },

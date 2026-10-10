@@ -56,21 +56,22 @@ export const RequestsListPage: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
   const isEmployee = user?.role === 'EMPLOYEE';
-  const [datePreset, setDatePreset] = useState<'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM'>(() =>
-    isEmployee ? 'THIS_MONTH' : 'TODAY'
-  );
-  const [startDate, setStartDate] = useState(() =>
-    isEmployee ? getStartOfMonthString() : getLocalDateString()
-  );
-  const [endDate, setEndDate] = useState(() => getLocalDateString());
+  const urlPreset = searchParams.get('datePreset');
+  const isValidPreset = (p: string | null): p is 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM' =>
+    p !== null && ['TODAY', 'THIS_WEEK', 'THIS_MONTH', 'ALL', 'CUSTOM'].includes(p);
 
-  useEffect(() => {
-    if (user?.role === 'EMPLOYEE') {
-      setDatePreset('THIS_MONTH');
-      setStartDate(getStartOfMonthString());
-      setEndDate(getLocalDateString());
-    }
-  }, [user?.role]);
+  const initialPreset = isValidPreset(urlPreset)
+    ? urlPreset
+    : (isEmployee ? 'THIS_MONTH' : 'TODAY');
+
+  const [datePreset, setDatePreset] = useState<'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM'>(initialPreset);
+  const [startDate, setStartDate] = useState(() => {
+    if (initialPreset === 'THIS_MONTH') return getStartOfMonthString();
+    if (initialPreset === 'THIS_WEEK') return getStartOfWeekString();
+    if (initialPreset === 'ALL') return '';
+    return getLocalDateString();
+  });
+  const [endDate, setEndDate] = useState(() => getLocalDateString());
 
   const applyDatePreset = (preset: 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM') => {
     setDatePreset(preset);
@@ -102,10 +103,16 @@ export const RequestsListPage: React.FC = () => {
 
   useEffect(() => {
     const urlStatus = searchParams.get('status');
-    if (urlStatus !== null) {
-      setStatusFilter(urlStatus);
+    setStatusFilter(urlStatus || '');
+
+    const paramPreset = searchParams.get('datePreset');
+    if (isValidPreset(paramPreset)) {
+      applyDatePreset(paramPreset);
+    } else if (!urlStatus) {
+      // Normal navigation without params: keep role-based default
+      applyDatePreset(user?.role === 'EMPLOYEE' ? 'THIS_MONTH' : 'TODAY');
     }
-  }, [searchParams]);
+  }, [searchParams, user?.role]);
 
   useEffect(() => {
     const compFilter = sessionStorage.getItem('companyFilter') || 'ALL';
@@ -330,7 +337,7 @@ export const RequestsListPage: React.FC = () => {
             <div className="text-right">
               {hasDifferentApproved ? (
                 <div className="flex flex-col items-end">
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="font-bold text-foreground">
                     {formatCurrency(req.approvedAmount, req.currency)}
                   </span>
                   <span className="text-[10px] text-muted-foreground line-through">
@@ -425,9 +432,9 @@ export const RequestsListPage: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={handleExportExcel}
-            className="gap-1.5 text-emerald-700 dark:text-emerald-400 border-border shadow-xs hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+            className="gap-1.5 shadow-xs"
           >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
             Export Excel
           </Button>
 
@@ -435,15 +442,15 @@ export const RequestsListPage: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={handleExportPdf}
-            className="gap-1.5 text-rose-700 dark:text-rose-400 border-border shadow-xs hover:bg-rose-50 dark:hover:bg-rose-950/30"
+            className="gap-1.5 shadow-xs"
           >
-            <Printer className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+            <Printer className="h-3.5 w-3.5 text-muted-foreground" />
             Export PDF
           </Button>
 
           {(user?.role === 'EMPLOYEE' || user?.role === 'ACCOUNTANT') && (
             <Link to="/requests/new">
-              <Button variant="gold" size="sm" className="gap-1.5 shadow-sm">
+              <Button variant="default" size="sm" className="gap-1.5 shadow-sm">
                 <Plus className="h-3.5 w-3.5" />
                 New Request
               </Button>

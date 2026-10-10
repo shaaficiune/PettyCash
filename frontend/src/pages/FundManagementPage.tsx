@@ -315,10 +315,10 @@ export const FundManagementPage: React.FC = () => {
               size="sm"
               onClick={handleExportMonthlyBook}
               disabled={exportingBook}
-              className="gap-1.5 text-emerald-700 dark:text-emerald-400 border-border hover:bg-emerald-50 dark:hover:bg-emerald-950/30 h-8"
+              className="gap-1.5 h-8"
               title="Download official Monthly Petty Cash Book Excel with logos"
             >
-              {exportingBook ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5 text-emerald-600" />}
+              {exportingBook ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5 text-muted-foreground" />}
               <span className="hidden md:inline">Download</span> Monthly Book
             </Button>
           )}
@@ -451,19 +451,19 @@ export const FundManagementPage: React.FC = () => {
           {/* 4 Compact Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { label: 'Opening Balance', value: fund.openingBalance, icon: DollarSign, color: 'text-muted-foreground', bg: 'bg-muted' },
-              { label: 'Total Available', value: fund.totalAvailable, icon: TrendingUp, color: 'text-primary', bg: 'bg-primary/10' },
-              { label: 'Total Paid Out', value: fund.approvedAmount, icon: ArrowUpRight, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-900/20' },
-              { label: 'Remaining Balance', value: fund.remainingBalance, icon: Wallet, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+              { label: 'Opening Balance', value: fund.openingBalance, icon: DollarSign },
+              { label: 'Total Available', value: fund.totalAvailable, icon: TrendingUp },
+              { label: 'Total Paid Out', value: fund.approvedAmount, icon: ArrowUpRight },
+              { label: 'Remaining Balance', value: fund.remainingBalance, icon: Wallet },
             ].map(stat => (
-              <Card key={stat.label} className="shadow-xs">
+              <Card key={stat.label} className="shadow-xs border border-border/80 bg-card">
                 <CardContent className="p-4 flex items-center gap-3.5">
-                  <div className={`h-10 w-10 rounded-xl ${stat.bg} flex items-center justify-center flex-shrink-0`}>
-                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                  <div className="h-10 w-10 rounded-xl bg-muted/60 dark:bg-muted/40 border border-border/50 flex items-center justify-center flex-shrink-0">
+                    <stat.icon className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium text-muted-foreground truncate">{stat.label}</p>
-                    <p className={`text-lg font-bold ${stat.color} leading-tight tracking-tight mt-0.5`}>${fmt(Number(stat.value))}</p>
+                    <p className="text-lg font-bold text-foreground leading-tight tracking-tight mt-0.5">${fmt(Number(stat.value))}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -472,7 +472,7 @@ export const FundManagementPage: React.FC = () => {
 
           {/* Top-Up Action Bar (only if open) */}
           {isFundOpen && (
-            <Card className="shadow-xs">
+            <Card className="shadow-xs border border-border/80 bg-card">
               <CardContent className="p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
                 <form onSubmit={handleTopUp} className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <div className="flex-1 min-w-0 space-y-1">
@@ -490,7 +490,7 @@ export const FundManagementPage: React.FC = () => {
                   </div>
                   <Button
                     type="submit"
-                    variant="gold"
+                    variant="default"
                     size="sm"
                     disabled={submitting || !topUpAmount}
                     isLoading={submitting}
@@ -522,7 +522,7 @@ export const FundManagementPage: React.FC = () => {
               <DialogHeader>
                 <DialogTitle>Close Month: {MONTHS[selectedMonth - 1]} {selectedYear}?</DialogTitle>
                 <DialogDescription>
-                  Closing this fund will lock {MONTHS[selectedMonth - 1]} {selectedYear}. The remaining balance of <strong className="text-emerald-600 font-bold">${fmt(Number(fund.remainingBalance))}</strong> will automatically roll over as the Opening Balance for the next month.
+                  Closing this fund will lock {MONTHS[selectedMonth - 1]} {selectedYear}. The remaining balance of <strong className="font-bold">${fmt(Number(fund.remainingBalance))}</strong> will automatically roll over as the Opening Balance for the next month.
                 </DialogDescription>
               </DialogHeader>
 
@@ -572,7 +572,7 @@ export const FundManagementPage: React.FC = () => {
                     <TableCell className="px-4 py-2.5 text-xs text-muted-foreground">{row.label}</TableCell>
                     <TableCell className={`px-4 py-2.5 text-right font-mono font-semibold text-xs ${
                       row.type === 'debit' ? 'text-destructive' :
-                      row.type === 'balance' ? 'text-emerald-600 dark:text-emerald-400' :
+                      row.type === 'balance' ? 'text-primary font-bold' :
                       row.type === 'total' ? 'text-primary' :
                       'text-foreground'
                     }`}>

@@ -60,15 +60,6 @@
     --radius:              0.625rem;
   }
 
-  /* ── Company Context: Somtel ──────────────────────────────────────────────  */
-  [data-company="somtel"] {
-    --color-primary:       #ea580c;
-    --color-primary-hover: #c2410c;
-    --color-primary-active:#9a3412;
-    --primary:             21 90% 48%;
-    --primary-foreground:  0 0% 100%;
-    --ring:                21 90% 48%;
-  }
 
   /* ── Dark Mode ───────────────────────────────────────────────────────────── */
   .dark {

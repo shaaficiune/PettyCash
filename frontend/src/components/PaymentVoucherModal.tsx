@@ -170,7 +170,7 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
         {/* Modal Toolbar - Hidden during print */}
         <div className="flex items-center justify-between px-5 py-2.5 bg-slate-900 text-white voucher-no-print border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <div className={`w-2.5 h-2.5 rounded-full ${isSomtel ? 'bg-orange-500' : 'bg-blue-500'}`} />
+            <div className="w-2.5 h-2.5 rounded-full bg-white/50" />
             <span className="text-xs sm:text-sm font-bold tracking-wide">
               {isSomtel ? 'Somtel Puntland' : 'Bluekom Puntland'} — Payment Voucher
             </span>
@@ -182,7 +182,7 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
               title="Print Voucher or Save as PDF"
             >
               <Printer className="h-3.5 w-3.5" />
@@ -431,7 +431,7 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
             </button>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-all cursor-pointer"
             >
               <Printer className="h-3.5 w-3.5" />
               <span>Print Payment Voucher</span>

@@ -11,11 +11,11 @@ const alertVariants: Record<NonNullable<AlertProps['variant']>, string> = {
   destructive:
     'border-destructive/50 text-destructive bg-destructive/10 [&>svg]:text-destructive',
   success:
-    'border-emerald-500/50 text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 [&>svg]:text-emerald-600',
+    'border-teal-500/50 text-teal-800 dark:text-teal-300 bg-teal-500/10 [&>svg]:text-teal-600',
   warning:
     'border-amber-500/50 text-amber-800 dark:text-amber-300 bg-amber-500/10 [&>svg]:text-amber-600',
   info:
-    'border-sky-500/50 text-sky-800 dark:text-sky-300 bg-sky-500/10 [&>svg]:text-sky-600',
+    'border-primary/30 text-primary bg-primary/10 [&>svg]:text-primary',
 };
 
 const defaultIcons: Record<NonNullable<AlertProps['variant']>, React.ElementType> = {

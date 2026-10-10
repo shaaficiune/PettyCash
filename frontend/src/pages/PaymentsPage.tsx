@@ -124,12 +124,10 @@ export const PaymentsPage: React.FC = () => {
         ),
         cell: ({ row }) => {
           const p = row.original;
-          const isSomtel = p.request?.company?.name === 'Somtel';
-          const isBluekom = p.request?.company?.name === 'Bluekom';
           return (
-            <Badge variant={isSomtel ? 'warning' : isBluekom ? 'info' : 'secondary'} size="sm">
+            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">
               {p.request?.company?.name || '—'}
-            </Badge>
+            </span>
           );
         },
       },
@@ -143,7 +141,7 @@ export const PaymentsPage: React.FC = () => {
         cell: ({ row }) => {
           const p = row.original;
           return (
-            <div className="text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+            <div className="text-right font-bold text-foreground text-xs">
               {formatCurrency(p.amountPaid, p.request?.currency || 'USD')}
             </div>
           );
@@ -232,7 +230,7 @@ export const PaymentsPage: React.FC = () => {
                   setSelectedPaymentForVoucher(p);
                   setIsVoucherOpen(true);
                 }}
-                className="gap-1 text-emerald-700 dark:text-emerald-400 border-border hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                className="gap-1"
                 title="Print Payment Voucher"
               >
                 <Printer className="h-3.5 w-3.5" />

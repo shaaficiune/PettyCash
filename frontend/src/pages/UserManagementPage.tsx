@@ -469,18 +469,9 @@ export const UserManagementPage: React.FC = () => {
         ),
         cell: ({ row }) => {
           const u = row.original;
-          const isSomtel = u.company?.name === 'Somtel';
-          const isBluekom = u.company?.name === 'Bluekom';
           return (
             <span
-              className={cn(
-                'text-[10px] font-bold uppercase px-2 py-0.5 rounded',
-                isSomtel
-                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                  : isBluekom
-                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-              )}
+              className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground"
             >
               {u.company?.name || 'N/A'}
             </span>
@@ -559,7 +550,7 @@ export const UserManagementPage: React.FC = () => {
                   size="xs"
                   onClick={() => handleResetPassword(u.id)}
                   title="Generate new one-time password"
-                  className="gap-1 text-[11px] text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/40 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                  className="gap-1 text-[11px]"
                 >
                   <KeyRound className="h-3 w-3" />
                   Reset PW
@@ -574,8 +565,8 @@ export const UserManagementPage: React.FC = () => {
                   className={cn(
                     'gap-1 text-[11px]',
                     u.status === 'ACTIVE'
-                      ? 'text-rose-700 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/40 hover:bg-rose-50 dark:hover:bg-rose-950/30'
-                      : 'text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
+                      ? 'text-destructive border-border hover:bg-destructive/10'
+                      : 'text-foreground border-border hover:bg-muted'
                   )}
                 >
                   {u.status === 'ACTIVE' ? (
@@ -694,7 +685,7 @@ export const UserManagementPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <UserPlus className="h-5 w-5 text-gold" /> Add New User
+                    <UserPlus className="h-5 w-5 text-primary" /> Add New User
                   </CardTitle>
                   <CardDescription>
                     Register a new user account with role privileges and company assignment.
@@ -1073,8 +1064,6 @@ export const UserManagementPage: React.FC = () => {
                   {regions
                     .filter((r) => !regionCompanyFilter || r.companyId === regionCompanyFilter || r.company?.id === regionCompanyFilter)
                     .map((region) => {
-                      const isSomtel = region.company?.name === 'Somtel';
-                      const isBluekom = region.company?.name === 'Bluekom';
                       return (
                         <TableRow key={region.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                           <TableCell className="py-3.5 px-6 font-semibold text-slate-800 dark:text-slate-200">
@@ -1084,16 +1073,7 @@ export const UserManagementPage: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell className="py-3.5 px-4">
-                            <span
-                              className={cn(
-                                'text-[10px] font-bold uppercase px-2 py-0.5 rounded',
-                                isSomtel
-                                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                                  : isBluekom
-                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                              )}
-                            >
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">
                               {region.company?.name || 'N/A'}
                             </span>
                           </TableCell>
@@ -1234,8 +1214,6 @@ export const UserManagementPage: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {regions.map((r) => {
-                      const isSomtel = r.company?.name === 'Somtel';
-                      const isBluekom = r.company?.name === 'Bluekom';
                       return (
                         <TableRow key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                           <TableCell className="py-3.5 px-6">
@@ -1251,16 +1229,7 @@ export const UserManagementPage: React.FC = () => {
                           </TableCell>
 
                           <TableCell className="py-3.5 px-4">
-                            <span
-                              className={cn(
-                                'text-[10px] font-bold uppercase px-2 py-0.5 rounded',
-                                isSomtel
-                                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                                  : isBluekom
-                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                              )}
-                            >
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">
                               {r.company?.name || 'N/A'}
                             </span>
                           </TableCell>
@@ -1305,7 +1274,7 @@ export const UserManagementPage: React.FC = () => {
                                 variant="ghost"
                                 size="icon-sm"
                                 onClick={() => handleDeleteRegion(r)}
-                                className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                className="text-destructive hover:bg-destructive/10"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -1337,7 +1306,7 @@ export const UserManagementPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-sky-500" /> Add New Budget Head
+                    <BookOpen className="h-5 w-5 text-primary" /> Add New Budget Head
                   </CardTitle>
                   <CardDescription>Expenditure classification category and account code.</CardDescription>
                 </div>
@@ -1414,7 +1383,7 @@ export const UserManagementPage: React.FC = () => {
           <Card className="overflow-hidden shadow-sm">
             <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
               <CardTitle className="text-sm flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-sky-500" />
+                <BookOpen className="h-4 w-4 text-primary" />
                 Budget Heads Management
               </CardTitle>
               <CardDescription className="text-xs">
@@ -1436,8 +1405,6 @@ export const UserManagementPage: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {budgetHeads.map((bh) => {
-                      const isSomtel = bh.company?.name === 'Somtel';
-                      const isBluekom = bh.company?.name === 'Bluekom';
                       return (
                         <TableRow key={bh.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
                           <TableCell className="py-3.5 px-6">
@@ -1448,7 +1415,7 @@ export const UserManagementPage: React.FC = () => {
                                 className="h-8 w-24 text-xs font-mono font-semibold"
                               />
                             ) : (
-                              <span className="font-mono font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/30 px-2.5 py-1 rounded text-xs">
+                              <span className="font-mono font-bold text-foreground bg-muted px-2.5 py-1 rounded text-xs border border-border">
                                 {bh.code}
                               </span>
                             )}
@@ -1477,16 +1444,7 @@ export const UserManagementPage: React.FC = () => {
                             )}
                           </TableCell>
                           <TableCell className="py-3.5 px-4">
-                            <span
-                              className={cn(
-                                'text-[10px] font-bold uppercase px-2 py-0.5 rounded',
-                                isSomtel
-                                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20'
-                                  : isBluekom
-                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
-                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                              )}
-                            >
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">
                               {bh.company?.name || 'N/A'}
                             </span>
                           </TableCell>
@@ -1533,7 +1491,7 @@ export const UserManagementPage: React.FC = () => {
                                 variant="ghost"
                                 size="icon-sm"
                                 onClick={() => handleDeleteBudgetHead(bh)}
-                                className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                className="text-destructive hover:bg-destructive/10"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>

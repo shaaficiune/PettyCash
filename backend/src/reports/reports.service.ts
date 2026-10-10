@@ -65,6 +65,8 @@ export class ReportsService {
     // Calculate amount sums
     let totalRequestedVal = 0;
     let totalApprovedVal = 0;
+    let totalPaidVal = 0;
+    let totalCompletedVal = 0;
     requests.forEach(r => {
       totalRequestedVal += Number(r.requestedAmount || 0);
       if (
@@ -73,6 +75,12 @@ export class ReportsService {
         r.status === RequestStatus.COMPLETED
       ) {
         totalApprovedVal += Number(r.approvedAmount || r.requestedAmount || 0);
+      }
+      if (r.status === RequestStatus.PAID) {
+        totalPaidVal += Number(r.approvedAmount || r.requestedAmount || 0);
+      }
+      if (r.status === RequestStatus.COMPLETED) {
+        totalCompletedVal += Number(r.approvedAmount || r.requestedAmount || 0);
       }
     });
 
@@ -199,6 +207,8 @@ export class ReportsService {
       amounts: {
         totalRequested: totalRequestedVal,
         totalApproved: totalApprovedVal,
+        totalPaid: totalPaidVal,
+        totalCompleted: totalCompletedVal,
       },
       funds: fundSummary,
       period: { month: currentMonth, year: currentYear },

@@ -66,14 +66,14 @@ export const FirstLoginResetPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background font-sans p-4">
-      <Card className="w-full max-w-md border-border shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-muted/40 dark:bg-background font-sans px-4 py-8">
+      <Card className="w-full max-w-sm border-border shadow-md bg-card text-card-foreground">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 text-primary">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary shadow-xs">
             <ShieldCheck className="h-6 w-6" />
           </div>
-          <CardTitle className="text-xl">Security Update Required</CardTitle>
-          <CardDescription className="text-xs">
+          <CardTitle className="text-lg text-foreground">Security Update Required</CardTitle>
+          <CardDescription className="text-xs text-muted-foreground">
             Hi {user.fullName}, you are logged in using a temporary password. You must set a new secure password to proceed.
           </CardDescription>
         </CardHeader>
@@ -82,13 +82,13 @@ export const FirstLoginResetPage: React.FC = () => {
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="text-xs">{error}</AlertDescription>
             </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label required>New Password</Label>
+              <Label required className="text-xs font-medium text-foreground">New Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
@@ -96,14 +96,14 @@ export const FirstLoginResetPage: React.FC = () => {
                   placeholder="Min 8 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-10"
                   autoComplete="new-password"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label required>Confirm New Password</Label>
+              <Label required className="text-xs font-medium text-foreground">Confirm New Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
@@ -111,7 +111,7 @@ export const FirstLoginResetPage: React.FC = () => {
                   placeholder="Re-enter password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-10"
                   autoComplete="new-password"
                 />
               </div>
@@ -119,10 +119,10 @@ export const FirstLoginResetPage: React.FC = () => {
 
             <Button
               type="submit"
-              variant="gold"
+              variant="default"
               size="lg"
               isLoading={loading}
-              className="w-full mt-2"
+              className="w-full mt-2 h-10 text-sm font-semibold shadow-xs"
             >
               Save & Continue
             </Button>

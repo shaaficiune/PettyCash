@@ -32,11 +32,11 @@ const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
   link:
     'text-primary underline-offset-4 hover:underline shadow-none',
   gold:
-    'bg-gold text-white shadow-sm hover:bg-gold-600 focus-visible:ring-gold font-medium',
+    'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:ring-ring font-medium',
   teal:
     'bg-teal-700 text-white shadow-sm hover:bg-teal-800 focus-visible:ring-teal-700',
   success:
-    'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus-visible:ring-emerald-600',
+    'bg-primary/90 text-primary-foreground shadow-sm hover:bg-primary focus-visible:ring-ring',
 };
 
 const sizeStyles: Record<NonNullable<ButtonProps['size']>, string> = {

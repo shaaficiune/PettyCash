@@ -263,17 +263,17 @@ export const RequestFormPage: React.FC = () => {
                   <div 
                     className={`h-2 rounded-full transition-all duration-300 ${
                       budgetStats.usagePercentage > 90 
-                        ? 'bg-rose-500' 
+                        ? 'bg-destructive' 
                         : budgetStats.usagePercentage > 75 
                         ? 'bg-amber-500' 
-                        : 'bg-emerald-500'
+                        : 'bg-primary'
                     }`}
                     style={{ width: `${Math.min(100, budgetStats.usagePercentage)}%` }}
                   />
                 </div>
 
                 <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
-                  <span>Remaining Budget: <strong className={budgetStats.remainingBudget === 0 ? 'text-rose-500 font-bold' : 'text-emerald-600 dark:text-emerald-400 font-bold'}>${budgetStats.remainingBudget.toLocaleString()}</strong></span>
+                  <span>Remaining Budget: <strong className={budgetStats.remainingBudget === 0 ? 'text-destructive font-bold' : 'text-primary font-bold'}>${budgetStats.remainingBudget.toLocaleString()}</strong></span>
                   <span>{budgetStats.usagePercentage}% Used</span>
                 </div>
 

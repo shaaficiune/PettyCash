@@ -273,13 +273,9 @@ export const TransactionsPage: React.FC = () => {
         cell: ({ row }) => {
           const cName = row.original.company?.name || row.original.request?.company?.name || '—';
           return (
-            <Badge
-              variant={cName === 'Somtel' ? 'warning' : cName === 'Bluekom' ? 'info' : 'secondary'}
-              size="sm"
-              className="whitespace-nowrap"
-            >
+            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground whitespace-nowrap">
               {cName}
-            </Badge>
+            </span>
           );
         },
       },
@@ -514,7 +510,7 @@ export const TransactionsPage: React.FC = () => {
         cell: ({ row }) => {
           const t = row.original;
           return (
-            <div className="text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap min-w-[80px]">
+            <div className="text-right font-bold text-foreground text-xs whitespace-nowrap min-w-[80px]">
               {t.credit && Number(t.credit) > 0
                 ? `+${formatCurrency(t.credit, t.currency || t.company?.currency || 'USD')}`
                 : <span className="text-muted-foreground font-normal">—</span>}
@@ -587,10 +583,10 @@ export const TransactionsPage: React.FC = () => {
             size="sm"
             onClick={handleExportMonthlyBook}
             disabled={exportingBook}
-            className="gap-1.5 text-teal-700 dark:text-teal-400 border-border hover:bg-teal-50 dark:hover:bg-teal-950/30"
+            className="gap-1.5"
             title="Export Monthly Petty Cash Book (.xlsx)"
           >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
+            <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
             {exportingBook ? 'Generating...' : 'Monthly Book (.xlsx)'}
           </Button>
 
@@ -599,9 +595,9 @@ export const TransactionsPage: React.FC = () => {
             size="sm"
             onClick={handleExportExcel}
             disabled={exportingExcel}
-            className="gap-1.5 text-emerald-700 dark:text-emerald-400 border-border hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+            className="gap-1.5"
           >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
             {exportingExcel ? 'Exporting...' : 'Export Excel'}
           </Button>
 
@@ -610,9 +606,9 @@ export const TransactionsPage: React.FC = () => {
             size="sm"
             onClick={handleExportPdf}
             disabled={exportingPdf}
-            className="gap-1.5 text-rose-700 dark:text-rose-400 border-border hover:bg-rose-50 dark:hover:bg-rose-950/30"
+            className="gap-1.5"
           >
-            <Printer className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+            <Printer className="h-3.5 w-3.5 text-muted-foreground" />
             {exportingPdf ? 'Preparing...' : 'Export PDF'}
           </Button>
 
@@ -860,7 +856,7 @@ export const TransactionsPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground uppercase font-bold block">Credit</span>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="text-xs font-bold text-foreground">
                     {selectedTx.credit ? `+${formatCurrency(selectedTx.credit, selectedTx.currency || selectedTx.company?.currency || 'USD')}` : '—'}
                   </span>
                 </div>

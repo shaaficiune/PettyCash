@@ -62,23 +62,23 @@ const RequestTimeline: React.FC<{ status: string }> = ({ status }) => {
             <React.Fragment key={step.key}>
               <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
                 <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 transition-all
-                  ${isDone ? 'bg-emerald-500 border-emerald-500 text-white' :
-                    isCurrent && isRejected ? 'bg-rose-500 border-rose-500 text-white' :
-                      isCurrent && isCorrection ? 'bg-orange-500 border-orange-500 text-white' :
-                        isCurrent ? 'bg-primary border-primary text-white shadow-md shadow-primary/30' :
+                  ${isDone ? 'bg-primary border-primary text-primary-foreground' :
+                    isCurrent && isRejected ? 'bg-destructive border-destructive text-destructive-foreground' :
+                      isCurrent && isCorrection ? 'bg-amber-500 border-amber-500 text-white' :
+                        isCurrent ? 'bg-primary border-primary text-primary-foreground' :
                           'bg-background border-border text-muted-foreground'}`}>
                   {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-3.5 w-3.5" />}
                 </div>
                 <span className={`text-[9px] font-bold uppercase tracking-wide whitespace-nowrap
-                  ${isDone ? 'text-emerald-600 dark:text-emerald-400' :
-                    isCurrent && isRejected ? 'text-rose-600' :
-                      isCurrent && isCorrection ? 'text-orange-600' :
+                  ${isDone ? 'text-primary' :
+                    isCurrent && isRejected ? 'text-destructive' :
+                      isCurrent && isCorrection ? 'text-amber-600 dark:text-amber-400' :
                         isCurrent ? 'text-primary' : 'text-muted-foreground'}`}>
                   {isCurrent && isRejected ? 'Rejected' : isCurrent && isCorrection ? 'Correction' : step.label}
                 </span>
               </div>
               {!isLast && (
-                <div className={`flex-1 h-0.5 mx-1 rounded-full ${isDone ? 'bg-emerald-400' : 'bg-muted'}`} />
+                <div className={`flex-1 h-0.5 mx-1 rounded-full ${isDone ? 'bg-primary' : 'bg-muted'}`} />
               )}
             </React.Fragment>
           );
@@ -101,22 +101,16 @@ const Field: React.FC<{ label: string; icon?: React.ElementType; children: React
   </div>
 );
 
-// ─── Amount Pill ───────────────────────────────────────────────────────────────
 const AmountPill: React.FC<{ label: string; amount: number | null; currency: string; variant?: 'default' | 'green' | 'amber' }> = ({
-  label, amount, currency, variant = 'default',
+  label, amount, currency,
 }) => {
-  const cls = variant === 'green'
-    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800/40 dark:text-emerald-300'
-    : variant === 'amber'
-      ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/40 dark:border-amber-800/40 dark:text-amber-300'
-      : 'bg-muted/50 border-border text-foreground';
   return (
-    <div className={`rounded-xl border px-4 py-3 ${cls}`}>
-      <p className="text-[10px] uppercase font-bold opacity-70 mb-0.5">{label}</p>
-      <p className="text-xl font-bold tracking-tight">
+    <div className="rounded-xl border border-border/80 bg-muted/30 px-4 py-3 min-w-[130px]">
+      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5">{label}</p>
+      <p className="text-xl font-bold tracking-tight text-foreground">
         {amount !== null && amount !== undefined
           ? `${currency} ${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-          : <span className="text-sm font-medium opacity-60">Pending</span>}
+          : <span className="text-sm font-medium text-muted-foreground">Pending</span>}
       </p>
     </div>
   );
@@ -317,18 +311,7 @@ export const RequestDetailPage: React.FC = () => {
       )}
 
       {/* ── Hero Header Card ── */}
-      <Card className="overflow-hidden shadow-sm">
-        <div className={`h-1.5 ${
-          request.status === 'COMPLETED' ? 'bg-emerald-500' :
-          request.status === 'PAID' ? 'bg-blue-500' :
-          request.status === 'APPROVED' ? 'bg-teal-500' :
-          request.status === 'REJECTED' ? 'bg-rose-500' :
-          request.status === 'CORRECTION_REQUIRED' ? 'bg-orange-500' :
-          request.status === 'ACCOUNTANT_REVIEW' ? 'bg-sky-500' :
-          request.status === 'PENDING_APPROVAL' ? 'bg-amber-500' :
-          'bg-slate-400'
-        }`} />
-
+      <Card className="overflow-hidden shadow-xs border border-border/80 bg-card">
         <CardContent className="p-5 sm:p-6 space-y-5">
           {/* Title row */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -388,9 +371,9 @@ export const RequestDetailPage: React.FC = () => {
             </Field>
 
             <Field label="Company" icon={Building2}>
-              <Badge variant={request.company?.name === 'Somtel' ? 'warning' : 'info'} size="sm">
-                {request.company?.name}
-              </Badge>
+              <span className="text-xs font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                {request.company?.name || 'N/A'}
+              </span>
             </Field>
 
             <Field label="Region" icon={MapPin}>
@@ -508,12 +491,11 @@ export const RequestDetailPage: React.FC = () => {
 
       {/* ── APPROVAL DRAWER ── */}
       {isAccountant && !isOwnRequest && (request.status === 'PENDING_APPROVAL' || request.status === 'ACCOUNTANT_REVIEW') && (
-        <Card className="overflow-hidden">
-          <CardHeader className={`border-b border-border flex flex-row items-center justify-between
-            ${request.status === 'PENDING_APPROVAL' ? 'bg-amber-50/60 dark:bg-amber-950/10' : 'bg-sky-50/60 dark:bg-sky-950/10'}`}>
+        <Card className="overflow-hidden border border-border/80">
+          <CardHeader className="border-b border-border flex flex-row items-center justify-between bg-muted/30">
             <div>
               <CardTitle className="text-sm font-bold">
-                {request.status === 'PENDING_APPROVAL' ? '📋 Stage 1: Accountant Review' : '🏦 Stage 2: CFO Final Approval'}
+                {request.status === 'PENDING_APPROVAL' ? 'Stage 1: Accountant Review' : 'Stage 2: CFO Final Approval'}
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
                 {request.status === 'PENDING_APPROVAL' ? 'Review and forward to Finance / CFO for final approval' : 'Issue final approval to release funds for disbursement'}
@@ -562,7 +544,7 @@ export const RequestDetailPage: React.FC = () => {
                 size="sm"
                 onClick={() => handleReview('CORRECTION_REQUIRED')}
                 disabled={actionLoading}
-                className="gap-1.5 text-amber-600 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                className="gap-1.5"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Request Correction
               </Button>
@@ -593,9 +575,9 @@ export const RequestDetailPage: React.FC = () => {
 
       {/* Self-submitted notice for Accountant */}
       {isOwnRequest && (request.status === 'PENDING_APPROVAL' || request.status === 'ACCOUNTANT_REVIEW') && (
-        <Card className="overflow-hidden">
-          <CardContent className="p-5 flex items-start gap-3 bg-sky-50/60 dark:bg-sky-950/10">
-            <ShieldCheck className="h-5 w-5 text-sky-500 flex-shrink-0 mt-0.5" />
+        <Card className="overflow-hidden border border-border/80">
+          <CardContent className="p-5 flex items-start gap-3 bg-muted/20">
+            <ShieldCheck className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div>
               <h3 className="text-sm font-bold text-foreground">Awaiting CFO Approval</h3>
               <p className="text-xs text-muted-foreground mt-1">
@@ -609,11 +591,11 @@ export const RequestDetailPage: React.FC = () => {
 
       {/* ── RECORD PAYMENT DRAWER ── */}
       {isAccountant && request.status === 'APPROVED' && (
-        <Card className="overflow-hidden">
-          <CardHeader className="border-b border-border bg-emerald-50/60 dark:bg-emerald-950/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <Card className="overflow-hidden border border-border/80">
+          <CardHeader className="border-b border-border bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-emerald-600" /> Record Disbursement
+                <Banknote className="h-4 w-4 text-primary" /> Record Disbursement
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">Disburse approved funds to the recipient</CardDescription>
             </div>
@@ -623,13 +605,13 @@ export const RequestDetailPage: React.FC = () => {
           </CardHeader>
 
           <CardContent className="p-6 space-y-4">
-            <div className="p-4 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-900/40 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="p-4 bg-muted/40 border border-border/80 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
-                <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-400 block mb-0.5">Recipient Name</span>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-0.5">Recipient Name</span>
                 <p className="font-bold text-foreground text-sm">{request.receiverName || 'Not specified'}</p>
               </div>
               <div>
-                <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-400 block mb-0.5">Account / Phone</span>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-0.5">Account / Phone</span>
                 <p className="font-bold font-mono text-foreground text-sm">{request.receiverPhone || 'Not specified'}</p>
               </div>
             </div>
@@ -694,9 +676,9 @@ export const RequestDetailPage: React.FC = () => {
       {/* ── SETTLEMENT DRAWER ── */}
       {isEmployee && request.status === 'PAID' && (
         <Card className="overflow-hidden">
-          <CardHeader className="border-b border-border bg-blue-50/60 dark:bg-blue-950/10">
+          <CardHeader className="border-b border-border bg-muted/30">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <ReceiptText className="h-4 w-4 text-blue-600" /> Expense Settlement
+              <ReceiptText className="h-4 w-4 text-primary" /> Expense Settlement
             </CardTitle>
             <CardDescription className="text-xs mt-0.5">Reconcile actual expenses against the disbursed funds</CardDescription>
           </CardHeader>
@@ -723,7 +705,7 @@ export const RequestDetailPage: React.FC = () => {
               </div>
               <div className="pb-2">
                 <span className={`text-xs font-semibold ${parseFloat(remainingBalance) > 0 ? 'text-amber-600 dark:text-amber-400' :
-                  parseFloat(remainingBalance) < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'
+                  parseFloat(remainingBalance) < 0 ? 'text-destructive' : 'text-primary'
                   }`}>
                   {parseFloat(remainingBalance) > 0 ? '↩ Refund due to company' :
                     parseFloat(remainingBalance) < 0 ? '↗ Reimbursement requested' :
@@ -762,7 +744,7 @@ export const RequestDetailPage: React.FC = () => {
         <Card className="overflow-hidden">
           <CardHeader className="border-b border-border flex flex-row items-center justify-between pb-4">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <Banknote className="h-4 w-4 text-emerald-500" /> Payment History
+              <Banknote className="h-4 w-4 text-primary" /> Payment History
             </CardTitle>
             <div className="flex items-center gap-2">
               <Button
@@ -773,7 +755,7 @@ export const RequestDetailPage: React.FC = () => {
                   setSelectedPaymentForVoucher(request.payments[0]);
                   setIsVoucherOpen(true);
                 }}
-                className="gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                className="gap-1.5 text-xs"
                 title="Print Payment Voucher"
               >
                 <Printer className="h-3.5 w-3.5" />
@@ -802,7 +784,7 @@ export const RequestDetailPage: React.FC = () => {
                         setSelectedPaymentForVoucher(pm);
                         setIsVoucherOpen(true);
                       }}
-                      className="text-emerald-700 dark:text-emerald-300 gap-1"
+                      className="text-muted-foreground hover:text-foreground gap-1"
                       title="Print Voucher for this Payment"
                     >
                       <Printer className="h-3 w-3" />
@@ -811,7 +793,7 @@ export const RequestDetailPage: React.FC = () => {
                   </div>
                   <div className="text-left sm:text-right">
                     <p className="text-[10px] text-muted-foreground uppercase font-bold">Amount Paid</p>
-                    <p className="font-black text-lg text-emerald-600 dark:text-emerald-400 leading-tight">
+                    <p className="font-black text-lg text-foreground leading-tight">
                       {request.currency} {Number(pm.amountPaid).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </p>
                     <p className="text-[10px] text-muted-foreground">by {pm.paidBy?.fullName || 'Finance'}</p>
@@ -845,7 +827,7 @@ export const RequestDetailPage: React.FC = () => {
         <Card className="overflow-hidden">
           <CardHeader className="border-b border-border pb-4">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <ReceiptText className="h-4 w-4 text-blue-500" /> Expense Settlement & Audit
+              <ReceiptText className="h-4 w-4 text-primary" /> Expense Settlement & Audit
             </CardTitle>
           </CardHeader>
           <CardContent className="p-5 space-y-3">

@@ -852,7 +852,7 @@ export const SettingsPage: React.FC = () => {
                             fontSize: '12px',
                           }}
                         />
-                        <Bar dataKey="count" fill="#0284c7" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -928,10 +928,7 @@ export const SettingsPage: React.FC = () => {
                           Code: {c.code || c.id.slice(0, 8)} · Currency: {c.currency || 'USD'}
                         </p>
                       </div>
-                      <Badge
-                        variant={c.name === 'Somtel' ? 'warning' : c.name === 'Bluekom' ? 'info' : 'secondary'}
-                        size="sm"
-                      >
+                      <Badge variant="secondary" size="sm">
                         Active
                       </Badge>
                     </div>
