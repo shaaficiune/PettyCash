@@ -468,7 +468,6 @@ export const SettingsPage: React.FC = () => {
   // DataTable Columns definition
   const columns: ColumnDef<AuditLogItem>[] = useMemo(
     () => [
-      // ── Timestamp ───────────────────────────────
       {
         accessorKey: 'createdAt',
         meta: { title: 'Timestamp' },
@@ -490,7 +489,6 @@ export const SettingsPage: React.FC = () => {
         },
       },
 
-      // ── Action Badge ────────────────────────────
       {
         accessorKey: 'action',
         meta: { title: 'Type' },
@@ -507,7 +505,6 @@ export const SettingsPage: React.FC = () => {
         },
       },
 
-      // ── Activity Summary (Executive Narrative) ───
       {
         id: 'activity',
         meta: { title: 'Activity Summary' },
@@ -531,7 +528,6 @@ export const SettingsPage: React.FC = () => {
         },
       },
 
-      // ── Staff / Operator ────────────────────────
       {
         id: 'user',
         meta: { title: 'Operator / Staff' },
@@ -554,7 +550,6 @@ export const SettingsPage: React.FC = () => {
         },
       },
 
-      // ── IP Address / Connection ─────────────────
       {
         accessorKey: 'ipAddress',
         meta: { title: 'Connection / IP' },
@@ -570,7 +565,6 @@ export const SettingsPage: React.FC = () => {
         ),
       },
 
-      // ── Action ──────────────────────────────────
       {
         id: 'actions',
         header: () => <div className="text-center">Inspect</div>,

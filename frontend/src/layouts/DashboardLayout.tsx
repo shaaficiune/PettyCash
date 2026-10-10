@@ -46,7 +46,6 @@ import {
   AlertDescription,
 } from '../components/ui';
 
-// ── Human-readable page title map (UI-004) ─────────────────────────────────
 const PAGE_TITLES: Record<string, string> = {
   '/':                     'Executive Dashboard',
   '/requests':             'Petty Cash Requests',

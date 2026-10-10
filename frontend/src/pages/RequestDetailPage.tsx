@@ -27,7 +27,6 @@ import {
   StatusBadge,
 } from '../components/ui';
 
-// ─── Timeline ────────────────────────────────────────────────────────────────
 const TIMELINE_STEPS = [
   { key: 'DRAFT', label: 'Draft', icon: Edit3 },
   { key: 'PENDING_APPROVAL', label: 'Submitted', icon: Send },
@@ -88,7 +87,6 @@ const RequestTimeline: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-// ─── Info Field ────────────────────────────────────────────────────────────────
 const Field: React.FC<{ label: string; icon?: React.ElementType; children: React.ReactNode; fullWidth?: boolean }> = ({
   label, icon: Icon, children, fullWidth,
 }) => (
@@ -116,9 +114,7 @@ const AmountPill: React.FC<{ label: string; amount: number | null; currency: str
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════════
 export const RequestDetailPage: React.FC = () => {
   const { user } = useAuth();
   const { id } = useParams();

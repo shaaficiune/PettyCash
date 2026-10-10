@@ -953,10 +953,8 @@ export class ReportsService {
 </html>`;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Region × Budget Head Matrix Report
   // Budget cap = Region.monthlyBudget (the enforced regional limit)
-  // ─────────────────────────────────────────────────────────────────────────
   async getRegionBudgetHeadReport(
     user: any,
     companyId?: string,
@@ -1158,9 +1156,7 @@ export class ReportsService {
     };
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Daily Trend Report — spend per day per company
-  // ─────────────────────────────────────────────────────────────────────────
   async getRegionBudgetHeadDaily(
     user: any,
     companyId?: string,

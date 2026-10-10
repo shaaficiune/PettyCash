@@ -32,7 +32,7 @@ export class RequestsService {
     const suffix = String(count + 1).padStart(4, '0');
     const requestNumber = `${prefix}${suffix}`;
 
-    // ── $50 Maximum Cap ──────────────────────────────────────────────────────
+    // $50 Maximum Cap
     // Petty Cash is for small, routine expenses only. Maximum per request: $50.
     const PETTY_CASH_MAX = 50;
     if (Number(dto.requestedAmount) > PETTY_CASH_MAX) {

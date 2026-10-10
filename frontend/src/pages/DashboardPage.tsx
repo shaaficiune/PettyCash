@@ -23,13 +23,11 @@ import {
   Button,
 } from '../components/ui';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const fmtMoney = (n: number) =>
   `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-// ─── Shared Summary Card ──────────────────────────────────────────────────────
 interface CardProps {
   label: string;
   value: string | number;
@@ -66,7 +64,6 @@ const SummaryCard: React.FC<CardProps> = ({ label, value, sub, icon: Icon, to })
   return cardContent;
 };
 
-// ─── Section Header ───────────────────────────────────────────────────────────
 const SectionHeader: React.FC<{ title: string; to?: string; linkLabel?: string }> = ({ title, to, linkLabel }) => (
   <div className="flex items-center justify-between mb-4">
     <h3 className="text-sm font-bold text-foreground tracking-tight">{title}</h3>
@@ -78,7 +75,6 @@ const SectionHeader: React.FC<{ title: string; to?: string; linkLabel?: string }
   </div>
 );
 
-// ─── Requests Table (shared) ──────────────────────────────────────────────────
 interface ReqTableProps {
   rows: any[];
   showCompany?: boolean;
@@ -178,9 +174,7 @@ const RequestsTable: React.FC<ReqTableProps> = ({
   </div>
 );
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // 1. SUPER ADMIN DASHBOARD
-// ═══════════════════════════════════════════════════════════════════════════════
 const SuperAdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -323,9 +317,7 @@ const SuperAdminDashboard: React.FC = () => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // 2. ACCOUNTANT DASHBOARD
-// ═══════════════════════════════════════════════════════════════════════════════
 const AccountantDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -467,9 +459,7 @@ const AccountantDashboard: React.FC = () => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // 3. EMPLOYEE DASHBOARD
-// ═══════════════════════════════════════════════════════════════════════════════
 const EmployeeDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [myRequests, setMyRequests] = useState<any[]>([]);
@@ -584,7 +574,6 @@ const EmployeeDashboard: React.FC = () => {
   );
 };
 
-// ─── Loader ───────────────────────────────────────────────────────────────────
 const Loader: React.FC = () => (
   <div className="flex items-center justify-center h-64 gap-3">
     <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -592,9 +581,7 @@ const Loader: React.FC = () => (
   </div>
 );
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // ROOT EXPORT — picks dashboard by role
-// ═══════════════════════════════════════════════════════════════════════════════
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   if (!user) return <Loader />;

@@ -29,14 +29,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password');
     }
 
-    // ── 1. Permanently disabled (by admin or lockout Stage 3) ──────────────
+    // 1. Permanently disabled (by admin or lockout Stage 3)
     if (user.status !== 'ACTIVE') {
       throw new UnauthorizedException(
         'Your account has been disabled. Please contact the administrator.',
       );
     }
 
-    // ── 2. Temporary lockout check ─────────────────────────────────────────
+    // 2. Temporary lockout check
     // Exception: the primary master 'admin' account is never locked out
     if (user.username !== 'admin' && user.lockoutUntil && user.lockoutUntil > new Date()) {
       const remainingMs = user.lockoutUntil.getTime() - Date.now();
@@ -46,7 +46,7 @@ export class AuthService {
       );
     }
 
-    // ── 3. Validate password ───────────────────────────────────────────────
+    // 3. Validate password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
@@ -126,7 +126,7 @@ export class AuthService {
       );
     }
 
-    // ── 4. Successful login — reset all lockout state ─────────────────────
+    // 4. Successful login — reset all lockout state
     if (
       (user.failedLoginAttempts ?? 0) > 0 ||
       user.lockoutUntil !== null ||

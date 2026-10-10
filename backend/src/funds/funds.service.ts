@@ -571,7 +571,7 @@ export class FundsService {
     // Return null if no fund exists; caller can decide to auto-create or show init form
     if (!fund) return null;
 
-    // ── Compute live paidAmount from Payment table ──────────────────────────
+    // Compute live paidAmount from Payment table
     // The fund.paidAmount field may be stale if payments were added via older flows.
     // We always derive the real figure from actual Payment records.
     const startOfMonth = new Date(year, month - 1, 1);
@@ -586,7 +586,7 @@ export class FundsService {
     });
     const livePaid = Number(paidAgg._sum.amountPaid || 0);
 
-    // ── Compute live approvedAmount from approved/paid requests ─────────────
+    // Compute live approvedAmount from approved/paid requests
     const approvedAgg = await (this.prisma as any).pettyCashRequest.aggregate({
       where: {
         companyId,

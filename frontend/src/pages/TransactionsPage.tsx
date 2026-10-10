@@ -214,7 +214,6 @@ export const TransactionsPage: React.FC = () => {
   // Define Columns for TanStack Table
   const columns: ColumnDef<any>[] = useMemo(
     () => [
-      // ── Checkbox ──────────────────────────────────
       {
         id: 'select',
         header: ({ table }) => (
@@ -239,7 +238,6 @@ export const TransactionsPage: React.FC = () => {
         enableHiding: false,
       },
 
-      // ── Date ──────────────────────────────────────
       {
         accessorKey: 'createdAt',
         meta: { title: 'Date' },
@@ -262,7 +260,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Company ───────────────────────────────────
       {
         id: 'company',
         meta: { title: 'Company' },
@@ -280,7 +277,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Req # ─────────────────────────────────────
       {
         id: 'reqNumber',
         meta: { title: 'Req #' },
@@ -304,7 +300,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Invoice Number ────────────────────────────
       {
         id: 'invoiceNumber',
         meta: { title: 'Invoice #' },
@@ -330,7 +325,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Employee (Requester) ──────────────────────
       {
         id: 'employee',
         meta: { title: 'Employee' },
@@ -352,7 +346,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Recipient Name ────────────────────────────
       {
         id: 'recipientName',
         meta: { title: 'Recipient Name' },
@@ -373,7 +366,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Recipient Tel / Account ───────────────────
       {
         id: 'recipientContact',
         meta: { title: 'Tel / Account' },
@@ -400,7 +392,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Region ────────────────────────────────────
       {
         id: 'region',
         meta: { title: 'Region' },
@@ -424,7 +415,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Category (Budget Head) ────────────────────
       {
         id: 'category',
         meta: { title: 'Category' },
@@ -448,7 +438,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Type ──────────────────────────────────────
       {
         accessorKey: 'transactionType',
         meta: { title: 'Type' },
@@ -477,7 +466,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Debit (-) ─────────────────────────────────
       {
         accessorKey: 'debit',
         meta: { title: 'Debit' },
@@ -498,7 +486,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Credit (+) ────────────────────────────────
       {
         accessorKey: 'credit',
         meta: { title: 'Credit' },
@@ -519,7 +506,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Balance ───────────────────────────────────
       {
         accessorKey: 'balanceAfter',
         meta: { title: 'Balance' },
@@ -538,7 +524,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      // ── Action ────────────────────────────────────
       {
         id: 'actions',
         header: () => <div className="text-center">Action</div>,
