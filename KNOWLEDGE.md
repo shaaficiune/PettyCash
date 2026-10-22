@@ -1,7 +1,7 @@
 # 📚 PETTY CASH MANAGEMENT SYSTEM — MASTER KNOWLEDGE DOCUMENT
 **Project:** Somtel / Bluekom Petty Cash App  
 **GitHub:** https://github.com/shaaficiune/PettyCash.git  
-**Last Updated:** 2026-10-10
+**Last Updated:** 2026-10-22
 **Purpose:** Full context restoration for any future AI assistant — read this file before starting any work.
 
 ---
@@ -12,7 +12,7 @@
 | Layer | Technology |
 |-------|-----------|
 | **Frontend** | React 18 + TypeScript + Vite + TailwindCSS (custom tokens) |
-| **Backend** | NestJS (Node.js) + TypeScript |
+| **Backend** | NestJS (Node.js 24 LTS) + TypeScript |
 | **Database** | PostgreSQL (managed via Prisma ORM) |
 | **Auth** | JWT Access Tokens (15min) + Refresh Tokens (7 days, SHA-256 hashes stored in DB) |
 | **File Storage** | Local `./uploads` folder or MinIO; attachment downloads require authenticated API access |
@@ -63,8 +63,8 @@ d:\Petty Cash App\          ← Root workspace (Windows local dev)
 │       ├── context/AuthContext.tsx       ← Global auth state
 │       ├── services/api.ts               ← Axios instance (auto refresh token)
 │       └── App.tsx                       ← Routes + role guards
-├── setup.sh              ← ONE-TIME server setup (clone + install everything)
-├── update-server.sh      ← ONGOING updates (git pull + rebuild + restart)
+├── setup.sh              ← ONE-TIME server setup (installs Node.js 24 LTS, Nginx, PostgreSQL, PM2)
+├── update-server.sh      ← ONGOING updates (git pull + auto Node 24 upgrade + rebuild + zero-downtime pm2 reload)
 ├── deploy-ubuntu.sh      ← Alternative deploy script
 ├── ecosystem.config.js   ← PM2 process config (app name: petty-cash-backend)
 ├── nginx-ubuntu.conf     ← Nginx config reference
@@ -79,6 +79,7 @@ d:\Petty Cash App\          ← Root workspace (Windows local dev)
 
 ### Server Setup (Critical — Read Carefully)
 - **Server OS:** Ubuntu (running inside VirtualBox on a local Windows machine)
+- **Node.js Runtime:** Node.js v24 LTS (migrated from EOL Node 20 to protect against CVE-2026-111497 Brotli RCE, CVE-2026-105482 DNS truncation, and TLS hostname verification bypasses)
 - **No external IP used** — everything runs on `localhost` internally
 - **Production Domain:** `pettycash.bluekompl.com` (HTTPS via Cloudflare Tunnel)
 - **Access method:** Cloudflare Tunnel connects the Ubuntu VM to the internet (`pettycash.bluekompl.com`)
@@ -92,7 +93,7 @@ cd app && sudo bash setup.sh
 ```
 
 ### What `setup.sh` Does (Automated)
-1. Installs Node.js, Nginx, PostgreSQL, and PM2 when needed
+1. Installs Node.js 24 LTS via NodeSource, Nginx, PostgreSQL, and PM2
 2. Refuses to overwrite an existing `backend/.env`, database role, or database
 3. Generates unique database and JWT secrets, plus per-user one-time seed passwords
 4. Applies the Prisma schema without a data-loss override and seeds a fresh database
@@ -102,7 +103,7 @@ cd app && sudo bash setup.sh
 ```
 petty-cash-backend
 ```
-Check: `pm2 list` | Restart: `pm2 restart petty-cash-backend`
+Check: `pm2 list` | Reload: `pm2 reload petty-cash-backend --update-env`
 
 The server's `backend/.env` is generated locally with unique values and is ignored by Git. Do not copy its contents into documentation, support messages, or source control. The setup script prints each temporary seed password once for secure delivery.
 
@@ -122,18 +123,20 @@ git push origin main
 **Step 2 — Ubuntu Server terminal:**
 ```bash
 cd ~/app
-bash update-server.sh
+git pull origin main && bash update-server.sh
 ```
 
 `update-server.sh` does automatically:
 1. `git pull origin main`
-2. `cd backend && npm install`
-3. `npx prisma generate`
-4. `node scripts/init-db.js` (safe schema update and legacy refresh-session revocation)
-5. `npm run build`
-6. `cd frontend && npm install && npm run build`
-7. `pm2 restart petty-cash-backend`
-8. `sudo systemctl reload nginx`
+2. **Node.js 24 LTS Check:** Auto-detects system Node version. If `< 24`, automatically installs Node.js 24 LTS via NodeSource and updates PM2 daemon.
+3. `cd backend && npm install`
+4. `node scripts/ensure-jwt-secrets.js`
+5. `npx prisma generate` & `node scripts/init-db.js` (safe schema update)
+6. `npm run build` (Backend NestJS)
+7. `cd frontend && npm install && npm run build` (Frontend Vite bundle)
+8. Tests & syncs `nginx-ubuntu.conf` → `/etc/nginx/sites-available/petty-cash`
+9. Graceful zero-downtime PM2 reload: `pm2 reload petty-cash-backend --update-env`
+10. `sudo systemctl reload nginx`
 
 ### Database Backups
 `database_dump.sql` is a schema/reference sample, not a backup. Keep production backups encrypted outside Git. The JSON import/export scripts are for controlled local use only; never commit or share their output.
