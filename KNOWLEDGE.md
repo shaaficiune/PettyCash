@@ -1341,4 +1341,69 @@ A comprehensive design and visual consistency pass was executed across the entir
 - `LoginPage.tsx` catches 500 and informs the user: *"Internal server error (500). Please check backend logs."*
 - To resolve: ensure the backend is running (`npm run start:dev` or `node dist/src/main.js` on port 3000).
 
+---
+
+## 24. 📱 ENTERPRISE TABLE MODERNIZATION, MOBILE RESPONSIVE CARDS & IN-PLACE APPROVAL WORKFLOW (2026-10-22)
+
+### 1. Overview & Context
+Based on enterprise UI modernization goals and financial review usability requirements, a comprehensive overhaul was performed across the data presentation layers (`DataTable`, `RequestsListPage`, `TransactionsPage`), in-place review/approval flow, and multi-device access.
+
+### 2. Screen-Fit Desktop Architecture (Zero Horizontal Scroll)
+- **Problem:** Data tables on standard laptops (1366×768 and 1440×900) suffered from unwanted horizontal scrolling due to rigid container bounds and excessive column padding.
+- **Root Cause & Fix:**
+  - `DashboardLayout.tsx`: Expanded main content container constraint from `max-w-[1280px]` to `max-w-[1536px]` (`w-full`), unlocking natural canvas width.
+  - `data-table.tsx`: Shaved `dense` padding across all `TableHead` and `TableCell` instances from `px-3.5 py-2.5` to compact `px-2 py-1.5 text-xs`.
+  - Column Max-Widths: Refined in `RequestsListPage.tsx` (`purpose` max-w-[125px], `employee` max-w-[110px], `receiverName` max-w-[105px], and compact action button `h-6.5 px-2 text-[11px]`).
+  - Replaced redundant inner scroll wrappers in `table.tsx` with clean `w-full table-auto` layout.
+  - **Result:** Complete 10-column table fits 100% flush on desktop and laptop screens with zero horizontal scrolling.
+
+### 3. Responsive Hybrid View: Mobile Cards Architecture
+- **Problem:** When accessed on mobile devices (smartphones/tablets), multi-column data tables forced cumbersome 2-axis horizontal and vertical scrolling.
+- **Solution:** Integrated a `renderMobileCard` prop into `DataTable<TData, TValue>`:
+  - **Desktop / Tablet (`md:` and above):** Renders the screen-fit TanStack Data Table.
+  - **Mobile (`< md`):** Automatically hides the table (`hidden md:block`) and renders touch-friendly, high-contrast Mobile Cards (`md:hidden`) for each record.
+  - **Shared Controls:** Global Search, Filter Hub, and `DataTablePagination` dynamically bind to both view modes without duplicating state or logic.
+- **Implemented Mobile Card Renderers:**
+  - **All Requests (`RequestsListPage.tsx`):** Displays clickable `#PC-...` badge, Status badge, bold Amount with difference strike-through if modified, Employee & Beneficiary sub-grid, Purpose snippet, and direct "View Request" action button.
+  - **Petty Cash Reports (`TransactionsPage.tsx`):** Financial ledger card with Date, Transaction Type (`EXPENSE`/`ALLOCATION`/`ADVANCE`), Debit/Credit colored badges, Running Balance, Reference numbers, Recipient/Region tags, and "View Details" trigger.
+
+### 4. In-Place Full-Page Detail Drawer (Zero Context Loss)
+- **Problem:** Clicking "View" or the Request number previously navigated away from `RequestsListPage`, discarding active pagination and table position.
+- **Solution:** Re-engineered `RequestDetailPage.tsx` to operate dual-mode:
+  - Standard standalone route (`/requests/:id`).
+  - Inline drawer/overlay via props (`requestId`, `isInline`, `onClose`, `onActionCompleted`).
+- **Feature Additions in Detail Drawer:**
+  - Priority badge and submission timestamp (date + time) integrated into top header.
+  - Real-time action hooks (`onActionCompleted`): reviewing, approving, disbursing (`PAID`), or settling immediately updates the list in the background and reflects new statuses without full page reload.
+
+### 5. Filter State Persistence & Default Range Optimization
+- **Default Date Preset:** Changed initial view preset from `TODAY` to `THIS_MONTH` across `RequestsListPage.tsx` for optimal monthly operational oversight.
+- **Persistence Mechanism:** Filter states (`statusFilter`, `regionFilter`, `priorityFilter`, `datePreset`, `startDate`, `endDate`) are automatically synced to browser `sessionStorage` (`requests_active_filters`).
+- **Benefit:** When accountants view a request, perform an action, or navigate back, their custom filter criteria remain 100% preserved.
+
+### 6. Petty Cash Reports (`TransactionsPage`) Refinement
+- **Company Column Removal:** Removed redundant Company column from the ledger table.
+- **Company Filter Dropdown:** Added direct Company selector (All Companies / Somtel / Bluekom) to the Filter Hub, allowing single-click tenant isolation.
+
+### 7. LAN & Private Network CORS Support
+- **File:** `backend/src/main.ts` & `backend/.env`
+- **Enhancement:** Added regex matching for RFC 1918 private IP addresses (`192.168.*.*`, `10.*.*.*`, `172.16-31.*.*`, `localhost`, `127.0.0.1`) to the CORS whitelist.
+- **Security:** Public internet requests remain strictly channeled through Cloudflare Tunnel (`pettycash.bluekompl.com`), while local development and testing on mobile devices connected to the local Wi-Fi function without CORS blockage.
+
+### 8. Claude-Inspired Enterprise Request Form Upgrade (`RequestFormPage.tsx`)
+- **Design Inspiration:** Modeled directly after the high-efficiency Claude *Petty Cash Office* financial voucher artifact while 100% preserving backend DTOs and validation logic.
+- **Architecture:** Upgraded to a responsive 2-column layout (`lg:grid-cols-12`):
+  - **Left Form Canvas (8 Columns):**
+    1. *Expense Classification:* Quick Expense Type selector chips (Office Supplies, Fuel, Transport, Maintenance, Meals, Utilities, Emergency, Other).
+    2. *Vehicle Fleet Tracking:* Conditional module appearing automatically when Fuel, Transport, or Vehicle Maintenance is selected. Provides plate selection (`JI119`, `XH174`, `GM461`, `QK466`, or Custom Plate) and seamlessly binds to request remarks and description.
+    3. *Financial Details & Real-Time Amount in Words:* Number input with live English monetary words preview (`amountInWords(numAmount)`), currency selector, required disbursement date, and visual priority badges.
+    4. *Beneficiary & Vendor Information:* Recipient Name, Mobile Money/Account number, optional Vendor name, and Invoice/Receipt number.
+    5. *Receipt Attachments:* Dropzone supporting drag & drop or file browse for up to 10 files (PDF, DOCX, XLSX, PNG, JPG, max 20MB) with chip tags and instant removal.
+  - **Right Sticky Live Voucher & Budget Tracker (4 Columns):**
+    1. *Live Financial Voucher Preview:* Branded voucher card displaying live company header (Bluekom Royal Blue / Somtel Amber), Initiator credentials, Real-Time total amount with words, Category, Vehicle plate, and Beneficiary details.
+    2. *Regional Budget Progress Bar:* Real-time visual gauge of current region's monthly limit, amount used, and remaining balance.
+    3. *Action Control Hub:* Prominent "Submit for Approval" (Gold button) and "Save as Draft" buttons with instant policy checklist validation.
+
+
+
 
