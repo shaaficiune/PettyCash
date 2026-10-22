@@ -48,9 +48,9 @@ Hadafka tusalahan waa in uu kuusoo saaro habka ugu habboon uguna fudud ee aad **
 
 ## 📦 Tallaabada 2-aad: Shubidda Software-ada Loo Baahan Yahay
 
-1. **Shub Node.js 20 LTS, Git, Nginx, iyo PostgreSQL**:
+1. **Shub Node.js 24 LTS, Git, Nginx, iyo PostgreSQL**:
    ```bash
-   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+   curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
    sudo apt install -y nodejs git nginx postgresql postgresql-contrib
    ```
 

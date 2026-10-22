@@ -12,35 +12,50 @@ echo "🔄 PETTY CASH — PULLING LATEST UPDATE"
 echo "=============================================="
 
 # 1. Pull latest code from GitHub
-echo "📥 [1/6] Pulling latest code from GitHub..."
+echo "📥 [1/7] Pulling latest code from GitHub..."
 git pull origin main
 
-# 2. Update backend dependencies + rebuild
-echo "📦 [2/6] Installing backend dependencies..."
+# 2. Check and upgrade Node.js to v24 LTS if needed
+CURRENT_NODE_MAJOR=$(node -v 2>/dev/null | cut -d'.' -f1 | sed 's/v//' || echo "0")
+if [ "$CURRENT_NODE_MAJOR" -lt 24 ]; then
+  echo "🚀 [2/7] Node.js version is currently v${CURRENT_NODE_MAJOR}. Upgrading to Node.js v24 LTS..."
+  curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+  echo "   ✔ Upgraded Node.js to: $(node -v)"
+  echo "   ✔ Upgraded npm to: $(npm -v)"
+  echo "   ✔ Updating PM2 globally..."
+  sudo npm install -g pm2
+  pm2 update || true
+else
+  echo "✔ [2/7] Node.js is already up-to-date: $(node -v)"
+fi
+
+# 3. Update backend dependencies + rebuild
+echo "📦 [3/7] Installing backend dependencies..."
 cd backend
 npm install
 node scripts/ensure-jwt-secrets.js
 
-# 3. Apply any new schema changes to the existing database
-echo "🗄️  [3/6] Applying database schema changes..."
+# 4. Apply any new schema changes to the existing database
+echo "🗄️  [4/7] Applying database schema changes..."
 npx prisma generate
 node scripts/init-db.js
 node scripts/unlock-admin.js
 
-# 4. Build backend
-echo "🔨 [4/6] Building backend..."
+# 5. Build backend
+echo "🔨 [5/7] Building backend..."
 npm run build
 cd ..
 
-# 5. Build frontend
-echo "🎨 [5/6] Building frontend..."
+# 6. Build frontend
+echo "🎨 [6/7] Building frontend..."
 cd frontend
 npm install
 npm run build
 cd ..
 
-# 6. Sync nginx config (safe: tests before applying — aborts if config is invalid)
-echo "🔒 [6/6] Syncing nginx security config..."
+# 7. Sync nginx config (safe: tests before applying — aborts if config is invalid)
+echo "🔒 [7/7] Syncing nginx security config..."
 NGINX_CONF_SRC="$(pwd)/nginx-ubuntu.conf"
 NGINX_CONF_DEST="/etc/nginx/sites-available/petty-cash"
 if [ -f "$NGINX_CONF_SRC" ]; then
@@ -53,16 +68,16 @@ else
   echo "   ⚠ nginx-ubuntu.conf not found in repo root — skipping nginx config update"
 fi
 
-# 7. Restart PM2 backend service
-echo "⚡ Restarting backend service..."
+# 8. Reload PM2 backend service (graceful reload with zero downtime)
+echo "⚡ Reloading backend service..."
 if pm2 list | grep -q "petty-cash-backend"; then
-  pm2 restart petty-cash-backend --update-env
+  pm2 reload petty-cash-backend --update-env || pm2 restart petty-cash-backend --update-env
 else
   pm2 start ecosystem.config.js
 fi
 pm2 save
 
-# 8. Reload Nginx (applies config + any pending systemd changes)
+# 9. Reload Nginx (applies config + any pending systemd changes)
 echo "🌐 Reloading Nginx..."
 sudo systemctl reload nginx 2>/dev/null || true
 
@@ -71,5 +86,6 @@ echo "=============================================="
 echo "✅ UPDATE COMPLETED SUCCESSFULLY!"
 echo "=============================================="
 echo ""
+echo "📊 Current Node Version: $(node -v)"
 echo "📊 PM2 Status:"
 pm2 list
