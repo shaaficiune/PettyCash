@@ -39,6 +39,34 @@ const ACTION_META: Record<string, { label: string; icon: React.ElementType; colo
   FUND_INITIALIZED:   { label: 'Fund Initialized', icon: Coins,       color: 'text-emerald-700 dark:text-emerald-400',bg: 'bg-emerald-500/10 border-emerald-500/20' },
 };
 
+const resolveLogUser = (log: any): { name: string; username?: string; isSystem: boolean } => {
+  if (log.user?.fullName) {
+    return { name: log.user.fullName, username: log.user.username ? `@${log.user.username}` : undefined, isSystem: false };
+  }
+  if (log.user?.username) {
+    return { name: `@${log.user.username}`, username: `@${log.user.username}`, isSystem: false };
+  }
+  if (log.details) {
+    try {
+      const parsed = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+      const uname = parsed?.username || parsed?.body?.username;
+      if (uname) {
+        return { name: uname === 'admin' ? 'Administrator' : uname, username: `@${uname}`, isSystem: false };
+      }
+    } catch (_) {}
+  }
+  return { name: 'System', username: undefined, isSystem: true };
+};
+
+const formatDisplayIp = (ip?: string | null): string => {
+  if (!ip) return '—';
+  const cleanIp = ip.replace(/^::ffff:/, '');
+  if (cleanIp === '127.0.0.1' || cleanIp === '::1' || cleanIp === 'localhost') {
+    return '127.0.0.1 (Local)';
+  }
+  return cleanIp;
+};
+
 const getActionMeta = (action: string) =>
   ACTION_META[action] ?? { label: action.replace(/_/g, ' '), icon: Activity, color: 'text-muted-foreground', bg: 'bg-muted border-border' };
 
@@ -79,19 +107,22 @@ export const AuditTrailPage: React.FC = () => {
     },
     {
       id: 'user',
-      accessorFn: (row) => row.user?.fullName || 'System',
+      accessorFn: (row) => {
+        const u = resolveLogUser(row);
+        return `${u.name} ${u.username || ''}`;
+      },
       header: ({ column }) => <DataTableColumnHeader column={column} title="User" />,
       cell: ({ row }) => {
-        const log = row.original;
+        const u = resolveLogUser(row.original);
         return (
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <User className="h-3.5 w-3.5 text-primary" />
+            <div className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${u.isSystem ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
+              <User className="h-3.5 w-3.5" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-foreground">{log.user?.fullName || 'System'}</p>
-              {log.user?.username && (
-                <p className="text-[10px] text-muted-foreground">{log.user.username}</p>
+              <p className="text-xs font-semibold text-foreground">{u.name}</p>
+              {u.username && (
+                <p className="text-[10px] text-muted-foreground font-mono">{u.username}</p>
               )}
             </div>
           </div>
@@ -102,12 +133,19 @@ export const AuditTrailPage: React.FC = () => {
       id: 'ipAddress',
       accessorKey: 'ipAddress',
       header: ({ column }) => <DataTableColumnHeader column={column} title="IP Address" />,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1.5">
-          <Globe className="h-3 w-3 text-muted-foreground" />
-          <span className="text-xs font-mono text-muted-foreground">{row.original.ipAddress || '—'}</span>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const rawIp = row.original.ipAddress;
+        const displayIp = formatDisplayIp(rawIp);
+        const isLocal = displayIp.includes('(Local)');
+        return (
+          <div className="flex items-center gap-1.5">
+            <Globe className={`h-3 w-3 shrink-0 ${isLocal ? 'text-amber-500' : 'text-emerald-500'}`} />
+            <span className={`text-xs font-mono font-medium ${isLocal ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
+              {displayIp}
+            </span>
+          </div>
+        );
+      },
     },
     {
       id: 'userAgent',

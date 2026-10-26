@@ -42,6 +42,7 @@ echo "🗄️  [4/9] Applying database schema changes..."
 npx prisma generate
 node scripts/init-db.js
 node scripts/unlock-admin.js
+node scripts/fix-audit-logs.js
 
 # 5. Build backend
 echo "🔨 [5/9] Building backend..."

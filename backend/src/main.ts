@@ -10,7 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Trust proxy for accurate client IP detection behind Cloudflare Tunnel & Nginx
-  app.set('trust proxy', 1);
+  app.set('trust proxy', true);
 
   // Global prefix
   app.setGlobalPrefix('api');

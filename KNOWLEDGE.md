@@ -1645,3 +1645,33 @@ Executed the comprehensive system upgrade defined in `planupdate.md` without mod
 * **Employee Isolation:** Employees can only access their own requests, their own transactions on `/transactions`, and cannot view company floats or other users' expenses.
 
 > **Verification:** Backend (`npx nest build`) and Frontend (`npm run build`) both compiled with **0 errors (Exit code 0)**. Production-ready for deployment via `bash update-server.sh`.
+
+---
+
+## 32. 🛡️ AUDIT TRAIL OPERATOR IDENTITY & MULTI-HOP REAL CLIENT IP (2026-10-26)
+
+### 1. Root Cause Analysis
+1. **Missing Operator Identity on Login & Logout:**
+   - Routes `@Post('login')` and `@Post('logout')` do not require `@UseGuards(JwtAuthGuard)`. As a result, `request.user` was `undefined`.
+   - `AuditLogInterceptor` previously defaulted to `userId: request.user ? request.user.userId : null`, writing `userId = NULL` into PostgreSQL for every Login and Logout event.
+   - On the frontend (`AuditTrailPage.tsx`), `log.user?.fullName || 'System'` rendered `'System'` because `log.user` was null.
+2. **Loopback IP (`127.0.0.1`) on Production:**
+   - Cloudflare Tunnel (`cloudflared`) connects to Nginx locally at `127.0.0.1:80`.
+   - Without Nginx's `ngx_http_realip_module` (`set_real_ip_from 127.0.0.1; real_ip_header CF-Connecting-IP; real_ip_recursive on;`), Nginx treated `$remote_addr` as `127.0.0.1`, passing it upstream via `X-Real-IP`.
+   - Express was configured with `app.set('trust proxy', 1);` which only unwrapped one proxy hop instead of the full Cloudflare + Nginx chain.
+
+### 2. Implementation & Fixes
+* **Backend Interceptor (`backend/src/common/audit-log.interceptor.ts`):**
+  - **Login:** Resolves `targetUserId` from `response?.user?.id` returned by `AuthService.login()`.
+  - **Logout:** Inspects `Authorization: Bearer <token>` or `body.refreshToken` and decodes `sub` (userId) and `username`.
+  - **Details Payload:** Safely stores `{ username }` in `details` (passwords sanitized).
+  - **IP Resolution:** Iterates candidates across `cf-connecting-ip`, `true-client-ip`, `cf-pseudo-ipv4`, `x-forwarded-for` (first hop), `x-real-ip`, `request.ips`, and `request.ip`, preferring external non-loopback addresses.
+* **Nginx Configuration (`nginx-ubuntu.conf`):**
+  - Added `set_real_ip_from 127.0.0.1;`, `set_real_ip_from ::1;`, private subnets, and `real_ip_header CF-Connecting-IP;` with `real_ip_recursive on;`.
+* **NestJS / Express (`backend/src/main.ts`):**
+  - Updated `app.set('trust proxy', true);` to trust all reverse proxy hops.
+* **Frontend Synchronization (`AuditTrailPage.tsx` & `SettingsPage.tsx`):**
+  - Unified user resolution: If `log.user` is null, parses `username` from `log.details` JSON, displaying `Administrator` / `@username` instead of falling back to `'System'`.
+  - Unified IP display: Highlights external IPs cleanly and marks loopback test addresses as `127.0.0.1 (Local)`.
+* **Database Backfill Script (`backend/scripts/fix-audit-logs.js`):**
+  - Added to `update-server.sh` (Step 4) to retroactively match and link existing unlinked audit logs to their respective users in PostgreSQL.

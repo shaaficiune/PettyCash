@@ -10,58 +10,125 @@ export class AuditLogInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const { method, url, body, headers } = request;
+
     // Resolve true client IP behind Cloudflare Tunnel, Nginx, or reverse proxies
-    const rawCfIp = headers['cf-connecting-ip'];
-    const rawTrueClientIp = headers['true-client-ip'];
-    const rawXRealIp = headers['x-real-ip'];
+    const cfIp = headers['cf-connecting-ip'];
+    const trueClientIp = headers['true-client-ip'];
+    const xRealIp = headers['x-real-ip'];
     const rawForwardedFor = headers['x-forwarded-for'];
+    const cfPseudoIp = headers['cf-pseudo-ipv4'];
 
-    let firstForwarded: string | undefined;
-    if (typeof rawForwardedFor === 'string') {
-      firstForwarded = rawForwardedFor.split(',')[0]?.trim();
-    } else if (Array.isArray(rawForwardedFor) && rawForwardedFor.length > 0) {
-      firstForwarded = (rawForwardedFor[0] as string)?.split(',')[0]?.trim();
-    }
+    const parseIps = (val: any): string[] => {
+      if (!val) return [];
+      if (typeof val === 'string') {
+        return val
+          .split(',')
+          .map((s) => s.trim().replace(/^::ffff:/, ''))
+          .filter(Boolean);
+      }
+      if (Array.isArray(val)) {
+        return val.flatMap((v) => parseIps(v));
+      }
+      return [];
+    };
 
-    const cfIp = typeof rawCfIp === 'string' ? rawCfIp.trim() : Array.isArray(rawCfIp) ? (rawCfIp[0] as string)?.trim() : undefined;
-    const trueClientIp = typeof rawTrueClientIp === 'string' ? rawTrueClientIp.trim() : undefined;
-    const xRealIp = typeof rawXRealIp === 'string' ? rawXRealIp.trim() : undefined;
+    const isLoopback = (ip: string) => {
+      if (!ip) return true;
+      if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') return true;
+      return false;
+    };
 
-    // Pick first valid public IP, preferring external IP over loopback (127.0.0.1)
-    const candidateIps = [cfIp, trueClientIp, firstForwarded, xRealIp, request.ip, request.connection?.remoteAddress].filter(Boolean) as string[];
-    const externalIp = candidateIps.find((ip) => ip && ip !== '127.0.0.1' && ip !== '::1' && ip !== '::ffff:127.0.0.1' && ip !== 'localhost');
-    const selectedIp = externalIp || candidateIps[0] || '127.0.0.1';
-    const ipAddress = selectedIp.replace(/^::ffff:/, '');
+    // Candidate list in priority order
+    const candidateIps: string[] = [
+      ...parseIps(cfIp),
+      ...parseIps(trueClientIp),
+      ...parseIps(cfPseudoIp),
+      ...parseIps(rawForwardedFor),
+      ...parseIps(xRealIp),
+      ...parseIps(request.ips),
+      ...parseIps(request.ip),
+      ...parseIps(request.connection?.remoteAddress),
+      ...parseIps(request.socket?.remoteAddress),
+    ];
 
+    // Find the first external non-loopback IP
+    const externalIp = candidateIps.find((ip) => !isLoopback(ip));
+    const ipAddress = externalIp || candidateIps[0] || '127.0.0.1';
     const userAgent = headers['user-agent'] || 'Unknown';
-    
+
     return next.handle().pipe(
       tap(async (response) => {
-        const user = request.user;
         const action = this.determineAction(method, url, body);
-        
-        if (action) {
-          try {
-            await this.prisma.auditLog.create({
-              data: {
-                userId: user ? user.userId : null,
-                action: action,
-                details: JSON.stringify({
-                  url,
-                  method,
-                  body: this.sanitizeBody(body),
-                  responseStatus: 'SUCCESS'
-                }),
-                ipAddress,
-                userAgent
-              }
-            });
-          } catch (e) {
-            console.error('AuditLogInterceptor failed to log action:', e);
+        if (!action) return;
+
+        try {
+          let targetUserId: string | null = request.user?.userId || null;
+          let resolvedUsername: string | null = request.user?.username || null;
+
+          // 1. For LOGIN: extract user from response (since login route has no JWT guard yet)
+          if (action === 'LOGIN' && response?.user?.id) {
+            targetUserId = response.user.id;
+            resolvedUsername = response.user.username || body?.username || null;
           }
+
+          // 2. For LOGOUT & unauthenticated endpoints: extract user from Bearer header or refresh token
+          if (!targetUserId) {
+            const authHeader = (headers['authorization'] || headers['Authorization']) as string | undefined;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+              const decoded = this.decodeJwt(authHeader.substring(7));
+              if (decoded?.sub) {
+                targetUserId = decoded.sub;
+                resolvedUsername = decoded.username || resolvedUsername;
+              }
+            }
+          }
+
+          if (!targetUserId && body?.refreshToken && typeof body.refreshToken === 'string') {
+            const decoded = this.decodeJwt(body.refreshToken);
+            if (decoded?.sub) {
+              targetUserId = decoded.sub;
+            }
+          }
+
+          // Build detail payload including safe username
+          const detailsPayload: any = {
+            url,
+            method,
+            body: this.sanitizeBody(body),
+            responseStatus: 'SUCCESS',
+          };
+          if (resolvedUsername) {
+            detailsPayload.username = resolvedUsername;
+          } else if (body?.username) {
+            detailsPayload.username = body.username;
+          }
+
+          await this.prisma.auditLog.create({
+            data: {
+              userId: targetUserId,
+              action: action,
+              details: JSON.stringify(detailsPayload),
+              ipAddress,
+              userAgent,
+            },
+          });
+        } catch (e) {
+          console.error('AuditLogInterceptor failed to log action:', e);
         }
-      })
+      }),
     );
+  }
+
+  private decodeJwt(token: string): any {
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const json = Buffer.from(payloadBase64, 'base64').toString('utf8');
+        return JSON.parse(json);
+      }
+    } catch (_) {}
+    return null;
   }
 
   private determineAction(method: string, url: string, body?: any): string | null {

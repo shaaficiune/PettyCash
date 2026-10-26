@@ -110,21 +110,29 @@ function parseDevice(ua: string | null): string {
 }
 
 function getEventNarrative(log: AuditLogItem): EventNarrative {
-  const actorName = log.user?.fullName || (log.user?.username ? `@${log.user.username}` : 'System');
-
   let body: any = {};
   let url = '';
+  let parsedUser = '';
   try {
     const parsed = JSON.parse(log.details || '{}');
     body = parsed.body || {};
     url = parsed.url || '';
+    parsedUser = parsed.username || body.username || '';
   } catch {}
+
+  const actorName =
+    log.user?.fullName ||
+    (log.user?.username
+      ? `@${log.user.username}`
+      : parsedUser
+      ? (parsedUser === 'admin' ? 'Administrator' : `@${parsedUser}`)
+      : 'System');
 
   const action = log.action;
 
   // 1. Authentication
   if (action === 'LOGIN' || url.includes('/auth/login')) {
-    const targetUser = body.username ? `@${body.username}` : actorName;
+    const targetUser = body.username ? `@${body.username}` : (parsedUser ? `@${parsedUser}` : actorName);
     return {
       badge: { label: 'Login', variant: 'success' },
       sentence: `User ${targetUser} logged in`,
@@ -139,12 +147,13 @@ function getEventNarrative(log: AuditLogItem): EventNarrative {
   }
 
   if (action === 'LOGOUT' || url.includes('/auth/logout')) {
+    const logoutUser = parsedUser ? (parsedUser === 'admin' ? 'Administrator' : `@${parsedUser}`) : actorName;
     return {
       badge: { label: 'Logout', variant: 'secondary' },
-      sentence: `User ${actorName} logged out`,
+      sentence: `User ${logoutUser} logged out`,
       subContext: 'Active session closed',
       detailsList: [
-        { label: 'Operator', value: actorName },
+        { label: 'Operator', value: logoutUser },
         { label: 'Session Status', value: 'Ended' },
       ],
       rawJson: log.details || '',
@@ -531,19 +540,40 @@ export const SettingsPage: React.FC = () => {
       {
         id: 'user',
         meta: { title: 'Operator / Staff' },
-        accessorFn: (row) => row.user?.fullName || row.user?.username || 'System',
+        accessorFn: (row) => {
+          if (row.user?.fullName) return row.user.fullName;
+          if (row.user?.username) return `@${row.user.username}`;
+          try {
+            const p = JSON.parse(row.details || '{}');
+            const uname = p?.username || p?.body?.username;
+            if (uname) return uname === 'admin' ? 'Administrator' : uname;
+          } catch {}
+          return 'System';
+        },
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Operator / Staff" />
         ),
         cell: ({ row }) => {
           const l = row.original;
+          let name = l.user?.fullName;
+          let sub = l.user?.username ? `@${l.user.username}` : null;
+          if (!name) {
+            try {
+              const p = JSON.parse(l.details || '{}');
+              const uname = p?.username || p?.body?.username;
+              if (uname) {
+                name = uname === 'admin' ? 'Administrator' : uname;
+                sub = `@${uname}`;
+              }
+            } catch {}
+          }
           return (
             <div className="min-w-[120px] max-w-[170px]">
               <p className="font-medium text-foreground text-xs truncate">
-                {l.user?.fullName || 'System Automated'}
+                {name || 'System Automated'}
               </p>
               <p className="text-[10px] text-muted-foreground truncate font-mono">
-                {l.user?.username ? `@${l.user.username}` : 'Internal'}
+                {sub || 'Internal'}
               </p>
             </div>
           );
@@ -556,13 +586,17 @@ export const SettingsPage: React.FC = () => {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Connection / IP" />
         ),
-        cell: ({ row }) => (
-          <div className="min-w-[80px]">
-            <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-              {formatIpAddress(row.original.ipAddress)}
-            </span>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const formatted = formatIpAddress(row.original.ipAddress);
+          const isLocal = formatted.includes('(Local)');
+          return (
+            <div className="min-w-[80px]">
+              <span className={`font-mono text-xs whitespace-nowrap font-medium ${isLocal ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
+                {formatted}
+              </span>
+            </div>
+          );
+        },
       },
 
       {
