@@ -108,8 +108,8 @@ export const RequestsListPage: React.FC = () => {
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isApprovalTwo = user?.role === 'APPROVAL_TWO';
-  // Default filter: APPROVAL_TWO and SUPER_ADMIN see only requests awaiting Stage 2 approval
-  const defaultStatusForRole = (isSuperAdmin || isApprovalTwo) ? 'ACCOUNTANT_REVIEW' : '';
+  // Default filter: Only APPROVAL_TWO defaults to Stage 2 approval; Super Admin and others see all requests
+  const defaultStatusForRole = isApprovalTwo ? 'ACCOUNTANT_REVIEW' : '';
   const initialStatus = isApprovalTwo
     ? 'ACCOUNTANT_REVIEW'
     : (urlStatus !== null ? urlStatus : (savedFilters?.statusFilter ?? defaultStatusForRole));

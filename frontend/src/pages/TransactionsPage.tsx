@@ -555,42 +555,66 @@ export const TransactionsPage: React.FC = () => {
     const isDebit = Number(tx.debitAmount || 0) > 0;
     const isCredit = Number(tx.creditAmount || 0) > 0;
 
+    // Accurate data accessors across direct ledger row and linked request
+    const recipient = tx.request?.receiverName || tx.request?.vendorName || tx.recipientName;
+    const phone = tx.request?.receiverPhone || tx.request?.receiverAccount || tx.recipientPhone;
+    const employee = tx.request?.user?.fullName || tx.employee?.fullName;
+    const region = tx.request?.region?.name || tx.region?.name;
+    const category = tx.request?.budgetHead?.name || tx.category?.name;
+    const purpose = tx.request?.purpose || tx.description;
+    const company = tx.company?.name || tx.request?.company?.name;
+    const isSomtel = company?.toLowerCase().includes('somtel');
+
     return (
-      <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 transition-all space-y-2.5">
-        {/* Header: Date + Type Badge */}
+      <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-card shadow-xs hover:border-primary/40 transition-all space-y-2.5">
+        {/* Header: Date + Company + Type Badge */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5 text-slate-400" />
+            <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
             <span className="font-medium text-foreground">{formatDate(tx.transactionDate || tx.createdAt)}</span>
           </div>
-          <Badge
-            variant={
-              tx.transactionType === 'EXPENSE'
-                ? 'destructive'
-                : tx.transactionType === 'ALLOCATION'
-                ? 'success'
-                : 'warning'
-            }
-            size="sm"
-            className="text-[10px] px-2 py-0.5 font-semibold uppercase"
-          >
-            {tx.transactionType}
-          </Badge>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {company && (
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                  isSomtel
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
+                    : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
+                }`}
+              >
+                {company}
+              </span>
+            )}
+            <Badge
+              variant={
+                tx.transactionType === 'EXPENSE'
+                  ? 'destructive'
+                  : tx.transactionType === 'ALLOCATION'
+                  ? 'success'
+                  : 'warning'
+              }
+              size="sm"
+              className="text-[10px] px-2 py-0.5 font-semibold uppercase"
+            >
+              {tx.transactionType}
+            </Badge>
+          </div>
         </div>
 
-        {/* Financial Flow: Debit / Credit & Balance */}
+        {/* Financial Flow: Inflow / Outflow & Balance */}
         <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-100 dark:border-slate-800/60 text-xs">
           <div>
             <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
-              {isDebit ? 'Cash In (Debit)' : 'Cash Out (Credit)'}
+              {isDebit ? 'Cash Out (Expense)' : isCredit ? 'Cash In (Top-up)' : 'Movement'}
             </span>
             {isDebit ? (
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
-                +{formatCurrency(tx.debitAmount, tx.currency || 'USD')}
+              <span className="font-bold text-rose-600 dark:text-rose-400 text-sm font-financial">
+                −{formatCurrency(tx.debitAmount, tx.currency || 'USD')}
               </span>
             ) : isCredit ? (
-              <span className="font-bold text-rose-600 dark:text-rose-400 text-sm">
-                −{formatCurrency(tx.creditAmount, tx.currency || 'USD')}
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm font-financial">
+                +{formatCurrency(tx.creditAmount, tx.currency || 'USD')}
               </span>
             ) : (
               <span className="text-muted-foreground text-xs">—</span>
@@ -598,17 +622,17 @@ export const TransactionsPage: React.FC = () => {
           </div>
           <div className="text-right">
             <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Running Balance</span>
-            <span className="font-mono font-bold text-foreground text-sm">
+            <span className="font-mono font-bold text-foreground text-sm font-financial">
               {formatCurrency(tx.runningBalance, tx.currency || 'USD')}
             </span>
           </div>
         </div>
 
-        {/* References: Req # & Invoice # */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        {/* References: Request # & Invoice # & Meta Pills */}
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
           {tx.request?.requestNumber && (
-            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
-              <Receipt className="h-3 w-3" />
+            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
+              <Receipt className="h-3 w-3 shrink-0" />
               {tx.request.requestNumber}
             </span>
           )}
@@ -617,30 +641,48 @@ export const TransactionsPage: React.FC = () => {
               Inv: {tx.receiptNumber || tx.referenceNumber}
             </span>
           )}
-        </div>
-
-        {/* Recipient & Location */}
-        <div className="text-xs space-y-0.5">
-          {(tx.recipientName || tx.user?.fullName) && (
-            <p className="font-medium text-foreground truncate">
-              {tx.recipientName || tx.user?.fullName}
-              {tx.recipientPhone && <span className="text-muted-foreground font-mono text-[11px] ml-1.5">({tx.recipientPhone})</span>}
-            </p>
+          {region && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-medium">
+              <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+              {region}
+            </span>
           )}
-          <p className="text-[11px] text-muted-foreground truncate">
-            {tx.region?.name || '—'} {tx.category?.name ? `· ${tx.category.name}` : ''}
-          </p>
+          {category && (
+            <span className="inline-flex items-center text-[10.5px] text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded font-medium">
+              {category}
+            </span>
+          )}
         </div>
 
-        {/* Description */}
-        {tx.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 italic px-0.5">
-            "{tx.description}"
+        {/* People: Recipient / Beneficiary & Requester */}
+        <div className="text-xs space-y-1 pt-0.5 border-t border-border/40">
+          {recipient && (
+            <div className="flex items-center justify-between text-xs gap-2">
+              <span className="text-muted-foreground text-[11px] shrink-0">Paid To:</span>
+              <span className="font-semibold text-foreground text-right truncate">
+                {recipient}
+                {phone && <span className="font-mono text-[11px] text-muted-foreground font-normal ml-1">({phone})</span>}
+              </span>
+            </div>
+          )}
+
+          {employee && (!recipient || employee !== recipient) && (
+            <div className="flex items-center justify-between text-xs gap-2">
+              <span className="text-muted-foreground text-[11px] shrink-0">Requester:</span>
+              <span className="font-medium text-foreground text-right truncate">{employee}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Purpose / Description */}
+        {purpose && (
+          <p className="text-xs text-muted-foreground line-clamp-2 italic px-2 py-1 bg-muted/30 rounded border-l-2 border-primary/40">
+            "{purpose}"
           </p>
         )}
 
         {/* Footer: Detail button */}
-        <div className="pt-1 flex justify-end">
+        <div className="pt-1">
           <Button
             variant="outline"
             size="xs"
@@ -648,10 +690,10 @@ export const TransactionsPage: React.FC = () => {
               e.stopPropagation();
               setSelectedTx(tx);
             }}
-            className="gap-1.5 h-7 px-3 text-xs font-semibold hover:border-primary hover:text-primary cursor-pointer w-full sm:w-auto"
+            className="gap-1.5 h-7.5 px-3 text-xs font-semibold hover:border-primary hover:text-primary cursor-pointer w-full justify-center"
           >
             <Eye className="h-3.5 w-3.5" />
-            View Details
+            <span>View Full Details</span>
           </Button>
         </div>
       </div>
@@ -674,18 +716,18 @@ export const TransactionsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
           {!isEmployee && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleExportMonthlyBook}
               disabled={exportingBook}
-              className="gap-1.5"
+              className="gap-1.5 text-xs h-8 justify-center"
               title="Export Monthly Petty Cash Book (.xlsx)"
             >
-              <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
-              {exportingBook ? 'Generating...' : 'Monthly Book (.xlsx)'}
+              <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="truncate">{exportingBook ? 'Generating...' : 'Monthly Book'}</span>
             </Button>
           )}
 
@@ -694,10 +736,10 @@ export const TransactionsPage: React.FC = () => {
             size="sm"
             onClick={handleExportExcel}
             disabled={exportingExcel}
-            className="gap-1.5"
+            className="gap-1.5 text-xs h-8 justify-center"
           >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
-            {exportingExcel ? 'Exporting...' : 'Export Excel'}
+            <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="truncate">{exportingExcel ? 'Exporting...' : 'Export Excel'}</span>
           </Button>
 
           <Button
@@ -705,20 +747,20 @@ export const TransactionsPage: React.FC = () => {
             size="sm"
             onClick={handleExportPdf}
             disabled={exportingPdf}
-            className="gap-1.5"
+            className="gap-1.5 text-xs h-8 justify-center"
           >
-            <Printer className="h-3.5 w-3.5 text-muted-foreground" />
-            {exportingPdf ? 'Preparing...' : 'Export PDF'}
+            <Printer className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="truncate">{exportingPdf ? 'Preparing...' : 'Export PDF'}</span>
           </Button>
 
           <Button
             variant="outline"
             size="sm"
             onClick={loadTransactions}
-            className="gap-1.5"
+            className="gap-1.5 text-xs h-8 justify-center"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
+            <RefreshCw className="h-3.5 w-3.5 shrink-0" />
+            <span>Refresh</span>
           </Button>
         </div>
       </div>
@@ -726,7 +768,7 @@ export const TransactionsPage: React.FC = () => {
       {/* FILTER HUB */}
       <Card className="shadow-xs">
         <CardContent className="p-3 space-y-2.5">
-          <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-nowrap gap-2 items-center">
             {/* DATE PRESET SELECT */}
             <div className="flex items-center gap-1.5 min-w-[130px] flex-1 sm:flex-initial">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
