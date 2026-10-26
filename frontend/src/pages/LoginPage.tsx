@@ -58,29 +58,29 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-[#060A14] dark:via-[#090F1F] dark:to-[#060A14] font-sans px-4 py-10 relative overflow-hidden transition-colors selection:bg-[#F5B700]/30 selection:text-foreground">
+    <div className="h-screen max-h-screen overflow-hidden flex flex-col items-center justify-center bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-[#060A14] dark:via-[#090F1F] dark:to-[#060A14] font-sans px-3 sm:px-4 py-2 sm:py-4 relative transition-colors selection:bg-[#F5B700]/30 selection:text-foreground">
       {/* Dual-Brand Ambient Radial Glows */}
-      <div className="absolute -top-36 -left-36 w-[450px] h-[450px] bg-[#1F5FBF]/15 dark:bg-[#1F5FBF]/12 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-36 -right-36 w-[450px] h-[450px] bg-[#F5B700]/15 dark:bg-[#F5B700]/12 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-32 -left-32 w-[380px] h-[380px] bg-[#1F5FBF]/12 dark:bg-[#1F5FBF]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-[380px] h-[380px] bg-[#F5B700]/12 dark:bg-[#F5B700]/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Decorative subtle grid overlay */}
       <div 
         className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" 
       />
 
-      <div className="w-full max-w-[420px] relative z-10">
+      <div className="w-full max-w-[390px] relative z-10 flex flex-col justify-center my-auto">
         
-        {/* ── Brand Logos Section (Prominent & Elegant) ── */}
-        <div className="text-center mb-6">
+        {/* ── Brand Logos Section (Prominent & Proportional) ── */}
+        <div className="text-center mb-2.5 sm:mb-3">
           
           {/* Dual Brand Logos Container */}
-          <div className="inline-flex items-center justify-center gap-3 sm:gap-4 p-2.5 sm:p-3 bg-white/90 dark:bg-[#0E172C]/90 rounded-2xl border border-slate-200/90 dark:border-[#1C2B4E] shadow-lg shadow-slate-900/5 dark:shadow-black/30 backdrop-blur-md mb-4 transition-all">
+          <div className="inline-flex items-center justify-center gap-2.5 sm:gap-3 p-1.5 sm:p-2 bg-white/95 dark:bg-[#0E172C]/95 rounded-xl border border-slate-200/90 dark:border-[#1C2B4E] shadow-md shadow-slate-900/5 dark:shadow-black/30 backdrop-blur-md mb-2 sm:mb-2.5 transition-all">
             {/* Somtel Logo */}
-            <div className="h-13 sm:h-14 px-3 sm:px-4 bg-slate-50/80 dark:bg-[#121E38]/80 rounded-xl border border-slate-100 dark:border-[#22355F] flex items-center justify-center hover:scale-[1.02] transition-transform">
+            <div className="h-11 sm:h-12 px-3 bg-slate-50/80 dark:bg-[#121E38]/80 rounded-lg border border-slate-100 dark:border-[#22355F] flex items-center justify-center">
               <img
                 src="/logos/somtel-logo.png"
                 alt="Somtel Logo"
-                className="h-9 sm:h-10 w-auto object-contain max-w-[110px]"
+                className="h-7 sm:h-8 w-auto object-contain max-w-[95px]"
                 onError={(e: any) => { e.currentTarget.src = '/logos/somtel-banner.png'; }}
               />
             </div>
@@ -90,91 +90,91 @@ export const LoginPage: React.FC = () => {
             </div>
 
             {/* Bluekom Logo */}
-            <div className="h-13 sm:h-14 px-3 sm:px-4 bg-slate-50/80 dark:bg-[#121E38]/80 rounded-xl border border-slate-100 dark:border-[#22355F] flex items-center justify-center hover:scale-[1.02] transition-transform">
+            <div className="h-11 sm:h-12 px-3 bg-slate-50/80 dark:bg-[#121E38]/80 rounded-lg border border-slate-100 dark:border-[#22355F] flex items-center justify-center">
               <img
                 src="/logos/bluekom-logo.jpg"
                 alt="Bluekom Logo"
-                className="h-9 sm:h-10 w-auto object-contain max-w-[110px]"
+                className="h-7 sm:h-8 w-auto object-contain max-w-[95px]"
                 onError={(e: any) => { e.currentTarget.src = '/logos/bluekom-logo.jpeg'; }}
               />
             </div>
           </div>
 
           {/* System Title */}
-          <h1 className="text-2xl sm:text-[26px] font-black text-slate-900 dark:text-white tracking-tight font-display leading-tight">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-display leading-tight">
             Petty Cash Office
           </h1>
-          <p className="text-xs text-muted-foreground mt-1 font-medium">
+          <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">
             Somtel & Bluekom Financial Disbursements & Audit
           </p>
         </div>
 
         {/* ── Main Login Card ── */}
-        <Card className="border border-slate-200 dark:border-[#1C2B4E] shadow-2xl shadow-slate-900/10 dark:shadow-black/50 bg-white/95 dark:bg-[#0D162B]/95 backdrop-blur-xl text-card-foreground rounded-2xl overflow-hidden relative">
+        <Card className="border border-slate-200 dark:border-[#1C2B4E] shadow-xl shadow-slate-900/10 dark:shadow-black/50 bg-white/95 dark:bg-[#0D162B]/95 backdrop-blur-xl text-card-foreground rounded-2xl overflow-hidden relative">
           
           {/* Dual-Brand Top Accent Bar */}
-          <div className="h-[3.5px] w-full bg-gradient-to-r from-[#1F5FBF] via-[#F5B700] to-[#E0A500]" />
+          <div className="h-[3px] w-full bg-gradient-to-r from-[#1F5FBF] via-[#F5B700] to-[#E0A500]" />
 
-          <CardHeader className="space-y-1 pb-3 pt-6 px-6 sm:px-7">
-            <CardTitle className="text-lg text-foreground font-bold flex items-center gap-2">
+          <CardHeader className="space-y-0.5 pb-2 pt-3.5 sm:pt-4 px-5 sm:px-6">
+            <CardTitle className="text-base text-foreground font-bold flex items-center gap-2">
               Sign In to CashDesk
             </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground leading-relaxed">
+            <CardDescription className="text-[11px] text-muted-foreground leading-snug">
               Enter your credentials to access your financial workspace
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-4 px-6 sm:px-7 pt-2">
+          <CardContent className="space-y-2.5 sm:space-y-3 px-5 sm:px-6 pt-1 pb-3">
             {error && (
-              <Alert variant="destructive" className="py-2.5 px-3 rounded-xl border border-destructive/20 bg-destructive/10">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
-                <AlertDescription className="text-xs font-medium text-destructive leading-tight">{error}</AlertDescription>
+              <Alert variant="destructive" className="py-2 px-2.5 rounded-lg border border-destructive/20 bg-destructive/10 text-xs">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-destructive" />
+                <AlertDescription className="text-[11px] font-medium text-destructive leading-tight">{error}</AlertDescription>
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
               {/* Username Input */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">Username</Label>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-foreground">Username</Label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none z-10" />
                   <Input
                     type="text"
                     placeholder="Enter your username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10 h-11 border-slate-200 dark:border-[#1E2E52] bg-slate-50/70 dark:bg-[#090F1F] focus:bg-white dark:focus:bg-[#0A1224] focus:ring-2 focus:ring-[#F5B700]/50 focus:border-[#F5B700] rounded-xl text-sm transition-all"
+                    className="pl-9 h-9 sm:h-9.5 border-slate-200 dark:border-[#1E2E52] bg-slate-50/70 dark:bg-[#090F1F] focus:bg-white dark:focus:bg-[#0A1224] focus:ring-2 focus:ring-[#F5B700]/50 focus:border-[#F5B700] rounded-lg text-xs sm:text-sm transition-all"
                     autoComplete="username"
                   />
                 </div>
               </div>
 
               {/* Password Input with Visibility Toggle */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-foreground">Password</Label>
+                  <Label className="text-[11px] font-semibold text-foreground">Password</Label>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none z-10" />
                   <Input
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 h-11 border-slate-200 dark:border-[#1E2E52] bg-slate-50/70 dark:bg-[#090F1F] focus:bg-white dark:focus:bg-[#0A1224] focus:ring-2 focus:ring-[#F5B700]/50 focus:border-[#F5B700] rounded-xl text-sm transition-all font-mono"
+                    className="pl-9 pr-9 h-9 sm:h-9.5 border-slate-200 dark:border-[#1E2E52] bg-slate-50/70 dark:bg-[#090F1F] focus:bg-white dark:focus:bg-[#0A1224] focus:ring-2 focus:ring-[#F5B700]/50 focus:border-[#F5B700] rounded-lg text-xs sm:text-sm transition-all font-mono"
                     autoComplete="current-password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     tabIndex={-1}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-md focus:outline-none"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-md focus:outline-none"
                     title={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
+                      <EyeOff className="h-3.5 w-3.5" />
                     ) : (
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3.5 w-3.5" />
                     )}
                   </button>
                 </div>
@@ -183,31 +183,31 @@ export const LoginPage: React.FC = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                size="lg"
+                size="sm"
                 isLoading={loading}
-                className="w-full mt-2 h-11 text-sm font-bold bg-[#F5B700] hover:bg-[#E5AA00] text-slate-950 shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/25 rounded-xl cursor-pointer transition-all active:scale-[0.99]"
+                className="w-full mt-1.5 h-9 sm:h-9.5 text-xs sm:text-sm font-bold bg-[#F5B700] hover:bg-[#E5AA00] text-slate-950 shadow-md shadow-amber-500/15 hover:shadow-amber-500/25 rounded-lg cursor-pointer transition-all active:scale-[0.99]"
               >
                 Sign In to Workspace
               </Button>
             </form>
           </CardContent>
 
-          <CardFooter className="pt-2 pb-6 px-6 sm:px-7 flex flex-col items-center gap-3 border-t border-slate-100 dark:border-[#14203B] bg-slate-50/40 dark:bg-[#0A1122]/40">
+          <CardFooter className="pt-2 pb-3 px-5 sm:px-6 flex flex-col items-center gap-1.5 border-t border-slate-100 dark:border-[#14203B] bg-slate-50/40 dark:bg-[#0A1122]/40">
             <div className="flex items-center gap-2">
-              <span className="co-badge-somtel text-[10px] font-bold px-2 py-0.5 rounded-full">Somtel</span>
+              <span className="co-badge-somtel text-[9px] font-bold px-2 py-0.5 rounded-full">Somtel</span>
               <span className="text-slate-300 dark:text-slate-700 text-xs">&bull;</span>
-              <span className="co-badge-bluekom text-[10px] font-bold px-2 py-0.5 rounded-full">Bluekom</span>
+              <span className="co-badge-bluekom text-[9px] font-bold px-2 py-0.5 rounded-full">Bluekom</span>
             </div>
 
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <ShieldCheck className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
               <span>256-bit Encrypted & Audited Session</span>
             </div>
           </CardFooter>
         </Card>
 
         {/* Bottom subtle copyright / location */}
-        <p className="text-center text-[11px] text-muted-foreground/70 mt-6 font-medium">
+        <p className="text-center text-[10px] text-muted-foreground/70 mt-2 sm:mt-2.5 font-medium">
           HQ Puntland Garowe &bull; Somalia
         </p>
 
