@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
+import { RoleName } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
@@ -26,9 +27,22 @@ export class UsersService {
     }
 
     // Find the Role ID
-    const roleObj = await this.prisma.role.findUnique({
+    let roleObj = await this.prisma.role.findUnique({
       where: { name: dto.role },
     });
+    // Auto-heal: Ensure valid RoleName enum values exist in the Role database table
+    if (!roleObj && Object.values(RoleName).includes(dto.role as RoleName)) {
+      roleObj = await this.prisma.role.upsert({
+        where: { name: dto.role as RoleName },
+        update: {},
+        create: {
+          name: dto.role as RoleName,
+          description: dto.role === RoleName.APPROVAL_TWO
+            ? 'Head of Finance / Authorized Approver. Performs Stage 2 final approval of petty cash requests. Cannot record cash disbursements (Separation of Duties).'
+            : `${dto.role} role`,
+        },
+      });
+    }
     if (!roleObj) {
       throw new BadRequestException('Role not found');
     }
@@ -175,9 +189,22 @@ export class UsersService {
     }
 
     if (dto.role) {
-      const roleObj = await this.prisma.role.findUnique({
+      let roleObj = await this.prisma.role.findUnique({
         where: { name: dto.role },
       });
+      // Auto-heal: Ensure valid RoleName enum values exist in the Role database table
+      if (!roleObj && Object.values(RoleName).includes(dto.role as RoleName)) {
+        roleObj = await this.prisma.role.upsert({
+          where: { name: dto.role as RoleName },
+          update: {},
+          create: {
+            name: dto.role as RoleName,
+            description: dto.role === RoleName.APPROVAL_TWO
+              ? 'Head of Finance / Authorized Approver. Performs Stage 2 final approval of petty cash requests. Cannot record cash disbursements (Separation of Duties).'
+              : `${dto.role} role`,
+          },
+        });
+      }
       if (!roleObj) {
         throw new BadRequestException('Role not found');
       }
