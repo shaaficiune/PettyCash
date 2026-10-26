@@ -10,7 +10,29 @@ export class AuditLogInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const { method, url, body, headers } = request;
-    const ipAddress = request.ip || request.connection.remoteAddress;
+    // Resolve true client IP behind Cloudflare Tunnel, Nginx, or reverse proxies
+    const rawCfIp = headers['cf-connecting-ip'];
+    const rawTrueClientIp = headers['true-client-ip'];
+    const rawXRealIp = headers['x-real-ip'];
+    const rawForwardedFor = headers['x-forwarded-for'];
+
+    let firstForwarded: string | undefined;
+    if (typeof rawForwardedFor === 'string') {
+      firstForwarded = rawForwardedFor.split(',')[0]?.trim();
+    } else if (Array.isArray(rawForwardedFor) && rawForwardedFor.length > 0) {
+      firstForwarded = (rawForwardedFor[0] as string)?.split(',')[0]?.trim();
+    }
+
+    const cfIp = typeof rawCfIp === 'string' ? rawCfIp.trim() : Array.isArray(rawCfIp) ? (rawCfIp[0] as string)?.trim() : undefined;
+    const trueClientIp = typeof rawTrueClientIp === 'string' ? rawTrueClientIp.trim() : undefined;
+    const xRealIp = typeof rawXRealIp === 'string' ? rawXRealIp.trim() : undefined;
+
+    // Pick first valid public IP, preferring external IP over loopback (127.0.0.1)
+    const candidateIps = [cfIp, trueClientIp, firstForwarded, xRealIp, request.ip, request.connection?.remoteAddress].filter(Boolean) as string[];
+    const externalIp = candidateIps.find((ip) => ip && ip !== '127.0.0.1' && ip !== '::1' && ip !== '::ffff:127.0.0.1' && ip !== 'localhost');
+    const selectedIp = externalIp || candidateIps[0] || '127.0.0.1';
+    const ipAddress = selectedIp.replace(/^::ffff:/, '');
+
     const userAgent = headers['user-agent'] || 'Unknown';
     
     return next.handle().pipe(
