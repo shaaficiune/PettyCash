@@ -148,8 +148,9 @@ git pull origin main && bash update-server.sh
 | Role | Access |
 |------|--------|
 | `SUPER_ADMIN` | Full access: users, reports, funds, all requests across companies |
-| `ACCOUNTANT` | Review requests, manage payments, settlements, reports, funds |
-| `EMPLOYEE` | Submit own requests, view own requests only |
+| `APPROVAL_TWO` | Head of Finance / Stage 2 Final Approver: Authorizes Stage 2 requests across companies; executive dashboard & reports; strictly blocked from recording payments (Separation of Duties); /requests scoped to pending Stage 2 approvals only |
+| `ACCOUNTANT` | Approval One & Cashier: Stage 1 review, fund management, record disbursement payments, settlement audits, reports |
+| `EMPLOYEE` | Submit own requests, view own requests, employee-scoped transaction reports |
 
 ### Initial Admin Account
 - **Username:** `admin`
@@ -1530,8 +1531,54 @@ Executed the comprehensive system upgrade defined in `planupdate.md` without mod
 
 > **Verification:** `npx tsc --noEmit` (backend) passed with 0 errors. `npm run build` (frontend) passed in 22s. Ready for zero-downtime deployment via `bash update-server.sh`.
 
+---
 
+## 30. 🛡️ PLANTWOUPDATE.MD IMPLEMENTATION — APPROVAL TWO ROLE, SEPARATION OF DUTIES & VOUCHER DUAL-SIGNATURE (2026-10-26)
 
+### 1. New Role: `APPROVAL_TWO` (Head of Finance / Authorized Approver)
+* **Database Enum & Model:** Added `APPROVAL_TWO` to `RoleName` enum in `backend/prisma/schema.prisma` and database `role` table. Safely pushed without data loss via `npx prisma db push`.
+* **Separation of Duties (Maker-Checker-Disburser Principle):**
+  - `APPROVAL_TWO` performs Stage 2 final authorization (`ACCOUNTANT_REVIEW` ➔ `APPROVED`).
+  - `APPROVAL_TWO` is **strictly forbidden** from recording cash payments or disbursing funds.
+  - In `backend/src/payments/payments.controller.ts`, `@Post()` disbursement is restricted strictly to `@Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)`.
+  - In `frontend/src/pages/RequestDetailPage.tsx`, the "Record Payment / Record Disbursement" drawer is hidden completely from `APPROVAL_TWO`.
+* **Scoping on `/requests` (Pending Approvals Inbox):**
+  - In `backend/src/requests/requests.service.ts` (`findAll`), for `user.role === RoleName.APPROVAL_TWO`, queries are strictly bound to `where.status = RequestStatus.ACCOUNTANT_REVIEW`.
+  - `APPROVAL_TWO` **cannot** see requests still in `DRAFT` or awaiting Stage 1 review (`PENDING_APPROVAL`). In `findOne`, attempts to view Stage 1 or draft requests throw `ForbiddenException`.
+  - **Auto-Exit:** Once `APPROVAL_TWO` approves a request, its status moves to `APPROVED`, causing it to immediately leave their pending list.
+  - In `frontend/src/pages/RequestsListPage.tsx`, header displays *"Pending Approval Requests"* and the Status Filter is locked to *"Stage 2: Awaiting Approval Two"*.
+  - In `frontend/src/layouts/DashboardLayout.tsx`, the sidebar displays *"Pending Approvals"* linking to `/requests` for `APPROVAL_TWO`.
+* **Executive Dashboard & Reports Access:**
+  - In `DashboardPage.tsx`, `APPROVAL_TWO` is routed to `SuperAdminDashboard`, providing live company fund balances, carry-forward summaries, and submission KPIs.
+  - In `DashboardLayout.tsx`, `APPROVAL_TWO` has access to *Petty Cash Reports* (`/transactions`), *Payment Vouchers* (`/payments`), *Budget Heads Reports*, *Monthly Book Export*, and audit trails across all companies.
 
+### 2. Employee Scoped Reports (`/transactions`)
+* **Navigation & Access:** Opened `/transactions` to `EMPLOYEE` role in `DashboardLayout.tsx` and `App.tsx`.
+* **Strict User-Level Scoping:** Backend `reports.service.ts` and `funds.service.ts` enforce:
+  ```typescript
+  where.userId = currentUser.id;
+  where.companyId = currentUser.companyId;
+  ```
+  Employees can only review their own approved/disbursed transactions and settlement history. They cannot view other employees' expenses, company floats, or general ledgers.
+* **Employee Dashboard Widgets:** Added summary cards to `EmployeeDashboard` in `DashboardPage.tsx`:
+  - *My Total Requests (Bishan)*
+  - *Disbursed Cash (PAID)*
+  - *Pending Settlement Receipts*
 
+### 3. Payment Voucher Dual-Signature Alignment (`PaymentVoucherModal.tsx`)
+* **Dual-Signature Block (2 Formal Signatures):**
+  1. **Initiated By:** Accountant / Approval One (Abshir Qasim / Finance Office) with signature line & date.
+  2. **Approved By:** Approval Two / Head of Finance with authorization line.
+* **Received By Payee Removal:** Bottom payee signature block removed since recipient information (`Mr/Ms`, `Tell`, `Amount`, `Budget Head`, `Purpose`, and serialized voucher number) is prominently displayed in the top form metadata and items table.
+* **Monthly Book Separation:** The historical 3-signature block (*Prepared By*, *Verified By*, *Approved By*) is preserved exclusively for the **Monthly Final Petty Cash Book** (`.xlsx`) generated per company at month-end.
 
+### 4. Export & Download Permissions Fix
+* **Monthly Book (`/funds/export/monthly-book`):** Updated `@Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO, RoleName.EMPLOYEE)` in `funds.controller.ts`, resolving 403 Forbidden errors when `APPROVAL_TWO` or `EMPLOYEE` downloads their monthly book.
+* **Transactions Excel Export:** Corrected frontend file download extension to `.xls` in `TransactionsPage.tsx` to match the backend Excel 2003 XML spreadsheet MIME type, preventing Microsoft Excel format mismatch and corruption warnings. Added user-facing alert notifications on export errors.
+
+### 5. Login Page Fit-to-Screen Redesign (`LoginPage.tsx`)
+* **Logo Enlarge:** Scaled Somtel and Bluekom logos from tiny `h-6` (24px) to prominent `h-7 sm:h-8` images inside `h-11 sm:h-12` clean pill containers.
+* **Password Visibility:** Integrated interactive `Eye` / `EyeOff` password reveal toggle.
+* **Fit to Screen (Zero Scroll):** Engineered with `h-screen max-h-screen overflow-hidden` and proportional compact vertical spacing (~460px total container height), guaranteeing 100% viewport fit with zero vertical scrollbars on laptops, desktops, and scaled displays.
+
+> **Verification:** Backend (`npx nest build`) and Frontend (`npm run build`) both compiled with **0 errors (Exit code 0)**. Production database pushed and verified.
