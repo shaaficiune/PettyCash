@@ -237,14 +237,22 @@ export class RequestsService {
     if (user.role === RoleName.EMPLOYEE) {
       where.userId = user.userId;
       where.companyId = user.companyId;
+      if (status) where.status = status;
+    } else if (user.role === RoleName.APPROVAL_TWO) {
+      if (companyId) {
+        where.companyId = companyId;
+      }
+      // APPROVAL_TWO only sees requests awaiting their Stage 2 authorization.
+      // They cannot see requests at Stage 1 (PENDING_APPROVAL) or DRAFT, and once approved, it exits this list.
+      where.status = RequestStatus.ACCOUNTANT_REVIEW;
     } else {
       // Super Admin and Accountant see company-specific or all
       if (companyId) {
         where.companyId = companyId;
       }
+      if (status) where.status = status;
     }
 
-    if (status) where.status = status;
     if (priority) where.priority = priority;
     if (regionId) where.regionId = regionId;
 
@@ -322,6 +330,12 @@ export class RequestsService {
     // Enforce data isolation: Employees can only view their own requests
     if (user.role === RoleName.EMPLOYEE && request.userId !== user.userId) {
       throw new ForbiddenException('You do not have access to this request');
+    }
+
+    // APPROVAL_TWO cannot view requests that are still in DRAFT or awaiting Stage 1 (Approval One)
+    if (user.role === RoleName.APPROVAL_TWO &&
+        (request.status === RequestStatus.DRAFT || request.status === RequestStatus.PENDING_APPROVAL)) {
+      throw new ForbiddenException('This request is currently awaiting Stage 1 (Approval One) and is not yet accessible to Approval Two.');
     }
 
     // Company-scoped sequential voucher number: Somtel starts at 1, Bluekom starts at 1

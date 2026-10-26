@@ -88,7 +88,9 @@ export const RequestsListPage: React.FC = () => {
   const isApprovalTwo = user?.role === 'APPROVAL_TWO';
   // Default filter: APPROVAL_TWO and SUPER_ADMIN see only requests awaiting Stage 2 approval
   const defaultStatusForRole = (isSuperAdmin || isApprovalTwo) ? 'ACCOUNTANT_REVIEW' : '';
-  const initialStatus = urlStatus !== null ? urlStatus : (savedFilters?.statusFilter ?? defaultStatusForRole);
+  const initialStatus = isApprovalTwo
+    ? 'ACCOUNTANT_REVIEW'
+    : (urlStatus !== null ? urlStatus : (savedFilters?.statusFilter ?? defaultStatusForRole));
   const initialPriority = savedFilters?.priorityFilter ?? '';
   const initialRegion = savedFilters?.regionFilter ?? '';
   const initialPreset = isValidPreset(urlPreset)
@@ -152,7 +154,7 @@ export const RequestsListPage: React.FC = () => {
   };
 
   const handleResetFilters = () => {
-    setStatusFilter('');
+    setStatusFilter(isApprovalTwo ? 'ACCOUNTANT_REVIEW' : '');
     setPriorityFilter('');
     setRegionFilter('');
     sessionStorage.removeItem('requests_active_filters');
@@ -160,13 +162,17 @@ export const RequestsListPage: React.FC = () => {
   };
 
   useEffect(() => {
+    if (isApprovalTwo) {
+      setStatusFilter('ACCOUNTANT_REVIEW');
+      return;
+    }
     if (urlStatus !== null) {
       setStatusFilter(urlStatus);
     }
     if (isValidPreset(urlPreset)) {
       applyDatePreset(urlPreset);
     }
-  }, [urlStatus, urlPreset]);
+  }, [urlStatus, urlPreset, isApprovalTwo]);
 
   useEffect(() => {
     const compFilter = sessionStorage.getItem('companyFilter') || 'ALL';
@@ -611,11 +617,15 @@ export const RequestsListPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-baseline gap-2 min-w-0">
           <h2 className="text-base sm:text-lg font-bold text-foreground whitespace-nowrap leading-none font-display">
-            {isEmployee ? 'My requests' : 'All requests'}
+            {isEmployee ? 'My requests' : isApprovalTwo ? 'Pending Approval Requests' : 'All requests'}
           </h2>
           <span className="hidden sm:inline text-muted-foreground/60 text-xs">·</span>
           <p className="hidden sm:block text-[11px] text-muted-foreground truncate">
-            {isEmployee ? 'Track and manage your submitted expense vouchers' : 'Review, approve, and disburse regional petty cash vouchers'}
+            {isEmployee
+              ? 'Track and manage your submitted expense vouchers'
+              : isApprovalTwo
+              ? 'Requests requiring your Stage 2 final authorization (disappears once approved)'
+              : 'Review, approve, and disburse regional petty cash vouchers'}
           </p>
         </div>
 
@@ -717,24 +727,33 @@ export const RequestsListPage: React.FC = () => {
             )}
 
             {/* Status Filter */}
-            <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
-              <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="text-xs h-8"
-              >
-                <option value="">All Statuses</option>
-                <option value="DRAFT">Draft</option>
-                <option value="PENDING_APPROVAL">Pending Approval (Accountant)</option>
-                <option value="ACCOUNTANT_REVIEW">Stage 2: Awaiting Approval Two</option>
-                <option value="CORRECTION_REQUIRED">Correction Required</option>
-                <option value="APPROVED">Approved</option>
-                <option value="PAID">Paid</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="REJECTED">Rejected</option>
-              </Select>
-            </div>
+            {isApprovalTwo ? (
+              <div className="flex items-center gap-1.5 min-w-[170px] flex-1 sm:flex-initial">
+                <Filter className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <div className="text-xs h-8 px-2.5 flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold">
+                  Stage 2: Awaiting Approval Two
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
+                <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="text-xs h-8"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="PENDING_APPROVAL">Pending Approval (Accountant)</option>
+                  <option value="ACCOUNTANT_REVIEW">Stage 2: Awaiting Approval Two</option>
+                  <option value="CORRECTION_REQUIRED">Correction Required</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="PAID">Paid</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="REJECTED">Rejected</option>
+                </Select>
+              </div>
+            )}
 
             {/* Priority Filter */}
             <div className="w-full sm:w-28">

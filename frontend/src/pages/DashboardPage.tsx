@@ -886,8 +886,8 @@ export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   if (!user) return <Loader />;
 
-  if (user.role === 'SUPER_ADMIN')  return <SuperAdminDashboard />;
-  if (user.role === 'ACCOUNTANT')   return <AccountantDashboard />;
+  if (user.role === 'SUPER_ADMIN' || user.role === 'APPROVAL_TWO') return <SuperAdminDashboard />;
+  if (user.role === 'ACCOUNTANT') return <AccountantDashboard />;
   return <EmployeeDashboard />;
 };
 

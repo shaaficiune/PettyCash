@@ -255,7 +255,8 @@ export const DashboardLayout: React.FC = () => {
       section: 'Petty cash',
       items: [
         { label: 'New request', path: '/requests/new', icon: PlusCircle, roles: ['EMPLOYEE', 'ACCOUNTANT'] },
-        { label: 'All requests', path: '/requests', icon: FileText, roles: ['ACCOUNTANT', 'SUPER_ADMIN', 'APPROVAL_TWO'] },
+        { label: 'All requests', path: '/requests', icon: FileText, roles: ['ACCOUNTANT', 'SUPER_ADMIN'] },
+        { label: 'Pending Approvals', path: '/requests', icon: FileText, roles: ['APPROVAL_TWO'] },
         { label: 'My requests', path: '/requests', icon: FileText, roles: ['EMPLOYEE'] },
         { label: 'Cash fund', path: '/funds', icon: Wallet, roles: ['SUPER_ADMIN', 'ACCOUNTANT'] },
       ],
