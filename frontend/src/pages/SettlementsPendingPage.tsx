@@ -8,7 +8,6 @@ import { formatCurrency, formatDate } from '../utils/format';
 import { DataTable, DataTableColumnHeader } from '../components/ui/data-table';
 import {
   Button,
-  Badge,
 } from '../components/ui';
 
 export const SettlementsPendingPage: React.FC = () => {
@@ -110,11 +109,12 @@ export const SettlementsPendingPage: React.FC = () => {
         ),
         cell: ({ row }) => {
           const st = row.original;
-          return (
-            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">
-              {st.request?.company?.name || '—'}
-            </span>
-          );
+          const cName = st.request?.company?.name || '—';
+          const lower = cName.toLowerCase();
+          const cls = lower.includes('somtel') ? 'co-badge-somtel' :
+                      lower.includes('bluekom') ? 'co-badge-bluekom' :
+                      'text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground';
+          return <span className={cls}>{cName}</span>;
         },
       },
       {
@@ -193,8 +193,8 @@ export const SettlementsPendingPage: React.FC = () => {
   return (
     <div className="space-y-4 font-sans">
       <div>
-        <h2 className="text-lg font-bold text-foreground">Settlement Audits</h2>
-        <p className="text-xs text-muted-foreground">Review employee expenses and receipts</p>
+        <h2 className="text-lg font-bold text-foreground font-display">Settlement Audits</h2>
+        <p className="text-xs text-muted-foreground">Review and reconcile employee expense settlements submitted against disbursed funds</p>
       </div>
 
       <DataTable

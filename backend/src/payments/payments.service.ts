@@ -30,11 +30,17 @@ export class PaymentsService {
       throw new BadRequestException('Payment amount cannot exceed the maximum petty cash limit of $50');
     }
 
-    // Ensure actor belongs to same company unless SUPER_ADMIN or ACCOUNTANT
+    // Ensure actor belongs to same company unless ACCOUNTANT
     const actor = await this.prisma.user.findUnique({ where: { id: paidById }, include: { role: true } });
     if (!actor) throw new ForbiddenException('Actor account not found');
-    const isCrossCompanyRole = actor.role?.name === 'SUPER_ADMIN' || actor.role?.name === 'ACCOUNTANT';
-    if (!isCrossCompanyRole && actor.companyId !== requestSnapshot.companyId) {
+
+    // Separation of Duties: Approval Two (SUPER_ADMIN or APPROVAL_TWO role) cannot record disbursements.
+    // Only Accountants/Cashiers can disburse cash. This enforces Maker-Checker-Disburser principle.
+    if (actor.role?.name === 'SUPER_ADMIN' || actor.role?.name === 'APPROVAL_TWO') {
+      throw new ForbiddenException('Approval Two is not authorized to disburse cash payments. Only Accountants or Cashiers can record disbursements.');
+    }
+
+    if (actor.role?.name !== 'ACCOUNTANT' && actor.companyId !== requestSnapshot.companyId) {
       throw new ForbiddenException('Not allowed to record payments for this company');
     }
 

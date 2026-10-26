@@ -103,14 +103,17 @@ export class FundsController {
     @Query('regionId') regionId?: string,
     @Query('search') search?: string
   ) {
-    const effectiveCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
+    const isEmployee = req.user.role === RoleName.EMPLOYEE;
+    const effectiveCompanyId = isEmployee ? req.user.companyId : companyId;
+    const userId = isEmployee ? req.user.userId : undefined;
     const excelXml = await this.fundsService.exportTransactionsExcel(
       effectiveCompanyId,
       transactionType,
       startDate,
       endDate,
       search,
-      regionId
+      regionId,
+      userId,
     );
     res.setHeader('Content-Type', 'application/vnd.ms-excel');
     res.setHeader('Content-Disposition', 'attachment; filename="petty_cash_ledger.xls"');
@@ -129,14 +132,17 @@ export class FundsController {
     @Query('regionId') regionId?: string,
     @Query('search') search?: string
   ) {
-    const effectiveCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
+    const isEmployee = req.user.role === RoleName.EMPLOYEE;
+    const effectiveCompanyId = isEmployee ? req.user.companyId : companyId;
+    const userId = isEmployee ? req.user.userId : undefined;
     const htmlReport = await this.fundsService.exportTransactionsPdfHtml(
       effectiveCompanyId,
       transactionType,
       startDate,
       endDate,
       search,
-      regionId
+      regionId,
+      userId,
     );
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.status(200).send(htmlReport);
@@ -155,7 +161,9 @@ export class FundsController {
     @Query('page') page = '1',
     @Query('pageSize') pageSize = '20'
   ) {
-    const effectiveCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
+    const isEmployee = req.user.role === RoleName.EMPLOYEE;
+    const effectiveCompanyId = isEmployee ? req.user.companyId : companyId;
+    const userId = isEmployee ? req.user.userId : undefined;
     const pageNum = parseInt(page as any, 10) || 1;
     const size = parseInt(pageSize as any, 10) || 20;
     return this.fundsService.getTransactions(
@@ -166,7 +174,8 @@ export class FundsController {
       startDate,
       endDate,
       search,
-      regionId
+      regionId,
+      userId,
     );
   }
 

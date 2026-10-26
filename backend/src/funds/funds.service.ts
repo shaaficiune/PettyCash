@@ -693,11 +693,23 @@ export class FundsService {
     startDate?: string,
     endDate?: string,
     search?: string,
-    regionId?: string
+    regionId?: string,
+    userId?: string,
   ) {
     const where: any = {};
     if (companyId) where.companyId = companyId;
     if (transactionType) where.transactionType = transactionType;
+
+    if (userId) {
+      where.AND = [
+        {
+          OR: [
+            { employeeId: userId },
+            { request: { userId: userId } },
+          ],
+        },
+      ];
+    }
 
     if (startDate || endDate) {
       where.date = {};
@@ -722,24 +734,31 @@ export class FundsService {
 
     if (search && search.trim()) {
       const q = search.trim();
-      where.OR = [
-        { description: { contains: q, mode: 'insensitive' } },
-        { referenceNumber: { contains: q, mode: 'insensitive' } },
-        { remarks: { contains: q, mode: 'insensitive' } },
-        { employee: { fullName: { contains: q, mode: 'insensitive' } } },
-        {
-          request: {
-            OR: [
-              { requestNumber: { contains: q, mode: 'insensitive' } },
-              { purpose: { contains: q, mode: 'insensitive' } },
-              { receiverName: { contains: q, mode: 'insensitive' } },
-              { receiverPhone: { contains: q, mode: 'insensitive' } },
-              { vendorName: { contains: q, mode: 'insensitive' } },
-              { invoiceNumber: { contains: q, mode: 'insensitive' } },
-            ],
+      const searchCondition = {
+        OR: [
+          { description: { contains: q, mode: 'insensitive' } },
+          { referenceNumber: { contains: q, mode: 'insensitive' } },
+          { remarks: { contains: q, mode: 'insensitive' } },
+          { employee: { fullName: { contains: q, mode: 'insensitive' } } },
+          {
+            request: {
+              OR: [
+                { requestNumber: { contains: q, mode: 'insensitive' } },
+                { purpose: { contains: q, mode: 'insensitive' } },
+                { receiverName: { contains: q, mode: 'insensitive' } },
+                { receiverPhone: { contains: q, mode: 'insensitive' } },
+                { vendorName: { contains: q, mode: 'insensitive' } },
+                { invoiceNumber: { contains: q, mode: 'insensitive' } },
+              ],
+            },
           },
-        },
-      ];
+        ],
+      };
+      if (where.AND) {
+        where.AND.push(searchCondition);
+      } else {
+        where.OR = searchCondition.OR;
+      }
     }
 
     return where;
@@ -753,7 +772,8 @@ export class FundsService {
     startDate?: string,
     endDate?: string,
     search?: string,
-    regionId?: string
+    regionId?: string,
+    userId?: string,
   ) {
     const where = this.buildTransactionsWhere(
       companyId,
@@ -761,7 +781,8 @@ export class FundsService {
       startDate,
       endDate,
       search,
-      regionId
+      regionId,
+      userId,
     );
 
     const total = await (this.prisma as any).pettyCashLedger.count({ where });
@@ -827,7 +848,8 @@ export class FundsService {
     startDate?: string,
     endDate?: string,
     search?: string,
-    regionId?: string
+    regionId?: string,
+    userId?: string,
   ): Promise<string> {
     const where = this.buildTransactionsWhere(
       companyId,
@@ -835,7 +857,8 @@ export class FundsService {
       startDate,
       endDate,
       search,
-      regionId
+      regionId,
+      userId,
     );
 
     const transactions = await (this.prisma as any).pettyCashLedger.findMany({
@@ -932,7 +955,8 @@ export class FundsService {
     startDate?: string,
     endDate?: string,
     search?: string,
-    regionId?: string
+    regionId?: string,
+    userId?: string,
   ): Promise<string> {
     const where = this.buildTransactionsWhere(
       companyId,
@@ -940,7 +964,8 @@ export class FundsService {
       startDate,
       endDate,
       search,
-      regionId
+      regionId,
+      userId,
     );
 
     const transactions = await (this.prisma as any).pettyCashLedger.findMany({

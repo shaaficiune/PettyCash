@@ -47,17 +47,18 @@ async function bootstrap() {
       // Explicitly configured origins always allowed
       if (allowedOrigins.includes(origin)) return callback(null, true);
 
-      // Localhost only allowed in non-production environments
-      if (process.env.NODE_ENV !== 'production') {
-        if (
-          origin === 'http://localhost' ||
-          origin === 'https://localhost' ||
-          origin.startsWith('http://localhost:') ||
-          origin.startsWith('https://localhost:') ||
-          origin.startsWith('http://127.0.0.1:')
-        ) {
-          return callback(null, true);
-        }
+      // Allow localhost and local private network IPs (LAN devices, mobile testing, etc.)
+      const isPrivateOrLocal =
+        origin === 'http://localhost' ||
+        origin === 'https://localhost' ||
+        /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+        /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) ||
+        /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/.test(origin) ||
+        /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/.test(origin) ||
+        /^https?:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+(:\d+)?$/.test(origin);
+
+      if (isPrivateOrLocal) {
+        return callback(null, true);
       }
 
       return callback(new Error(`Origin ${origin} not allowed by CORS`));

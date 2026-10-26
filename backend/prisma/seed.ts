@@ -82,6 +82,16 @@ async function main() {
     },
   });
 
+  // Approval Two: Head of Finance / DG — final approver (Stage 2), cannot disburse cash
+  const approvalTwoRole = await prisma.role.upsert({
+    where: { name: RoleName.APPROVAL_TWO },
+    update: {},
+    create: {
+      name: RoleName.APPROVAL_TWO,
+      description: 'Head of Finance / Authorized Approver. Performs Stage 2 final approval of petty cash requests. Cannot record cash disbursements (Separation of Duties).',
+    },
+  });
+
   console.log('Roles seeded.');
 
   // 3. Create Permissions

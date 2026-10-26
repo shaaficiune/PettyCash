@@ -26,6 +26,15 @@ export class CompaniesController {
     return this.companiesService.findAllCompanies();
   }
 
+  @Get('vehicles')
+  @ApiOperation({ summary: 'Get vehicle fleet filtered by company + region name' })
+  async getVehicles(
+    @Query('companyName') companyName?: string,
+    @Query('regionName') regionName?: string,
+  ) {
+    return this.companiesService.getVehicles(companyName, regionName);
+  }
+
   @Get('departments')
   @ApiOperation({ summary: 'Get departments list, automatically filtered for Employees' })
   async getDepartments(@Request() req, @Query('companyId') companyId?: string) {

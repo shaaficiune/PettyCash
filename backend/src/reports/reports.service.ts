@@ -50,7 +50,12 @@ export class ReportsService {
       requests,
     ] = await Promise.all([
       this.prisma.pettyCashRequest.count({ where: monthWhere }),
-      this.prisma.pettyCashRequest.count({ where: { ...monthWhere, status: RequestStatus.PENDING_APPROVAL } }),
+      this.prisma.pettyCashRequest.count({
+        where: {
+          ...monthWhere,
+          status: { in: [RequestStatus.PENDING_APPROVAL, RequestStatus.ACCOUNTANT_REVIEW] },
+        },
+      }),
       this.prisma.pettyCashRequest.count({ where: { ...monthWhere, status: RequestStatus.APPROVED } }),
       this.prisma.pettyCashRequest.count({ where: { ...monthWhere, status: RequestStatus.REJECTED } }),
       this.prisma.pettyCashRequest.count({ where: { ...monthWhere, status: RequestStatus.PAID } }),

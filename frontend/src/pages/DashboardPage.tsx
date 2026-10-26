@@ -5,11 +5,11 @@ import api from '../services/api';
 import {
   Wallet, FileText, Clock, CheckCircle2, XCircle,
   PlusCircle, ArrowRight, Building2,
-  Loader2, Receipt, Banknote, CheckCheck,
+  Loader2, Receipt, Banknote, CheckCheck, AlertTriangle,
 } from 'lucide-react';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { EmptyState } from '../components/ui/EmptyState';
-import { formatCurrency, formatDate } from '../utils/format';
+import { formatCurrency, formatDate, fitKpis } from '../utils/format';
 import {
   Table,
   TableHeader,
@@ -32,25 +32,60 @@ interface CardProps {
   label: string;
   value: string | number;
   sub?: string;
-  icon: React.ElementType;
+  icon?: React.ElementType;
   iconClass?: string;
   bgClass?: string;
   topBarClass?: string;
   to?: string;
+  hero?: boolean;
 }
 
-const SummaryCard: React.FC<CardProps> = ({ label, value, sub, icon: Icon, to }) => {
-  const cardContent = (
-    <Card className={`relative overflow-hidden transition-all duration-200 hover:shadow-xs border border-border/80 bg-card ${
-      to ? 'hover:border-foreground/30 cursor-pointer group' : ''
-    }`}>
-      <div className="p-4 sm:p-5 flex items-center gap-3.5">
-        <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-muted/60 dark:bg-muted/40 border border-border/50 flex items-center justify-center">
-          <Icon className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+
+const SummaryCard: React.FC<CardProps> = ({
+  label, value, sub, icon: Icon, to, hero = false,
+  iconClass, bgClass, topBarClass,
+}) => {
+  if (hero) {
+    const heroContent = (
+      <div className="bg-gradient-to-br from-[#0D1C3D] to-[#162A56] dark:from-[#0A1224] dark:to-[#101C38] text-[#EEF2FB] border border-[#1E3360] dark:border-[#1C2B4E] rounded-xl p-4 sm:p-5 shadow-md shadow-slate-900/10 dark:shadow-black/40 hover:border-[#F5B700] dark:hover:border-[#FBBF24] transition-all flex flex-col justify-between min-h-[110px] group">
+        <div>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9BB1DE] block">
+            {label}
+          </span>
+          <span className={`font-mono ${fitKpis(value)} font-bold text-[#F5B700] dark:text-[#FBBF24] tracking-tight leading-tight block my-1.5 font-financial tabular-nums`}>
+            {value}
+          </span>
+          {sub && <span className="text-xs text-[#C5D3EE] block truncate">{sub}</span>}
         </div>
+        {to && (
+          <span className="text-xs font-bold text-[#F5B700] dark:text-[#FBBF24] mt-2 flex items-center gap-1 group-hover:underline">
+            View details →
+          </span>
+        )}
+      </div>
+    );
+    if (to) return <Link to={to} className="block">{heroContent}</Link>;
+    return heroContent;
+  }
+
+  const cardContent = (
+    <Card className={`relative overflow-hidden transition-all duration-200 hover:shadow-md border border-border/80 bg-card ${
+      to ? 'hover:border-[#F5B700]/70 cursor-pointer group' : ''
+    }`}>
+      {topBarClass && (
+        <div className={`h-[3px] w-full ${topBarClass}`} />
+      )}
+      <div className="p-4 sm:p-5 flex items-center gap-3.5">
+        {Icon && (
+          <div className={`flex-shrink-0 h-10 w-10 sm:h-11 sm:w-11 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-105 shadow-xs ${
+            bgClass || 'bg-muted/60 dark:bg-muted/40 border-border/50'
+          }`}>
+            <Icon className={`h-5 w-5 ${iconClass || 'text-muted-foreground group-hover:text-foreground'}`} />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
-          <p className="text-lg sm:text-xl font-bold text-foreground leading-tight tracking-tight mt-0.5">{value}</p>
+          <p className="text-xs font-semibold text-muted-foreground truncate">{label}</p>
+          <p className="text-lg sm:text-xl font-bold text-foreground leading-tight tracking-tight mt-0.5 font-financial tabular-nums">{value}</p>
           {sub && <p className="text-[11px] text-muted-foreground/80 truncate mt-0.5">{sub}</p>}
         </div>
       </div>
@@ -64,16 +99,6 @@ const SummaryCard: React.FC<CardProps> = ({ label, value, sub, icon: Icon, to })
   return cardContent;
 };
 
-const SectionHeader: React.FC<{ title: string; to?: string; linkLabel?: string }> = ({ title, to, linkLabel }) => (
-  <div className="flex items-center justify-between mb-4">
-    <h3 className="text-sm font-bold text-foreground tracking-tight">{title}</h3>
-    {to && (
-      <Link to={to} className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline">
-        {linkLabel || 'View all'} <ArrowRight className="h-3.5 w-3.5" />
-      </Link>
-    )}
-  </div>
-);
 
 interface ReqTableProps {
   rows: any[];
@@ -87,17 +112,17 @@ const RequestsTable: React.FC<ReqTableProps> = ({
   rows, showCompany = false, showEmployee = true, showRemarks = false, emptyMessage,
 }) => (
   <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-    <Table>
-      <TableHeader className="bg-muted/40 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">
-        <TableRow>
-          <TableHead className="py-3 px-4">Request #</TableHead>
-          <TableHead className="py-3 px-4 hidden sm:table-cell">Date</TableHead>
-          {showEmployee && <TableHead className="py-3 px-4">Employee</TableHead>}
-          {showCompany && <TableHead className="py-3 px-4 hidden sm:table-cell">Company</TableHead>}
-          <TableHead className="py-3 px-4 hidden md:table-cell">Purpose</TableHead>
-          <TableHead className="py-3 px-4">Amount</TableHead>
-          <TableHead className="py-3 px-4">Status</TableHead>
-          {showRemarks && <TableHead className="py-3 px-4 hidden lg:table-cell">Remarks</TableHead>}
+    <Table className="fin-table">
+      <TableHeader className="bg-gradient-to-r from-[#0D1C3D] to-[#0A1630] dark:from-[#0B1325] dark:to-[#080D1A] font-bold text-[11px] uppercase tracking-wider text-white">
+        <TableRow className="border-none bg-transparent hover:bg-transparent">
+          <TableHead className="py-3 px-4 text-white">Request #</TableHead>
+          <TableHead className="py-3 px-4 hidden sm:table-cell text-white">Date</TableHead>
+          {showEmployee && <TableHead className="py-3 px-4 text-white">Employee</TableHead>}
+          {showCompany && <TableHead className="py-3 px-4 hidden sm:table-cell text-white">Company</TableHead>}
+          <TableHead className="py-3 px-4 hidden md:table-cell text-white">Purpose</TableHead>
+          <TableHead className="py-3 px-4 text-white">Amount</TableHead>
+          <TableHead className="py-3 px-4 text-white">Status</TableHead>
+          {showRemarks && <TableHead className="py-3 px-4 hidden lg:table-cell text-white">Remarks</TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -133,9 +158,16 @@ const RequestsTable: React.FC<ReqTableProps> = ({
               )}
               {showCompany && (
                 <TableCell className="py-3 px-4 hidden sm:table-cell">
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                    {req.company?.name || 'N/A'}
-                  </span>
+                  {(() => {
+                    const name = (req.company?.name || '').toLowerCase();
+                    const isSomtel = name.includes('somtel');
+                    const isBluekom = name.includes('bluekom');
+                    return (
+                      <span className={isSomtel ? 'co-badge-somtel' : isBluekom ? 'co-badge-bluekom' : 'text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground'}>
+                        {req.company?.name || 'N/A'}
+                      </span>
+                    );
+                  })()}
                 </TableCell>
               )}
               <TableCell className="py-3 px-4 text-muted-foreground truncate max-w-[140px] hidden md:table-cell text-xs">{req.purpose}</TableCell>
@@ -177,6 +209,7 @@ const RequestsTable: React.FC<ReqTableProps> = ({
 // 1. SUPER ADMIN DASHBOARD
 const SuperAdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
+  const [recentRequests, setRecentRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -184,8 +217,12 @@ const SuperAdminDashboard: React.FC = () => {
     try {
       const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
       const q = companyFilter !== 'ALL' ? `?companyId=${companyFilter}` : '';
-      const s = await api.get(`/reports/dashboard-stats${q}`);
+      const [s, r] = await Promise.all([
+        api.get(`/reports/dashboard-stats${q}`),
+        api.get(`/requests${q ? q + '&' : '?'}page=1&pageSize=7`),
+      ]);
       setStats(s.data);
+      setRecentRequests(r.data?.items || r.data || []);
     } catch { /* silent */ }
     finally { setLoading(false); }
   }, []);
@@ -224,8 +261,10 @@ const SuperAdminDashboard: React.FC = () => {
       value: funds ? fmtMoney(funds.totalBalance) : '—',
       sub: `Allocated: ${fmtMoney(funds?.totalAllocated ?? 0)} · ${MONTHS[period.month - 1]} ${period.year}`,
       icon: Wallet,
+      hero: true,
+      to: '/funds',
     },
-    ...companyCards,
+    ...companyCards.map((c: any) => ({ ...c, hero: true, to: '/funds' })),
     ...carryCards,
   ];
 
@@ -235,6 +274,9 @@ const SuperAdminDashboard: React.FC = () => {
       value: stats?.counts?.total ?? 0,
       sub: "This month's submissions",
       icon: FileText,
+      topBarClass: 'bg-[#1F5FBF]',
+      iconClass: 'text-[#1F5FBF] dark:text-[#60A5FA]',
+      bgClass: 'bg-[#EFF6FF] dark:bg-[#1F5FBF]/15 border-[#BFDBFE] dark:border-[#1F5FBF]/30',
       to: '/requests?datePreset=THIS_MONTH',
     },
     {
@@ -242,6 +284,9 @@ const SuperAdminDashboard: React.FC = () => {
       value: stats?.counts?.pending ?? 0,
       sub: 'Awaiting approval',
       icon: Clock,
+      topBarClass: 'bg-[#F5B700]',
+      iconClass: 'text-[#D97706] dark:text-[#FBBF24]',
+      bgClass: 'bg-[#FFFBEB] dark:bg-[#F5B700]/15 border-[#FDE68A] dark:border-[#F5B700]/30',
       to: '/requests?status=PENDING_APPROVAL&datePreset=THIS_MONTH',
     },
     {
@@ -249,6 +294,9 @@ const SuperAdminDashboard: React.FC = () => {
       value: stats?.counts?.approved ?? 0,
       sub: 'Reviewed & authorized',
       icon: CheckCircle2,
+      topBarClass: 'bg-[#059669]',
+      iconClass: 'text-[#059669] dark:text-[#34D399]',
+      bgClass: 'bg-[#ECFDF5] dark:bg-[#059669]/15 border-[#A7F3D0] dark:border-[#059669]/30',
       to: '/requests?status=APPROVED&datePreset=THIS_MONTH',
     },
     {
@@ -256,6 +304,9 @@ const SuperAdminDashboard: React.FC = () => {
       value: stats?.counts?.paid ?? 0,
       sub: stats?.amounts?.totalPaid ? `${fmtMoney(stats.amounts.totalPaid)} disbursed this month` : 'Disbursed this month',
       icon: Banknote,
+      topBarClass: 'bg-[#2563EB]',
+      iconClass: 'text-[#2563EB] dark:text-[#818CF8]',
+      bgClass: 'bg-[#EEF2FF] dark:bg-[#2563EB]/15 border-[#C7D2FE] dark:border-[#2563EB]/30',
       to: '/requests?status=PAID&datePreset=THIS_MONTH',
     },
     {
@@ -263,6 +314,9 @@ const SuperAdminDashboard: React.FC = () => {
       value: stats?.counts?.completed ?? 0,
       sub: 'Settled & reconciled',
       icon: CheckCheck,
+      topBarClass: 'bg-[#0D9488]',
+      iconClass: 'text-[#0D9488] dark:text-[#2DD4BF]',
+      bgClass: 'bg-[#F0FDFA] dark:bg-[#0D9488]/15 border-[#99F6E4] dark:border-[#0D9488]/30',
       to: '/requests?status=COMPLETED&datePreset=THIS_MONTH',
     },
     {
@@ -270,18 +324,44 @@ const SuperAdminDashboard: React.FC = () => {
       value: stats?.counts?.rejected ?? 0,
       sub: 'Not approved this month',
       icon: XCircle,
+      topBarClass: 'bg-[#DC2626]',
+      iconClass: 'text-[#DC2626] dark:text-[#F87171]',
+      bgClass: 'bg-[#FEF2F2] dark:bg-[#DC2626]/15 border-[#FECACA] dark:border-[#DC2626]/30',
       to: '/requests?status=REJECTED&datePreset=THIS_MONTH',
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* ── Section 1: Liquidity & Fund Balances ── */}
+
+      {/* ── Low Balance Float Alert (Threshold < $300) ── */}
+      {funds?.perCompany?.some((c: any) => c.balance < 300) && (
+        <div className="flex items-center gap-3 p-3.5 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-300 rounded-xl text-xs font-medium animate-in fade-in-50 duration-200">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <div className="flex-1 flex flex-wrap items-center justify-between gap-2">
+            <span>
+              <strong>Low Float Alert (Threshold &lt; $300):</strong>{' '}
+              {funds.perCompany
+                .filter((c: any) => c.balance < 300)
+                .map((c: any) => `${c.name} available balance is $${Number(c.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}`)
+                .join('; ')}
+              {' '}— please request replenishment.
+            </span>
+            <Link to="/funds">
+              <Button variant="gold" size="xs" className="h-6 px-2.5 text-[11px] font-bold shadow-xs">
+                Replenish Float →
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 1: Liquidity & Fund Balances (Hero Cards) ── */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2 font-display">
+              <Wallet className="h-4 w-4 text-[#F5B700]" />
               Cash & Liquidity Overview
             </h3>
             <p className="text-xs text-muted-foreground">Available petty cash reserves for {MONTHS[period.month - 1]} {period.year}</p>
@@ -313,6 +393,48 @@ const SuperAdminDashboard: React.FC = () => {
           {requestCards.map((c, i) => <SummaryCard key={i} {...c} />)}
         </div>
       </div>
+
+      {/* ── Section 3: Recent Petty Cash Requests (View All Requests) ── */}
+      <Card className="shadow-xs overflow-hidden border border-border/80 bg-card mt-6">
+        <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2 font-display">
+              <Receipt className="h-4 w-4 text-[#F5B700] dark:text-[#FBBF24]" />
+              Recent Petty Cash Requests
+            </h3>
+            <p className="text-xs text-muted-foreground">Latest submissions across Somtel & Bluekom operations</p>
+          </div>
+          <Link
+            to="/requests"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#D97706] dark:text-[#FBBF24] hover:text-[#B45309] dark:hover:text-[#F59E0B] px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 transition-all w-fit"
+          >
+            View All Requests <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </CardHeader>
+        <CardContent className="p-0">
+          <RequestsTable
+            rows={recentRequests}
+            showEmployee={true}
+            showCompany={true}
+            showRemarks={false}
+            emptyMessage={
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No recent requests found for this filter.
+              </div>
+            }
+          />
+        </CardContent>
+        {recentRequests.length > 0 && (
+          <div className="p-3 bg-muted/20 border-t border-border flex justify-center">
+            <Link
+              to="/requests"
+              className="text-xs font-bold text-primary hover:underline flex items-center gap-1.5"
+            >
+              View complete requests archive ({stats?.counts?.total ?? recentRequests.length} total) →
+            </Link>
+          </div>
+        )}
+      </Card>
     </div>
   );
 };
@@ -320,6 +442,7 @@ const SuperAdminDashboard: React.FC = () => {
 // 2. ACCOUNTANT DASHBOARD
 const AccountantDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
+  const [recentRequests, setRecentRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -327,8 +450,12 @@ const AccountantDashboard: React.FC = () => {
     try {
       const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
       const q = companyFilter !== 'ALL' ? `?companyId=${companyFilter}` : '';
-      const s = await api.get(`/reports/dashboard-stats${q}`);
+      const [s, r] = await Promise.all([
+        api.get(`/reports/dashboard-stats${q}`),
+        api.get(`/requests${q ? q + '&' : '?'}page=1&pageSize=7`),
+      ]);
       setStats(s.data);
+      setRecentRequests(r.data?.items || r.data || []);
     } catch { /* silent */ }
     finally { setLoading(false); }
   }, []);
@@ -366,8 +493,10 @@ const AccountantDashboard: React.FC = () => {
       value: funds ? fmtMoney(funds.totalBalance) : '—',
       sub: `Allocated: ${fmtMoney(funds?.totalAllocated ?? 0)} · ${MONTHS[period.month - 1]} ${period.year}`,
       icon: Wallet,
+      hero: true,
+      to: '/funds',
     },
-    ...companyCards,
+    ...companyCards.map((c: any) => ({ ...c, hero: true, to: '/funds' })),
     ...carryCards,
   ];
 
@@ -377,6 +506,9 @@ const AccountantDashboard: React.FC = () => {
       value: stats?.counts?.total ?? 0,
       sub: "This month's submissions",
       icon: FileText,
+      topBarClass: 'bg-[#1F5FBF]',
+      iconClass: 'text-[#1F5FBF] dark:text-[#60A5FA]',
+      bgClass: 'bg-[#EFF6FF] dark:bg-[#1F5FBF]/15 border-[#BFDBFE] dark:border-[#1F5FBF]/30',
       to: '/requests?datePreset=THIS_MONTH',
     },
     {
@@ -384,6 +516,9 @@ const AccountantDashboard: React.FC = () => {
       value: stats?.counts?.pending ?? 0,
       sub: 'Awaiting your review',
       icon: Clock,
+      topBarClass: 'bg-[#F5B700]',
+      iconClass: 'text-[#D97706] dark:text-[#FBBF24]',
+      bgClass: 'bg-[#FFFBEB] dark:bg-[#F5B700]/15 border-[#FDE68A] dark:border-[#F5B700]/30',
       to: '/requests?status=PENDING_APPROVAL&datePreset=THIS_MONTH',
     },
     {
@@ -391,6 +526,9 @@ const AccountantDashboard: React.FC = () => {
       value: stats?.counts?.approved ?? 0,
       sub: 'Reviewed & authorized',
       icon: CheckCircle2,
+      topBarClass: 'bg-[#059669]',
+      iconClass: 'text-[#059669] dark:text-[#34D399]',
+      bgClass: 'bg-[#ECFDF5] dark:bg-[#059669]/15 border-[#A7F3D0] dark:border-[#059669]/30',
       to: '/requests?status=APPROVED&datePreset=THIS_MONTH',
     },
     {
@@ -398,6 +536,9 @@ const AccountantDashboard: React.FC = () => {
       value: stats?.counts?.paid ?? 0,
       sub: stats?.amounts?.totalPaid ? `${fmtMoney(stats.amounts.totalPaid)} disbursed this month` : 'Disbursed this month',
       icon: Banknote,
+      topBarClass: 'bg-[#2563EB]',
+      iconClass: 'text-[#2563EB] dark:text-[#818CF8]',
+      bgClass: 'bg-[#EEF2FF] dark:bg-[#2563EB]/15 border-[#C7D2FE] dark:border-[#2563EB]/30',
       to: '/requests?status=PAID&datePreset=THIS_MONTH',
     },
     {
@@ -405,6 +546,9 @@ const AccountantDashboard: React.FC = () => {
       value: stats?.counts?.completed ?? 0,
       sub: 'Settled & reconciled',
       icon: CheckCheck,
+      topBarClass: 'bg-[#0D9488]',
+      iconClass: 'text-[#0D9488] dark:text-[#2DD4BF]',
+      bgClass: 'bg-[#F0FDFA] dark:bg-[#0D9488]/15 border-[#99F6E4] dark:border-[#0D9488]/30',
       to: '/requests?status=COMPLETED&datePreset=THIS_MONTH',
     },
     {
@@ -412,18 +556,44 @@ const AccountantDashboard: React.FC = () => {
       value: stats?.counts?.rejected ?? 0,
       sub: 'Not approved this month',
       icon: XCircle,
+      topBarClass: 'bg-[#DC2626]',
+      iconClass: 'text-[#DC2626] dark:text-[#F87171]',
+      bgClass: 'bg-[#FEF2F2] dark:bg-[#DC2626]/15 border-[#FECACA] dark:border-[#DC2626]/30',
       to: '/requests?status=REJECTED&datePreset=THIS_MONTH',
     },
   ];
 
   return (
     <div className="space-y-6">
+
+      {/* ── Low Balance Float Alert (Accountant - Threshold < $300) ── */}
+      {funds?.perCompany?.some((c: any) => c.balance < 300) && (
+        <div className="flex items-center gap-3 p-3.5 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-300 rounded-xl text-xs font-medium animate-in fade-in-50 duration-200">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <div className="flex-1 flex flex-wrap items-center justify-between gap-2">
+            <span>
+              <strong>Low Float Alert (Threshold &lt; $300):</strong>{' '}
+              {funds.perCompany
+                .filter((c: any) => c.balance < 300)
+                .map((c: any) => `${c.name} available balance is $${Number(c.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}`)
+                .join('; ')}
+              {' '}— please replenish float reserves.
+            </span>
+            <Link to="/funds">
+              <Button variant="gold" size="xs" className="h-6 px-2.5 text-[11px] font-bold shadow-xs">
+                Replenish Float →
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* ── Section 1: Liquidity & Fund Balances ── */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2 font-display">
+              <Wallet className="h-4 w-4 text-[#F5B700]" />
               Cash & Liquidity Overview
             </h3>
             <p className="text-xs text-muted-foreground">Available petty cash reserves for {MONTHS[period.month - 1]} {period.year}</p>
@@ -455,6 +625,48 @@ const AccountantDashboard: React.FC = () => {
           {requestCards.map((c, i) => <SummaryCard key={i} {...c} />)}
         </div>
       </div>
+
+      {/* ── Section 3: Recent Petty Cash Requests (View All Requests) ── */}
+      <Card className="shadow-xs overflow-hidden border border-border/80 bg-card mt-6">
+        <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2 font-display">
+              <Receipt className="h-4 w-4 text-[#F5B700] dark:text-[#FBBF24]" />
+              Recent Petty Cash Requests
+            </h3>
+            <p className="text-xs text-muted-foreground">Latest submissions pending cashier payout & audit</p>
+          </div>
+          <Link
+            to="/requests"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#D97706] dark:text-[#FBBF24] hover:text-[#B45309] dark:hover:text-[#F59E0B] px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 transition-all w-fit"
+          >
+            View All Requests <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </CardHeader>
+        <CardContent className="p-0">
+          <RequestsTable
+            rows={recentRequests}
+            showEmployee={true}
+            showCompany={true}
+            showRemarks={false}
+            emptyMessage={
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No recent requests found for this filter.
+              </div>
+            }
+          />
+        </CardContent>
+        {recentRequests.length > 0 && (
+          <div className="p-3 bg-muted/20 border-t border-border flex justify-center">
+            <Link
+              to="/requests"
+              className="text-xs font-bold text-primary hover:underline flex items-center gap-1.5"
+            >
+              View complete requests archive ({stats?.counts?.total ?? recentRequests.length} total) →
+            </Link>
+          </div>
+        )}
+      </Card>
     </div>
   );
 };
@@ -488,6 +700,9 @@ const EmployeeDashboard: React.FC = () => {
       value: stats?.counts?.total ?? 0,
       sub: 'Total submissions',
       icon: FileText,
+      topBarClass: 'bg-[#1F5FBF]',
+      iconClass: 'text-[#1F5FBF] dark:text-[#60A5FA]',
+      bgClass: 'bg-[#EFF6FF] dark:bg-[#1F5FBF]/15 border-[#BFDBFE] dark:border-[#1F5FBF]/30',
       to: '/requests?datePreset=THIS_MONTH',
     },
     {
@@ -495,6 +710,9 @@ const EmployeeDashboard: React.FC = () => {
       value: stats?.counts?.pending ?? 0,
       sub: 'Awaiting review',
       icon: Clock,
+      topBarClass: 'bg-[#F5B700]',
+      iconClass: 'text-[#D97706] dark:text-[#FBBF24]',
+      bgClass: 'bg-[#FFFBEB] dark:bg-[#F5B700]/15 border-[#FDE68A] dark:border-[#F5B700]/30',
       to: '/requests?status=PENDING_APPROVAL&datePreset=THIS_MONTH',
     },
     {
@@ -502,6 +720,9 @@ const EmployeeDashboard: React.FC = () => {
       value: stats?.counts?.approved ?? 0,
       sub: 'Ready for payment',
       icon: CheckCircle2,
+      topBarClass: 'bg-[#059669]',
+      iconClass: 'text-[#059669] dark:text-[#34D399]',
+      bgClass: 'bg-[#ECFDF5] dark:bg-[#059669]/15 border-[#A7F3D0] dark:border-[#059669]/30',
       to: '/requests?status=APPROVED&datePreset=THIS_MONTH',
     },
     {
@@ -509,6 +730,9 @@ const EmployeeDashboard: React.FC = () => {
       value: stats?.counts?.paid ?? 0,
       sub: stats?.amounts?.totalPaid ? `${fmtMoney(stats.amounts.totalPaid)} disbursed this month` : 'Disbursed this month',
       icon: Banknote,
+      topBarClass: 'bg-[#2563EB]',
+      iconClass: 'text-[#2563EB] dark:text-[#818CF8]',
+      bgClass: 'bg-[#EEF2FF] dark:bg-[#2563EB]/15 border-[#C7D2FE] dark:border-[#2563EB]/30',
       to: '/requests?status=PAID&datePreset=THIS_MONTH',
     },
     {
@@ -516,6 +740,9 @@ const EmployeeDashboard: React.FC = () => {
       value: stats?.counts?.completed ?? 0,
       sub: 'Settled & closed',
       icon: CheckCheck,
+      topBarClass: 'bg-[#0D9488]',
+      iconClass: 'text-[#0D9488] dark:text-[#2DD4BF]',
+      bgClass: 'bg-[#F0FDFA] dark:bg-[#0D9488]/15 border-[#99F6E4] dark:border-[#0D9488]/30',
       to: '/requests?status=COMPLETED&datePreset=THIS_MONTH',
     },
     {
@@ -523,24 +750,75 @@ const EmployeeDashboard: React.FC = () => {
       value: stats?.counts?.rejected ?? 0,
       sub: 'Not approved',
       icon: XCircle,
+      topBarClass: 'bg-[#DC2626]',
+      iconClass: 'text-[#DC2626] dark:text-[#F87171]',
+      bgClass: 'bg-[#FEF2F2] dark:bg-[#DC2626]/15 border-[#FECACA] dark:border-[#DC2626]/30',
       to: '/requests?status=REJECTED&datePreset=THIS_MONTH',
     },
   ];
 
   return (
     <div className="space-y-6">
+
       {/* Top Action Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-foreground">My Dashboard</h2>
-          <p className="text-xs text-muted-foreground">Overview of your petty cash activity</p>
+          <h2 className="text-base font-bold text-foreground font-display">My Request Status</h2>
+          <p className="text-xs text-muted-foreground">Workflow status and recent regional submissions</p>
         </div>
-        <Link to="/requests/new">
-          <Button variant="default" size="sm" className="gap-2 shadow-sm">
-            <PlusCircle className="h-4 w-4" />
-            New Petty Cash Request
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/transactions">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+              <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
+              My Reports
+            </Button>
+          </Link>
+          <Link to="/requests/new">
+            <Button variant="default" size="sm" className="gap-2 shadow-sm bg-gradient-to-r from-[#FFC30B] to-[#F5B700] text-slate-950 font-bold hover:brightness-105">
+              <PlusCircle className="h-4 w-4" />
+              New Petty Cash Request
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Section: Petty Cash Summary Widget ── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2 font-display">
+              <Wallet className="h-4 w-4 text-[#F5B700]" />
+              Petty Cash Summary (This Month)
+            </h3>
+            <p className="text-xs text-muted-foreground">Personal disbursement and settlement status for {MONTHS[new Date().getMonth()]} {new Date().getFullYear()}</p>
+          </div>
+          <Link to="/transactions" className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline">
+            View My Reports <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <SummaryCard
+            label="My Total Requests (Bishan)"
+            value={stats?.counts?.total ?? 0}
+            sub={`${stats?.counts?.pending ?? 0} currently in review`}
+            hero
+            to="/requests?datePreset=THIS_MONTH"
+          />
+          <SummaryCard
+            label="Disbursed Cash (PAID)"
+            value={fmtMoney(stats?.amounts?.totalPaid ?? 0)}
+            sub={`${stats?.counts?.paid ?? 0} disbursed transactions`}
+            hero
+            to="/transactions"
+          />
+          <SummaryCard
+            label="Pending Settlement"
+            value={stats?.counts?.paid ?? 0}
+            sub="Rasiidhada weli ku dhiman"
+            hero
+            to="/requests?status=PAID"
+          />
+        </div>
       </div>
 
       {/* My Stats */}
@@ -549,9 +827,21 @@ const EmployeeDashboard: React.FC = () => {
       </div>
 
       {/* My Recent Requests */}
-      <Card className="shadow-xs overflow-hidden">
-        <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border">
-          <SectionHeader title="My Recent Requests" to="/requests" />
+      <Card className="shadow-xs overflow-hidden border border-border/80 bg-card">
+        <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2 font-display">
+              <Receipt className="h-4 w-4 text-[#F5B700] dark:text-[#FBBF24]" />
+              My Recent Requests
+            </h3>
+            <p className="text-xs text-muted-foreground">Your recent regional petty cash submissions</p>
+          </div>
+          <Link
+            to="/requests"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#D97706] dark:text-[#FBBF24] hover:text-[#B45309] dark:hover:text-[#F59E0B] px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 transition-all w-fit"
+          >
+            View All Requests <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </CardHeader>
         <CardContent className="p-0">
           <RequestsTable
@@ -569,6 +859,16 @@ const EmployeeDashboard: React.FC = () => {
             }
           />
         </CardContent>
+        {myRequests.length > 0 && (
+          <div className="p-3 bg-muted/20 border-t border-border flex justify-center">
+            <Link
+              to="/requests"
+              className="text-xs font-bold text-primary hover:underline flex items-center gap-1.5"
+            >
+              View all my requests ({myRequests.length}) →
+            </Link>
+          </div>
+        )}
       </Card>
     </div>
   );

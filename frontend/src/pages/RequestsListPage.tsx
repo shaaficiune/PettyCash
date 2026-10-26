@@ -12,6 +12,9 @@ import {
   Calendar,
   MapPin,
   Receipt,
+  X,
+  ArrowLeft,
+  Car,
 } from 'lucide-react';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -25,6 +28,7 @@ import {
   Select,
   Input,
 } from '../components/ui';
+import { RequestDetailPage } from './RequestDetailPage';
 
 const getLocalDateString = (d: Date = new Date()): string => {
   const year = d.getFullYear();
@@ -52,26 +56,79 @@ export const RequestsListPage: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [regions, setRegions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
-  const [priorityFilter, setPriorityFilter] = useState('');
-  const [regionFilter, setRegionFilter] = useState('');
-  const isEmployee = user?.role === 'EMPLOYEE';
+
+  // Side Full Page View state
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+
+  const openSidePanel = (req: any) => {
+    setSelectedRequestId(req.requestNumber || req.id);
+    setIsSidePanelOpen(true);
+  };
+
+  // Restore saved filters from sessionStorage if available
+  const getSavedFilters = () => {
+    try {
+      const saved = sessionStorage.getItem('requests_active_filters');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return null;
+  };
+
+  const savedFilters = getSavedFilters();
+
+  const urlStatus = searchParams.get('status');
   const urlPreset = searchParams.get('datePreset');
   const isValidPreset = (p: string | null): p is 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM' =>
     p !== null && ['TODAY', 'THIS_WEEK', 'THIS_MONTH', 'ALL', 'CUSTOM'].includes(p);
 
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isApprovalTwo = user?.role === 'APPROVAL_TWO';
+  // Default filter: APPROVAL_TWO and SUPER_ADMIN see only requests awaiting Stage 2 approval
+  const defaultStatusForRole = (isSuperAdmin || isApprovalTwo) ? 'ACCOUNTANT_REVIEW' : '';
+  const initialStatus = urlStatus !== null ? urlStatus : (savedFilters?.statusFilter ?? defaultStatusForRole);
+  const initialPriority = savedFilters?.priorityFilter ?? '';
+  const initialRegion = savedFilters?.regionFilter ?? '';
   const initialPreset = isValidPreset(urlPreset)
     ? urlPreset
-    : (isEmployee ? 'THIS_MONTH' : 'TODAY');
+    : (savedFilters?.datePreset && isValidPreset(savedFilters.datePreset)
+        ? savedFilters.datePreset
+        : 'THIS_MONTH');
 
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [priorityFilter, setPriorityFilter] = useState(initialPriority);
+  const [regionFilter, setRegionFilter] = useState(initialRegion);
   const [datePreset, setDatePreset] = useState<'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM'>(initialPreset);
   const [startDate, setStartDate] = useState(() => {
+    if (savedFilters?.startDate !== undefined && !urlPreset) return savedFilters.startDate;
     if (initialPreset === 'THIS_MONTH') return getStartOfMonthString();
     if (initialPreset === 'THIS_WEEK') return getStartOfWeekString();
     if (initialPreset === 'ALL') return '';
     return getLocalDateString();
   });
-  const [endDate, setEndDate] = useState(() => getLocalDateString());
+  const [endDate, setEndDate] = useState(() => {
+    if (savedFilters?.endDate !== undefined && !urlPreset) return savedFilters.endDate;
+    return getLocalDateString();
+  });
+
+  const isEmployee = user?.role === 'EMPLOYEE';
+
+  // Persist filter changes so navigating to a request's full page and coming back never loses filters
+  useEffect(() => {
+    sessionStorage.setItem(
+      'requests_active_filters',
+      JSON.stringify({
+        statusFilter,
+        priorityFilter,
+        regionFilter,
+        datePreset,
+        startDate,
+        endDate,
+      })
+    );
+  }, [statusFilter, priorityFilter, regionFilter, datePreset, startDate, endDate]);
 
   const applyDatePreset = (preset: 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM') => {
     setDatePreset(preset);
@@ -98,21 +155,18 @@ export const RequestsListPage: React.FC = () => {
     setStatusFilter('');
     setPriorityFilter('');
     setRegionFilter('');
+    sessionStorage.removeItem('requests_active_filters');
     applyDatePreset('ALL');
   };
 
   useEffect(() => {
-    const urlStatus = searchParams.get('status');
-    setStatusFilter(urlStatus || '');
-
-    const paramPreset = searchParams.get('datePreset');
-    if (isValidPreset(paramPreset)) {
-      applyDatePreset(paramPreset);
-    } else if (!urlStatus) {
-      // Normal navigation without params: keep role-based default
-      applyDatePreset(user?.role === 'EMPLOYEE' ? 'THIS_MONTH' : 'TODAY');
+    if (urlStatus !== null) {
+      setStatusFilter(urlStatus);
     }
-  }, [searchParams, user?.role]);
+    if (isValidPreset(urlPreset)) {
+      applyDatePreset(urlPreset);
+    }
+  }, [urlStatus, urlPreset]);
 
   useEffect(() => {
     const compFilter = sessionStorage.getItem('companyFilter') || 'ALL';
@@ -216,22 +270,26 @@ export const RequestsListPage: React.FC = () => {
       {
         id: 'select',
         header: ({ table }) => (
-          <input
-            type="checkbox"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
-            aria-label="Select all"
-            className="rounded border-input text-primary focus:ring-ring h-4 w-4 cursor-pointer"
-          />
+          <div className="w-5 flex justify-center">
+            <input
+              type="checkbox"
+              checked={table.getIsAllPageRowsSelected()}
+              onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
+              aria-label="Select all"
+              className="rounded border-input text-primary focus:ring-ring h-3.5 w-3.5 cursor-pointer"
+            />
+          </div>
         ),
         cell: ({ row }) => (
-          <input
-            type="checkbox"
-            checked={row.getIsSelected()}
-            onChange={(e) => row.toggleSelected(!!e.target.checked)}
-            aria-label="Select row"
-            className="rounded border-input text-primary focus:ring-ring h-4 w-4 cursor-pointer"
-          />
+          <div className="w-5 flex justify-center">
+            <input
+              type="checkbox"
+              checked={row.getIsSelected()}
+              onChange={(e) => row.toggleSelected(!!e.target.checked)}
+              aria-label="Select row"
+              className="rounded border-input text-primary focus:ring-ring h-3.5 w-3.5 cursor-pointer"
+            />
+          </div>
         ),
         enableSorting: false,
         enableHiding: false,
@@ -239,17 +297,19 @@ export const RequestsListPage: React.FC = () => {
       {
         accessorKey: 'requestNumber',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Request #" />
+          <DataTableColumnHeader column={column} title="Req #" />
         ),
         cell: ({ row }) => {
           const req = row.original;
           return (
-            <Link
-              to={`/requests/${req.requestNumber || req.id}`}
-              className="font-semibold text-primary hover:underline"
+            <button
+              type="button"
+              onClick={() => openSidePanel(req)}
+              className="font-bold text-primary hover:underline text-xs whitespace-nowrap text-left cursor-pointer"
+              title="Open full request detail inline"
             >
               {req.requestNumber}
-            </Link>
+            </button>
           );
         },
       },
@@ -261,7 +321,7 @@ export const RequestsListPage: React.FC = () => {
         cell: ({ row }) => {
           const req = row.original;
           return (
-            <span className="text-muted-foreground text-xs">
+            <span className="text-muted-foreground text-xs whitespace-nowrap">
               {formatDate(req.requestDate || req.createdAt)}
             </span>
           );
@@ -275,12 +335,12 @@ export const RequestsListPage: React.FC = () => {
         cell: ({ row }) => {
           const req = row.original;
           return (
-            <div>
-              <p className="font-medium text-foreground text-xs leading-none">
+            <div className="min-w-0 max-w-[110px]">
+              <p className="font-semibold text-foreground text-xs leading-tight truncate" title={req.user?.fullName}>
                 {req.user?.fullName}
               </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {req.region?.name || req.company?.name}
+              <p className="text-[10px] text-muted-foreground truncate" title={req.region?.name || req.company?.name || '—'}>
+                {req.region?.name || req.company?.name || '—'}
               </p>
             </div>
           );
@@ -294,12 +354,12 @@ export const RequestsListPage: React.FC = () => {
         cell: ({ row }) => {
           const req = row.original;
           return (
-            <div>
-              <span className="font-medium text-foreground text-xs block">
+            <div className="min-w-0 max-w-[105px]">
+              <span className="font-medium text-foreground text-xs block leading-tight truncate" title={req.receiverName || '—'}>
                 {req.receiverName || '—'}
               </span>
               {req.receiverPhone && (
-                <span className="text-[10px] text-muted-foreground font-mono">
+                <span className="text-[10px] text-muted-foreground font-mono block truncate">
                   {req.receiverPhone}
                 </span>
               )}
@@ -312,11 +372,27 @@ export const RequestsListPage: React.FC = () => {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Purpose" />
         ),
-        cell: ({ row }) => (
-          <span className="text-muted-foreground text-xs max-w-[200px] truncate block" title={row.original.purpose}>
-            {row.original.purpose}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const text = `${row.original.purpose || ''} ${row.original.description || ''}`;
+          const plateMatch = text.match(/\b([A-Z]{2}\d{3})\b/);
+
+          return (
+            <div className="max-w-[130px] flex flex-col gap-0.5">
+              {plateMatch && (
+                <span className="inline-flex items-center gap-1 w-fit px-1.5 py-0.5 text-[9.5px] font-bold rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-mono">
+                  <Car className="h-2.5 w-2.5 shrink-0" />
+                  {plateMatch[1]}
+                </span>
+              )}
+              <span
+                className="text-muted-foreground text-xs truncate block"
+                title={row.original.purpose}
+              >
+                {row.original.purpose}
+              </span>
+            </div>
+          );
+        },
       },
       {
         accessorKey: 'requestedAmount',
@@ -334,18 +410,18 @@ export const RequestsListPage: React.FC = () => {
             Number(req.approvedAmount) !== Number(req.requestedAmount);
 
           return (
-            <div className="text-right">
+            <div className="text-right whitespace-nowrap">
               {hasDifferentApproved ? (
-                <div className="flex flex-col items-end">
-                  <span className="font-bold text-foreground">
+                <div className="flex flex-col items-end leading-none">
+                  <span className="font-bold text-foreground text-xs">
                     {formatCurrency(req.approvedAmount, req.currency)}
                   </span>
-                  <span className="text-[10px] text-muted-foreground line-through">
-                    Req: {formatCurrency(req.requestedAmount, req.currency)}
+                  <span className="text-[9px] text-muted-foreground line-through mt-0.5">
+                    {formatCurrency(req.requestedAmount, req.currency)}
                   </span>
                 </div>
               ) : (
-                <span className="font-bold text-foreground">
+                <span className="font-bold text-foreground text-xs">
                   {formatCurrency(
                     isApproved && req.approvedAmount ? req.approvedAmount : req.requestedAmount,
                     req.currency
@@ -359,23 +435,28 @@ export const RequestsListPage: React.FC = () => {
       {
         accessorKey: 'priority',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Priority" />
+          <div className="text-center">
+            <DataTableColumnHeader column={column} title="Priority" />
+          </div>
         ),
         cell: ({ row }) => {
           const priority = row.original.priority;
           return (
-            <Badge
-              variant={
-                priority === 'URGENT' || priority === 'HIGH'
-                  ? 'destructive'
-                  : priority === 'MEDIUM'
-                  ? 'warning'
-                  : 'secondary'
-              }
-              size="sm"
-            >
-              {priority}
-            </Badge>
+            <div className="text-center">
+              <Badge
+                variant={
+                  priority === 'URGENT' || priority === 'HIGH'
+                    ? 'destructive'
+                    : priority === 'MEDIUM'
+                    ? 'warning'
+                    : 'secondary'
+                }
+                size="sm"
+                className="text-[10px] px-1.5 py-0 font-medium whitespace-nowrap"
+              >
+                {priority}
+              </Badge>
+            </div>
           );
         },
       },
@@ -387,8 +468,8 @@ export const RequestsListPage: React.FC = () => {
           </div>
         ),
         cell: ({ row }) => (
-          <div className="text-center">
-            <StatusBadge status={row.original.status} />
+          <div className="text-center flex justify-center">
+            <StatusBadge status={row.original.status} size="sm" />
           </div>
         ),
       },
@@ -399,12 +480,15 @@ export const RequestsListPage: React.FC = () => {
           const req = row.original;
           return (
             <div className="text-center">
-              <Link to={`/requests/${req.requestNumber || req.id}`}>
-                <Button variant="outline" size="xs" className="gap-1">
-                  <Eye className="h-3 w-3" />
-                  View
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => openSidePanel(req)}
+                className="gap-1 h-6.5 px-2 text-[11px] font-medium hover:border-primary hover:text-primary cursor-pointer"
+              >
+                <Eye className="h-3 w-3" />
+                View
+              </Button>
             </div>
           );
         },
@@ -413,46 +497,160 @@ export const RequestsListPage: React.FC = () => {
     []
   );
 
+  const renderMobileRequestCard = (req: any) => {
+    const isApproved = ['APPROVED', 'PAID', 'COMPLETED'].includes(req.status);
+    const hasDifferentApproved =
+      isApproved &&
+      req.approvedAmount &&
+      Number(req.approvedAmount) !== Number(req.requestedAmount);
+
+    return (
+      <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 transition-all space-y-2.5">
+        {/* Top Header: Req Number & Status */}
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openSidePanel(req);
+            }}
+            className="font-bold text-primary hover:underline text-xs flex items-center gap-1 cursor-pointer"
+          >
+            <Receipt className="h-3.5 w-3.5 text-primary/80" />
+            <span>{req.requestNumber}</span>
+          </button>
+          <StatusBadge status={req.status} size="sm" />
+        </div>
+
+        {/* Amount & Priority */}
+        <div className="flex items-baseline justify-between pt-1 border-t border-slate-100 dark:border-slate-800/80">
+          <div>
+            <span className="text-[10px] text-muted-foreground uppercase font-semibold block leading-tight">Amount</span>
+            {hasDifferentApproved ? (
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-sm font-bold text-foreground">
+                  {formatCurrency(req.approvedAmount, req.currency)}
+                </span>
+                <span className="text-[10px] text-muted-foreground line-through">
+                  {formatCurrency(req.requestedAmount, req.currency)}
+                </span>
+              </div>
+            ) : (
+              <span className="text-sm font-bold text-foreground">
+                {formatCurrency(
+                  isApproved && req.approvedAmount ? req.approvedAmount : req.requestedAmount,
+                  req.currency
+                )}
+              </span>
+            )}
+          </div>
+
+          <Badge
+            variant={
+              req.priority === 'URGENT' || req.priority === 'HIGH'
+                ? 'destructive'
+                : req.priority === 'MEDIUM'
+                ? 'warning'
+                : 'secondary'
+            }
+            size="sm"
+            className="text-[10px] px-2 py-0.5 font-semibold uppercase"
+          >
+            {req.priority}
+          </Badge>
+        </div>
+
+        {/* Details Grid: Employee & Beneficiary */}
+        <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/80 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800/60">
+          <div className="min-w-0">
+            <span className="text-[10px] text-muted-foreground font-medium block">Employee</span>
+            <p className="font-semibold text-foreground text-xs truncate">{req.user?.fullName || '—'}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{req.region?.name || req.company?.name || '—'}</p>
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] text-muted-foreground font-medium block">Beneficiary</span>
+            <p className="font-medium text-foreground text-xs truncate">{req.receiverName || '—'}</p>
+            {req.receiverPhone && (
+              <p className="text-[10px] text-muted-foreground font-mono truncate">{req.receiverPhone}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Purpose */}
+        {req.purpose && (
+          <p className="text-xs text-muted-foreground line-clamp-2 italic px-0.5">
+            "{req.purpose}"
+          </p>
+        )}
+
+        {/* Footer: Date & Action */}
+        <div className="flex items-center justify-between pt-1 text-xs">
+          <span className="text-[11px] text-muted-foreground">
+            {formatDate(req.requestDate || req.createdAt)}
+          </span>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              openSidePanel(req);
+            }}
+            className="gap-1.5 h-7 px-3 text-xs font-semibold hover:border-primary hover:text-primary cursor-pointer"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            View Request
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-3 font-sans">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-baseline gap-2 min-w-0">
-          <h2 className="text-base font-bold text-foreground whitespace-nowrap leading-none">
-            Petty Cash Requests
+          <h2 className="text-base sm:text-lg font-bold text-foreground whitespace-nowrap leading-none font-display">
+            {isEmployee ? 'My requests' : 'All requests'}
           </h2>
           <span className="hidden sm:inline text-muted-foreground/60 text-xs">·</span>
           <p className="hidden sm:block text-[11px] text-muted-foreground truncate">
-            Manage and review petty cash requests
+            {isEmployee ? 'Track and manage your submitted expense vouchers' : 'Review, approve, and disburse regional petty cash vouchers'}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2 shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportExcel}
-            className="gap-1.5 shadow-xs"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
-            Export Excel
-          </Button>
+          {/* Export buttons — Accountant & Admin only */}
+          {!isEmployee && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportExcel}
+                className="gap-1.5 shadow-xs"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
+                Export Excel
+              </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportPdf}
-            className="gap-1.5 shadow-xs"
-          >
-            <Printer className="h-3.5 w-3.5 text-muted-foreground" />
-            Export PDF
-          </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPdf}
+                className="gap-1.5 shadow-xs"
+              >
+                <Printer className="h-3.5 w-3.5 text-muted-foreground" />
+                Export PDF
+              </Button>
+            </>
+          )}
 
+          {/* New Request — Employees & Accountants can submit */}
           {(user?.role === 'EMPLOYEE' || user?.role === 'ACCOUNTANT') && (
             <Link to="/requests/new">
-              <Button variant="default" size="sm" className="gap-1.5 shadow-sm">
+              <Button variant="gold" size="sm" className="gap-1.5 shadow-xs font-semibold">
                 <Plus className="h-3.5 w-3.5" />
-                New Request
+                New petty cash request
               </Button>
             </Link>
           )}
@@ -529,7 +727,7 @@ export const RequestsListPage: React.FC = () => {
                 <option value="">All Statuses</option>
                 <option value="DRAFT">Draft</option>
                 <option value="PENDING_APPROVAL">Pending Approval (Accountant)</option>
-                <option value="ACCOUNTANT_REVIEW">Accountant Reviewed (CFO)</option>
+                <option value="ACCOUNTANT_REVIEW">Stage 2: Awaiting Approval Two</option>
                 <option value="CORRECTION_REQUIRED">Correction Required</option>
                 <option value="APPROVED">Approved</option>
                 <option value="PAID">Paid</option>
@@ -621,9 +819,11 @@ export const RequestsListPage: React.FC = () => {
         columns={columns}
         data={filteredData}
         isLoading={loading}
+        dense={true}
         searchPlaceholder="Search by request #, name, etc..."
         pageSize={20}
         pageSizeOptions={[10, 20, 50, 100]}
+        renderMobileCard={renderMobileRequestCard}
         emptyState={
           <EmptyState
             icon={Receipt}
@@ -643,6 +843,57 @@ export const RequestsListPage: React.FC = () => {
           />
         }
       />
+
+      {/* DIRECT FULL PAGE INLINE / SIDE OVERLAY */}
+      {isSidePanelOpen && selectedRequestId && (
+        <div className="fixed inset-0 z-50 flex justify-end animate-in fade-in-0 duration-200">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsSidePanelOpen(false)}
+            aria-hidden="true"
+          />
+          {/* Full Page Slide-in Canvas */}
+          <div className="relative z-50 w-full max-w-4xl bg-card border-l border-border shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300">
+            {/* Top Bar with Close button */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/40 shrink-0">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsSidePanelOpen(false)}
+                  className="gap-1.5 text-xs text-muted-foreground hover:text-foreground -ml-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Requests
+                </Button>
+                <span className="text-muted-foreground/40">·</span>
+                <span className="text-xs font-semibold text-muted-foreground">Full Page View</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSidePanelOpen(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Complete Full Page Content (Scrollable) */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] dark:bg-[#080D1A]">
+              <RequestDetailPage
+                requestId={selectedRequestId}
+                isInline={true}
+                onClose={() => setIsSidePanelOpen(false)}
+                onActionCompleted={() => {
+                  loadRequests();
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -14,6 +14,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { FundManagementPage } from './pages/FundManagementPage';
+import { AuditTrailPage } from './pages/AuditTrailPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -42,19 +43,20 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
-// Admin Protection Helper
-const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  if (user?.role !== 'SUPER_ADMIN') {
-    return <Navigate to="/" replace />;
-  }
-  return <>{children}</>;
-};
 
 // Accountant Protection Helper
 const AccountantRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   if (user?.role !== 'ACCOUNTANT' && user?.role !== 'SUPER_ADMIN') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
+// Approval Two access - can access approval and report pages
+const ApprovalTwoRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  if (user?.role !== 'ACCOUNTANT' && user?.role !== 'SUPER_ADMIN' && user?.role !== 'APPROVAL_TWO') {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
@@ -94,23 +96,26 @@ const App: React.FC = () => {
               <Route path="requests/new" element={<RequestFormPage />} />
               <Route path="requests/edit/:id" element={<RequestFormPage />} />
               <Route path="requests/:id" element={<RequestDetailPage />} />
-              <Route
-                path="transactions"
-                element={
-                  <AccountantRoute>
-                    <TransactionsPage />
-                  </AccountantRoute>
-                }
-              />
+              <Route path="transactions" element={<TransactionsPage />} />
               
-              {/* Accountant-only */}
-              <Route 
-                path="settlements/pending" 
+              {/* Settlement Audits - Accountant/Admin only */}
+              <Route
+                path="settlements/pending"
                 element={
                   <AccountantRoute>
                     <SettlementsPendingPage />
                   </AccountantRoute>
-                } 
+                }
+              />
+
+              {/* Audit Trail - Accountant/Admin only */}
+              <Route
+                path="audit-trail"
+                element={
+                  <AccountantRoute>
+                    <AuditTrailPage />
+                  </AccountantRoute>
+                }
               />
               
               {/* Accountant or Admin */}
@@ -132,26 +137,26 @@ const App: React.FC = () => {
               />
               <Route 
                 path="reports" 
-                element={<Navigate to="/settings" replace />} 
+                element={<Navigate to="/transactions" replace />} 
               />
               <Route 
                 path="payments" 
                 element={
-                  <AccountantRoute>
+                  <ApprovalTwoRoute>
                     <React.Suspense fallback={<div>Loading...</div>}>
                       <PaymentsPage />
                     </React.Suspense>
-                  </AccountantRoute>
+                  </ApprovalTwoRoute>
                 }
               />
               
-              {/* Super Admin-only */}
+              {/* Super Admin & Accountant */}
               <Route 
                 path="users" 
                 element={
-                  <AdminRoute>
+                  <AccountantRoute>
                     <UserManagementPage />
-                  </AdminRoute>
+                  </AccountantRoute>
                 } 
               />
             </Route>

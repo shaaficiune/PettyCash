@@ -124,11 +124,12 @@ export const PaymentsPage: React.FC = () => {
         ),
         cell: ({ row }) => {
           const p = row.original;
-          return (
-            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">
-              {p.request?.company?.name || '—'}
-            </span>
-          );
+          const cName = p.request?.company?.name || '—';
+          const lower = cName.toLowerCase();
+          const cls = lower.includes('somtel') ? 'co-badge-somtel' :
+                      lower.includes('bluekom') ? 'co-badge-bluekom' :
+                      'text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground';
+          return <span className={cls}>{cName}</span>;
         },
       },
       {
@@ -249,8 +250,8 @@ export const PaymentsPage: React.FC = () => {
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-foreground">Disbursement Records</h2>
-          <p className="text-xs text-muted-foreground">Historical ledger of all petty cash payments made</p>
+          <h2 className="text-lg font-bold text-foreground font-display">Payment Vouchers</h2>
+          <p className="text-xs text-muted-foreground">Historical record of all petty cash payment vouchers issued</p>
         </div>
         <Button
           variant="outline"

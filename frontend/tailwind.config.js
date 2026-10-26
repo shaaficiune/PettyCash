@@ -4,6 +4,16 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    'co-badge-bluekom',
+    'co-badge-somtel',
+    'alert-low-balance',
+    'font-financial',
+    'num-credit',
+    'num-debit',
+    'num-balance',
+    'num-neutral',
+  ],
   darkMode: 'class',
   theme: {
     extend: {
@@ -52,7 +62,7 @@ export default {
           muted:   "var(--color-surface-muted)",
         },
 
-        // ── CashDesk Deep Teal Scale (Primary) ──────────────────────────────
+        // ── CashDesk Navy Blue Scale (Primary) ──────────────────────────────
         cashdesk: {
           50:  '#f0fafa',
           100: '#cceeee',
@@ -63,11 +73,11 @@ export default {
           600: '#136f6f',
           700: '#115858',
           800: '#0f4646',
-          900: '#0a2e2e',  // ← PRIMARY
-          950: '#051818',
+          900: '#0B1F4D',  // ← PRIMARY
+          950: '#071333',
         },
 
-        // ── Golden Amber CTA Scale ───────────────────────────────────────────
+        // ── Signal Gold CTA Scale ───────────────────────────────────────────
         gold: {
           50:  '#fffbeb',
           100: '#fef3c7',
@@ -75,26 +85,27 @@ export default {
           300: '#fcd34d',
           400: '#fbbf24',
           500: '#f59e0b',
-          DEFAULT: '#E8A020',  // ← PRIMARY CTA
+          DEFAULT: '#F5B700',  // ← PRIMARY CTA
           600: '#d97706',
           700: '#b45309',
           800: '#92400e',
           900: '#78350f',
         },
 
-        // ── Somtel Brand Scale (Orange) — unchanged ──────────────────────────
+        // ── Somtel Brand Scale (Solar Gold) ──────────────────────────────────
         somtel: {
-          50:  '#fff7ed',
-          100: '#ffedd5',
-          200: '#fed7aa',
-          300: '#fdba74',
-          400: '#fb923c',
-          500: '#f97316',
-          600: '#ea580c',
-          700: '#c2410c',
-          800: '#9a3412',
-          900: '#7c2d12',
-          950: '#431407',
+          50:  '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
+          300: '#fcd34d',
+          400: '#fbbf24',
+          500: '#f59e0b',
+          DEFAULT: '#F5B700',
+          600: '#d97706',
+          700: '#b45309',
+          800: '#92400e',
+          900: '#78350f',
+          950: '#451a03',
         },
 
         // ── Bluekom (kept for legacy company badge usage) ────────────────────
@@ -130,36 +141,43 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
 
-      // ── Typography ─────────────────────────────────────────────────────────
+      // ── Typography (Instrument Sans, Bricolage Grotesque, IBM Plex Mono) ──
       fontFamily: {
         sans: [
-          'Inter',
-          'ui-sans-serif',
+          '"Instrument Sans"',
           'system-ui',
           '-apple-system',
           'BlinkMacSystemFont',
           '"Segoe UI"',
-          'Roboto',
-          '"Helvetica Neue"',
-          'Arial',
+          'sans-serif',
+        ],
+        display: [
+          '"Bricolage Grotesque"',
+          'system-ui',
+          '-apple-system',
           'sans-serif',
         ],
         mono: [
-          '"JetBrains Mono"',
-          '"Fira Code"',
+          '"IBM Plex Mono"',
           'ui-monospace',
           'SFMono-Regular',
           'Menlo',
-          'Monaco',
           'Consolas',
-          '"Liberation Mono"',
-          '"Courier New"',
+          'monospace',
+        ],
+        financial: [
+          '"IBM Plex Mono"',
+          'ui-monospace',
+          'SFMono-Regular',
+          'Menlo',
+          'Consolas',
           'monospace',
         ],
       },
 
       // ── Shadows ────────────────────────────────────────────────────────────
       boxShadow: {
+        'xs':      '0 1px 2px 0 rgb(0 0 0 / 0.05)',
         'card':    '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06)',
         'card-md': '0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07)',
         'card-lg': '0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05)',

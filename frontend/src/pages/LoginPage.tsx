@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, User, Wallet, AlertCircle } from 'lucide-react';
+import { Lock, User, AlertCircle } from 'lucide-react';
 import {
   Card,
   CardHeader,
@@ -57,23 +57,49 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40 dark:bg-background font-sans px-4 py-8">
-      <div className="w-full max-w-sm">
-        {/* Brand Header */}
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#080D1A] font-sans px-4 py-8 relative overflow-hidden transition-colors">
+      {/* Dual-Brand Ambient Radial Glows */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#1F5FBF]/15 dark:bg-[#1F5FBF]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#F5B700]/15 dark:bg-[#F5B700]/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-sm relative z-10">
+        {/* Brand Logos & System Title */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto mb-3 shadow-xs">
-            <Wallet className="h-6 w-6" />
+          <div className="flex items-center justify-center gap-3 mb-4">
+            {/* Somtel Logo badge */}
+            <div className="h-11 px-3 bg-white dark:bg-[#0E172C] rounded-xl border border-slate-200 dark:border-[#1C2B4E] shadow-xs flex items-center justify-center">
+              <img
+                src="/logos/somtel-logo.png"
+                alt="Somtel Logo"
+                className="h-6 w-auto object-contain"
+                onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
+              />
+            </div>
+            <span className="text-slate-300 dark:text-slate-600 font-light text-sm">&times;</span>
+            {/* Bluekom Logo badge */}
+            <div className="h-11 px-3 bg-white dark:bg-[#0E172C] rounded-xl border border-slate-200 dark:border-[#1C2B4E] shadow-xs flex items-center justify-center">
+              <img
+                src="/logos/bluekom-logo.jpg"
+                alt="Bluekom Logo"
+                className="h-6 w-auto object-contain"
+                onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
+              />
+            </div>
           </div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Petty Cash System</h1>
-          <p className="text-xs text-muted-foreground mt-1">Sign in to your account</p>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight font-display">
+            Petty Cash Office
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Enterprise Financial Disbursements & Audit
+          </p>
         </div>
 
-        {/* shadcn Card */}
-        <Card className="border-border shadow-md bg-card text-card-foreground">
-          <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-lg text-foreground">Welcome Back</CardTitle>
+        {/* Dual-Brand Card */}
+        <Card className="border border-slate-200/80 dark:border-[#1C2B4E] shadow-xl shadow-slate-900/5 dark:shadow-black/40 bg-white/90 dark:bg-[#0E172C]/90 backdrop-blur-md text-card-foreground rounded-2xl">
+          <CardHeader className="space-y-1 pb-4 pt-6">
+            <CardTitle className="text-lg text-foreground font-bold">Sign In</CardTitle>
             <CardDescription className="text-xs">
-              Enter your credentials to access CashDesk
+              Enter your credentials to access the CashDesk workspace
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -86,7 +112,7 @@ export const LoginPage: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Username</Label>
+                <Label className="text-xs font-semibold text-foreground">Username</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
                   <Input
@@ -94,14 +120,14 @@ export const LoginPage: React.FC = () => {
                     placeholder="Enter username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-9 h-10"
+                    className="pl-9 h-10 border-slate-200 dark:border-[#1C2B4E] bg-white dark:bg-[#0A1224] focus:ring-[#F5B700] rounded-lg text-sm"
                     autoComplete="username"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Password</Label>
+                <Label className="text-xs font-semibold text-foreground">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
                   <Input
@@ -109,7 +135,7 @@ export const LoginPage: React.FC = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9 h-10"
+                    className="pl-9 h-10 border-slate-200 dark:border-[#1C2B4E] bg-white dark:bg-[#0A1224] focus:ring-[#F5B700] rounded-lg text-sm"
                     autoComplete="current-password"
                   />
                 </div>
@@ -117,19 +143,20 @@ export const LoginPage: React.FC = () => {
 
               <Button
                 type="submit"
-                variant="default"
                 size="lg"
                 isLoading={loading}
-                className="w-full mt-2 h-10 text-sm font-semibold shadow-xs"
+                className="w-full mt-3 h-10 text-sm font-bold bg-gradient-to-r from-[#FFC30B] to-[#F5B700] text-slate-950 hover:from-[#F5B700] hover:to-[#E0A500] shadow-md shadow-amber-500/20 rounded-lg cursor-pointer transition-all"
               >
-                Sign In
+                Sign In to Workspace
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="pt-0 justify-center">
-            <p className="text-center text-[11px] text-muted-foreground">
-              Somtel &bull; Bluekom
-            </p>
+          <CardFooter className="pt-1 pb-6 justify-center">
+            <div className="flex items-center gap-2">
+              <span className="co-badge-somtel text-[10px]">Somtel</span>
+              <span className="text-slate-300 dark:text-slate-700 text-xs">&bull;</span>
+              <span className="co-badge-bluekom text-[10px]">Bluekom</span>
+            </div>
           </CardFooter>
         </Card>
       </div>

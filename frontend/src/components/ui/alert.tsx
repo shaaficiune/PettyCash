@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { cn } from '../../lib/utils';
-import { AlertCircle, CheckCircle2, Info, AlertTriangle } from 'lucide-react';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
@@ -16,14 +15,6 @@ const alertVariants: Record<NonNullable<AlertProps['variant']>, string> = {
     'border-amber-500/50 text-amber-800 dark:text-amber-300 bg-amber-500/10 [&>svg]:text-amber-600',
   info:
     'border-primary/30 text-primary bg-primary/10 [&>svg]:text-primary',
-};
-
-const defaultIcons: Record<NonNullable<AlertProps['variant']>, React.ElementType> = {
-  default: Info,
-  destructive: AlertCircle,
-  success: CheckCircle2,
-  warning: AlertTriangle,
-  info: Info,
 };
 
 export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(

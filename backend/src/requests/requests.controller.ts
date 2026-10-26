@@ -74,7 +74,7 @@ export class RequestsController {
 
   @Post(':id/review')
   @UseGuards(RolesGuard)
-  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
   @ApiOperation({ summary: 'Approve, reject, or request correction on a petty cash request' })
   async review(@Param('id') id: string, @Request() req, @Body() dto: ReviewRequestDto) {
     return this.requestsService.review(id, req.user.userId, req.user.role, dto);

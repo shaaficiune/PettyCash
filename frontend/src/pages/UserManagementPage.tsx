@@ -29,7 +29,7 @@ import {
   TableCell,
 } from '../components/ui/data-table';
 import { Button } from '../components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select } from '../components/ui/select';
@@ -452,7 +452,7 @@ export const UserManagementPage: React.FC = () => {
           const u = row.original;
           return (
             <div>
-              <p className="font-semibold text-slate-800 dark:text-slate-200">{u.fullName}</p>
+              <p className="font-semibold text-foreground">{u.fullName}</p>
               <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
                 <span>@{u.username}</span>
                 {u.phone && <span>• {u.phone}</span>}
@@ -607,11 +607,11 @@ export const UserManagementPage: React.FC = () => {
       {/* Page Header and Tab Navigation */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" />
-            User &amp; Organization Directory
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2 font-display">
+            <Users className="h-6 w-6 text-[#F5B700]" />
+            User Directory
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Manage user accounts, roles, regional assignments, and monthly budget limits
           </p>
         </div>
@@ -779,7 +779,8 @@ export const UserManagementPage: React.FC = () => {
                       required
                     >
                       <option value="EMPLOYEE">Employee</option>
-                      <option value="ACCOUNTANT">Accountant</option>
+                      <option value="ACCOUNTANT">Accountant (Approval One)</option>
+                      <option value="APPROVAL_TWO">Approval Two — Head of Finance</option>
                       <option value="SUPER_ADMIN">Super Admin</option>
                     </Select>
                   </div>
@@ -926,7 +927,7 @@ export const UserManagementPage: React.FC = () => {
             <DialogTitle>Edit User Profile</DialogTitle>
             <DialogDescription>
               Editing account details for{' '}
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
+              <span className="font-semibold text-foreground">
                 {editingUser?.fullName}
               </span>{' '}
               (@{editingUser?.username})
@@ -977,7 +978,8 @@ export const UserManagementPage: React.FC = () => {
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                 >
                   <option value="EMPLOYEE">Employee</option>
-                  <option value="ACCOUNTANT">Accountant</option>
+                  <option value="ACCOUNTANT">Accountant (Approval One)</option>
+                  <option value="APPROVAL_TWO">Approval Two — Head of Finance</option>
                   <option value="SUPER_ADMIN">Super Admin</option>
                 </Select>
               </div>
@@ -1065,8 +1067,8 @@ export const UserManagementPage: React.FC = () => {
                     .filter((r) => !regionCompanyFilter || r.companyId === regionCompanyFilter || r.company?.id === regionCompanyFilter)
                     .map((region) => {
                       return (
-                        <TableRow key={region.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                          <TableCell className="py-3.5 px-6 font-semibold text-slate-800 dark:text-slate-200">
+                         <TableRow key={region.id} className="hover:bg-muted/40 transition-colors">
+                          <TableCell className="py-3.5 px-6 font-semibold text-foreground">
                             <div className="flex items-center gap-2">
                               <span className="inline-block w-2 h-2 rounded-full bg-primary" />
                               {region.name}
@@ -1103,7 +1105,7 @@ export const UserManagementPage: React.FC = () => {
                           </TableCell>
                           <TableCell className="py-3.5 px-6 text-right">
                             <Button
-                              variant="teal"
+                              variant="default"
                               size="xs"
                               onClick={() => handleSaveRegionBudget(region.id)}
                               disabled={savingBudgetId === region.id}
@@ -1215,7 +1217,7 @@ export const UserManagementPage: React.FC = () => {
                   <TableBody>
                     {regions.map((r) => {
                       return (
-                        <TableRow key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                        <TableRow key={r.id} className="hover:bg-muted/40 transition-colors">
                           <TableCell className="py-3.5 px-6">
                             {editingRegionId === r.id ? (
                               <Input
@@ -1224,7 +1226,7 @@ export const UserManagementPage: React.FC = () => {
                                 className="h-8 max-w-[200px] text-xs font-semibold"
                               />
                             ) : (
-                              <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{r.name}</span>
+                              <span className="font-semibold text-foreground text-xs">{r.name}</span>
                             )}
                           </TableCell>
 
@@ -1243,7 +1245,7 @@ export const UserManagementPage: React.FC = () => {
                               {editingRegionId === r.id ? (
                                 <>
                                   <Button
-                                    variant="teal"
+                                    variant="default"
                                     size="xs"
                                     onClick={() => handleSaveRegion(r.id)}
                                     className="gap-1.5"
@@ -1406,7 +1408,7 @@ export const UserManagementPage: React.FC = () => {
                   <TableBody>
                     {budgetHeads.map((bh) => {
                       return (
-                        <TableRow key={bh.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                        <TableRow key={bh.id} className="hover:bg-muted/40 transition-colors">
                           <TableCell className="py-3.5 px-6">
                             {editingBhId === bh.id ? (
                               <Input
@@ -1428,10 +1430,10 @@ export const UserManagementPage: React.FC = () => {
                                 className="h-8 max-w-[200px] text-xs font-semibold"
                               />
                             ) : (
-                              <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{bh.name}</span>
+                              <span className="font-semibold text-foreground text-xs">{bh.name}</span>
                             )}
                           </TableCell>
-                          <TableCell className="py-3.5 px-4 text-slate-500 max-w-[200px] hidden md:table-cell text-xs">
+                          <TableCell className="py-3.5 px-4 text-muted-foreground max-w-[200px] hidden md:table-cell text-xs">
                             {editingBhId === bh.id ? (
                               <Input
                                 value={editingBhDesc}
@@ -1458,7 +1460,7 @@ export const UserManagementPage: React.FC = () => {
                               {editingBhId === bh.id ? (
                                 <>
                                   <Button
-                                    variant="teal"
+                                    variant="default"
                                     size="xs"
                                     onClick={() => handleSaveBudgetHead(bh.id)}
                                     className="gap-1.5"

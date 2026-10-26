@@ -6,6 +6,99 @@ import {
   CreateBudgetHeadDto, UpdateBudgetHeadDto 
 } from './dto/company.dto';
 
+// ── Hardcoded vehicle fleet (replace with CompanyVehicle DB table later) ──────
+export interface VehicleEntry {
+  plate: string;
+  model: string;
+  status: string;
+}
+export interface FleetRecord {
+  companyKeyword: string;   // lowercase substring of company name
+  regionKeyword: string;    // lowercase substring of region name
+  vehicles: VehicleEntry[];
+}
+
+const VEHICLE_FLEET: FleetRecord[] = [
+  // ── Bluekom Fleet ──────────────────────────────────────────────────────────
+  {
+    companyKeyword: 'bluekom',
+    regionKeyword: 'bari',
+    vehicles: [
+      { plate: 'JI119', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'XH174', model: 'Toyota Noah',   status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'bluekom',
+    regionKeyword: 'nugaal',
+    vehicles: [
+      { plate: 'GM461', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'QK466', model: 'Toyota Probox', status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'bluekom',
+    regionKeyword: 'mudug',
+    vehicles: [
+      { plate: 'MG001', model: 'Toyota Land Cruiser', status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'bluekom',
+    regionKeyword: 'sanaag',
+    vehicles: [
+      { plate: 'SN001', model: 'Toyota Probox', status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'bluekom',
+    regionKeyword: 'hq',
+    vehicles: [
+      { plate: 'HQ001', model: 'Toyota Land Cruiser', status: 'ACTIVE' },
+      { plate: 'HQ002', model: 'Toyota Prado', status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'bluekom',
+    regionKeyword: 'coastal',
+    vehicles: [
+      { plate: 'CS001', model: 'Toyota Probox', status: 'ACTIVE' },
+    ],
+  },
+  // ── Somtel Fleet ───────────────────────────────────────────────────────────
+  {
+    companyKeyword: 'somtel',
+    regionKeyword: 'banaadir',
+    vehicles: [
+      { plate: 'BN001', model: 'Toyota Land Cruiser', status: 'ACTIVE' },
+      { plate: 'BN002', model: 'Toyota Probox',       status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'somtel',
+    regionKeyword: 'puntland',
+    vehicles: [
+      { plate: 'PL001', model: 'Toyota Noah',   status: 'ACTIVE' },
+      { plate: 'PL002', model: 'Toyota Probox', status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'somtel',
+    regionKeyword: 'jubbaland',
+    vehicles: [
+      { plate: 'JB001', model: 'Toyota Probox', status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'somtel',
+    regionKeyword: 'somaliland',
+    vehicles: [
+      { plate: 'SL001', model: 'Toyota Land Cruiser', status: 'ACTIVE' },
+      { plate: 'SL002', model: 'Toyota Probox',       status: 'ACTIVE' },
+    ],
+  },
+];
+
 @Injectable()
 export class CompaniesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -14,6 +107,32 @@ export class CompaniesService {
     return this.prisma.company.findMany({
       orderBy: { name: 'asc' },
     });
+  }
+
+  /**
+   * Returns the vehicle fleet for a given company + region.
+   * Matches by substring of company name and region name (case-insensitive).
+   * Temporary implementation — replace with CompanyVehicle DB table later.
+   */
+  getVehicles(companyName?: string, regionName?: string) {
+    if (!companyName) return [];
+
+    const cn = companyName.toLowerCase();
+    const rn = (regionName || '').toLowerCase().trim();
+
+    if (rn) {
+      const match = VEHICLE_FLEET.find(
+        (f) => cn.includes(f.companyKeyword) && rn.includes(f.regionKeyword),
+      );
+      if (match && match.vehicles.length > 0) {
+        return match.vehicles.filter((v) => v.status === 'ACTIVE');
+      }
+    }
+
+    // Fallback: return all vehicles for this company
+    const companyFleets = VEHICLE_FLEET.filter((f) => cn.includes(f.companyKeyword));
+    const all = companyFleets.flatMap((f) => f.vehicles || []);
+    return all.filter((v) => v.status === 'ACTIVE');
   }
 
   async findDepartments(companyId?: string) {

@@ -34,7 +34,7 @@ export class ReportsController {
 
   @Get('pending-requests')
   @UseGuards(RolesGuard)
-  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
   @ApiOperation({ summary: 'Get pending approval requests for accountant dashboard' })
   async getPendingRequests(@Request() req, @Query('companyId') companyId?: string) {
     const targetCompanyId = req.user.role === RoleName.SUPER_ADMIN ? companyId : req.user.companyId;
@@ -43,7 +43,7 @@ export class ReportsController {
 
   @Get('audit-logs')
   @UseGuards(RolesGuard)
-  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
   @ApiOperation({ summary: 'Retrieve system audit trail records' })
   async getAuditLogs(@Query('limit') limit?: string) {
     const take = limit ? Math.min(parseInt(limit, 10) || 300, 1000) : 300;
@@ -52,7 +52,7 @@ export class ReportsController {
 
   @Get('budget-heads')
   @UseGuards(RolesGuard)
-  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
   @ApiOperation({ summary: 'Get comparative Budget Head expenditure matrix across companies' })
   async getBudgetHeadReport(
     @Request() req,
@@ -61,7 +61,7 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
   ) {
-    const targetCompanyId = req.user.role === RoleName.SUPER_ADMIN ? companyId : req.user.companyId;
+    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
     return this.reportsService.getBudgetHeadReport(
       req.user,
       targetCompanyId,
@@ -73,7 +73,7 @@ export class ReportsController {
 
   @Get('export-budget-heads-excel')
   @UseGuards(RolesGuard)
-  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
   @ApiOperation({ summary: 'Export Budget Head matrix report as Excel' })
   async exportBudgetHeadsExcel(
     @Request() req,
@@ -83,7 +83,7 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
   ) {
-    const targetCompanyId = req.user.role === RoleName.SUPER_ADMIN ? companyId : req.user.companyId;
+    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
     const excelXml = await this.reportsService.exportBudgetHeadsExcel(
       req.user,
       targetCompanyId,
@@ -98,7 +98,7 @@ export class ReportsController {
 
   @Get('region-budget-heads')
   @UseGuards(RolesGuard)
-  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
   @ApiOperation({ summary: 'Get Region × Budget Head expenditure matrix (uses Region.monthlyBudget as cap)' })
   async getRegionBudgetHeadReport(
     @Request() req,
@@ -108,7 +108,7 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
   ) {
-    const targetCompanyId = req.user.role === RoleName.SUPER_ADMIN ? companyId : req.user.companyId;
+    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
     return this.reportsService.getRegionBudgetHeadReport(
       req.user,
       targetCompanyId,
@@ -121,7 +121,7 @@ export class ReportsController {
 
   @Get('region-budget-heads/daily')
   @UseGuards(RolesGuard)
-  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
   @ApiOperation({ summary: 'Daily spend trend per company/region for chart visualization' })
   async getRegionBudgetHeadDaily(
     @Request() req,
@@ -131,7 +131,7 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
   ) {
-    const targetCompanyId = req.user.role === RoleName.SUPER_ADMIN ? companyId : req.user.companyId;
+    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
     return this.reportsService.getRegionBudgetHeadDaily(
       req.user,
       targetCompanyId,

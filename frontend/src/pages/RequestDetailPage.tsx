@@ -29,11 +29,11 @@ import {
 
 const TIMELINE_STEPS = [
   { key: 'DRAFT', label: 'Draft', icon: Edit3 },
-  { key: 'PENDING_APPROVAL', label: 'Submitted', icon: Send },
-  { key: 'ACCOUNTANT_REVIEW', label: 'Accountant Review', icon: ClipboardCheck },
-  { key: 'APPROVED', label: 'Approved', icon: ShieldCheck },
-  { key: 'PAID', label: 'Paid', icon: Banknote },
-  { key: 'COMPLETED', label: 'Completed', icon: CheckCircle2 },
+  { key: 'PENDING_APPROVAL', label: 'Submitted (Stage 1)', icon: Send },
+  { key: 'ACCOUNTANT_REVIEW', label: 'Review (Stage 2)', icon: ClipboardCheck },
+  { key: 'APPROVED', label: 'Approved (Ready for PV)', icon: ShieldCheck },
+  { key: 'PAID', label: 'Paid (PV Issued)', icon: Banknote },
+  { key: 'COMPLETED', label: 'Settled & Closed', icon: CheckCircle2 },
 ];
 
 const STEP_ORDER: Record<string, number> = {
@@ -100,12 +100,37 @@ const Field: React.FC<{ label: string; icon?: React.ElementType; children: React
 );
 
 const AmountPill: React.FC<{ label: string; amount: number | null; currency: string; variant?: 'default' | 'green' | 'amber' }> = ({
-  label, amount, currency,
+  label, amount, currency, variant = 'default',
 }) => {
+  const themes = {
+    amber: {
+      border: 'border-[#F5B700]/50 dark:border-[#F5B700]/30',
+      bg: 'bg-[#FFFBEB] dark:bg-[#F5B700]/10',
+      stripe: 'bg-[#F5B700]',
+      label: 'text-[#92400E] dark:text-[#FBBF24]',
+      value: 'text-[#B45309] dark:text-[#FBBF24]',
+    },
+    green: {
+      border: 'border-[#059669]/50 dark:border-[#059669]/30',
+      bg: 'bg-[#ECFDF5] dark:bg-[#059669]/10',
+      stripe: 'bg-[#059669]',
+      label: 'text-[#065F46] dark:text-[#34D399]',
+      value: 'text-[#059669] dark:text-[#34D399]',
+    },
+    default: {
+      border: 'border-border/80',
+      bg: 'bg-muted/30',
+      stripe: 'bg-primary',
+      label: 'text-muted-foreground',
+      value: 'text-foreground',
+    },
+  };
+  const t = themes[variant];
   return (
-    <div className="rounded-xl border border-border/80 bg-muted/30 px-4 py-3 min-w-[130px]">
-      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5">{label}</p>
-      <p className="text-xl font-bold tracking-tight text-foreground">
+    <div className={`relative overflow-hidden rounded-xl border ${t.border} ${t.bg} px-4 py-3 min-w-[140px]`}>
+      <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${t.stripe}`} />
+      <p className={`text-[10px] uppercase font-bold tracking-wider mb-0.5 ${t.label}`}>{label}</p>
+      <p className={`text-xl font-bold tracking-tight font-financial ${t.value}`}>
         {amount !== null && amount !== undefined
           ? `${currency} ${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
           : <span className="text-sm font-medium text-muted-foreground">Pending</span>}
@@ -114,11 +139,24 @@ const AmountPill: React.FC<{ label: string; amount: number | null; currency: str
   );
 };
 
+export interface RequestDetailPageProps {
+  requestId?: string;
+  isInline?: boolean;
+  onClose?: () => void;
+  onActionCompleted?: () => void;
+}
+
 // MAIN PAGE
-export const RequestDetailPage: React.FC = () => {
+export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
+  requestId,
+  isInline = false,
+  onClose,
+  onActionCompleted,
+}) => {
   const { user } = useAuth();
-  const { id } = useParams();
+  const params = useParams();
   const navigate = useNavigate();
+  const id = requestId || params.id;
 
   const [request, setRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -194,8 +232,14 @@ export const RequestDetailPage: React.FC = () => {
   );
 
   const isEmployee = user?.role === 'EMPLOYEE';
-  const isAccountant = user?.role === 'ACCOUNTANT' || user?.role === 'SUPER_ADMIN';
-  const isOwnRequest = user?.role === 'ACCOUNTANT' && request?.userId === user?.id;
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isApprovalTwo = user?.role === 'APPROVAL_TWO';
+  const isAccountantRole = user?.role === 'ACCOUNTANT';
+  // isAccountant = can record payment (Accountant/Cashier) — APPROVAL_TWO excluded intentionally
+  const isAccountant = isAccountantRole || isSuperAdmin;
+  // canFinalApprove = allowed to do Stage 2 final approval
+  const canFinalApprove = isSuperAdmin || isApprovalTwo || isAccountantRole;
+  const isOwnRequest = isAccountantRole && request?.userId === user?.id;
   const canEdit = (isEmployee || isOwnRequest) && (request.status === 'DRAFT' || request.status === 'CORRECTION_REQUIRED');
 
   const withLoading = async (fn: () => Promise<void>) => {
@@ -219,6 +263,7 @@ export const RequestDetailPage: React.FC = () => {
       });
       setActionComments('');
       await loadRequestDetails();
+      onActionCompleted?.();
     });
 
   const handleRecordPayment = () =>
@@ -232,6 +277,7 @@ export const RequestDetailPage: React.FC = () => {
         notes: paymentNotes,
       });
       await loadRequestDetails();
+      onActionCompleted?.();
     });
 
   const handleSubmitSettlement = () =>
@@ -244,12 +290,14 @@ export const RequestDetailPage: React.FC = () => {
         notes: settlementNotes,
       });
       await loadRequestDetails();
+      onActionCompleted?.();
     });
 
   const handleSettlementReview = (settlementId: string, status: 'APPROVED' | 'REJECTED') =>
     withLoading(async () => {
       await api.post(`/settlements/${settlementId}/review`, { status });
       await loadRequestDetails();
+      onActionCompleted?.();
     });
 
   return (
@@ -260,7 +308,13 @@ export const RequestDetailPage: React.FC = () => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            if (isInline && onClose) {
+              onClose();
+            } else {
+              navigate('/requests');
+            }
+          }}
           className="gap-1.5 text-xs text-muted-foreground hover:text-foreground -ml-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -313,14 +367,29 @@ export const RequestDetailPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-black text-foreground tracking-tight">
+                <h1 className="text-2xl font-black text-foreground tracking-tight font-display">
                   Request #{request.requestNumber}
                 </h1>
                 <StatusBadge status={request.status} />
+                {request.priority && (
+                  <Badge
+                    variant={
+                      request.priority === 'URGENT' || request.priority === 'HIGH'
+                        ? 'destructive'
+                        : request.priority === 'MEDIUM'
+                        ? 'warning'
+                        : 'secondary'
+                    }
+                    size="default"
+                    className="font-bold uppercase tracking-wider text-[11px] px-2.5 py-0.5"
+                  >
+                    {request.priority} Priority
+                  </Badge>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
-                Submitted {new Date(request.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                Submitted {new Date(request.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })} at {new Date(request.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
 
@@ -485,20 +554,28 @@ export const RequestDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── APPROVAL DRAWER ── */}
-      {isAccountant && !isOwnRequest && (request.status === 'PENDING_APPROVAL' || request.status === 'ACCOUNTANT_REVIEW') && (
+      {/* ── APPROVAL DRAWER (Stage 1 for Accountant, Stage 2 for Super Admin or Approval Two) ── */}
+      {!isOwnRequest && (
+        (request.status === 'PENDING_APPROVAL' && isAccountant) ||
+        (request.status === 'ACCOUNTANT_REVIEW' && (isSuperAdmin || isApprovalTwo))
+      ) && (
         <Card className="overflow-hidden border border-border/80">
           <CardHeader className="border-b border-border flex flex-row items-center justify-between bg-muted/30">
             <div>
-              <CardTitle className="text-sm font-bold">
-                {request.status === 'PENDING_APPROVAL' ? 'Stage 1: Accountant Review' : 'Stage 2: CFO Final Approval'}
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                {request.status === 'PENDING_APPROVAL'
+                  ? 'Stage 1: Approval One Review'
+                  : 'Stage 2: Approval Two (Head of Accounting / Finance)'}
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
-                {request.status === 'PENDING_APPROVAL' ? 'Review and forward to Finance / CFO for final approval' : 'Issue final approval to release funds for disbursement'}
+                {request.status === 'PENDING_APPROVAL'
+                  ? 'Review request details and forward to Stage 2 for final authorization'
+                  : 'Issue final approval to authorize fund release and payment disbursement'}
               </CardDescription>
             </div>
             <Badge variant={request.status === 'PENDING_APPROVAL' ? 'warning' : 'info'} size="default">
-              {request.status === 'PENDING_APPROVAL' ? 'Awaiting Accountant' : 'Awaiting CFO'}
+              {request.status === 'PENDING_APPROVAL' ? 'Awaiting Approval One' : 'Awaiting Approval Two'}
             </Badge>
           </CardHeader>
 
@@ -553,17 +630,49 @@ export const RequestDetailPage: React.FC = () => {
               >
                 <XCircle className="h-3.5 w-3.5" /> Reject
               </Button>
+
+              {/* Super Admin reviewing Stage 1 can optionally forward or directly finalize */}
+              {isSuperAdmin && request.status === 'PENDING_APPROVAL' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleReview('ACCOUNTANT_REVIEW')}
+                  disabled={actionLoading}
+                  className="gap-1.5"
+                >
+                  Forward to Stage 2
+                </Button>
+              )}
+
+              {/* Main Approve Button */}
               <Button
                 variant="gold"
                 size="sm"
-                onClick={() => handleReview(request.status === 'PENDING_APPROVAL' ? 'ACCOUNTANT_REVIEW' : 'APPROVED')}
+                onClick={() => handleReview(request.status === 'ACCOUNTANT_REVIEW' || isSuperAdmin ? 'APPROVED' : 'ACCOUNTANT_REVIEW')}
                 disabled={actionLoading}
                 isLoading={actionLoading}
-                className="gap-1.5 shadow-sm"
+                className="gap-1.5 shadow-sm font-bold"
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
-                {request.status === 'PENDING_APPROVAL' ? 'Approve → Forward to CFO' : 'Final Approve (Ready for Payment)'}
+                {request.status === 'ACCOUNTANT_REVIEW' || isSuperAdmin
+                  ? 'Final Approve (Authorize Payment)'
+                  : 'Approve → Forward to Stage 2'}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Notice for Accountant viewing a Stage 2 request (pending Approval Two authorization) */}
+      {!isOwnRequest && isAccountantRole && !isSuperAdmin && !isApprovalTwo && request.status === 'ACCOUNTANT_REVIEW' && (
+        <Card className="overflow-hidden border border-border/80">
+          <CardContent className="p-5 flex items-start gap-3 bg-muted/20">
+            <ShieldCheck className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Stage 2: Awaiting Head of Accounting Authorization</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                This request has been verified in Stage 1 and is currently in Stage 2 awaiting final release authorization from Approval Two (Head of Finance).
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -575,18 +684,32 @@ export const RequestDetailPage: React.FC = () => {
           <CardContent className="p-5 flex items-start gap-3 bg-muted/20">
             <ShieldCheck className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-sm font-bold text-foreground">Awaiting CFO Approval</h3>
+              <h3 className="text-sm font-bold text-foreground">Awaiting Approval Two (Head of Finance Authorization)</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                You submitted this request. To prevent a conflict of interest, you cannot approve your own request.
-                A CFO must review and approve it. You will be notified once a decision is made.
+                You submitted this request as an Accountant. It has been routed directly to Stage 2 (Approval Two) for Head of Finance review and payment authorization. Only 1 approval is required.
               </p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* ── RECORD PAYMENT DRAWER ── */}
-      {isAccountant && request.status === 'APPROVED' && (
+      {/* Notice for Approval Two viewing an approved request — awaiting Accountant disbursement */}
+      {(isSuperAdmin || isApprovalTwo) && request.status === 'APPROVED' && (
+        <Card className="overflow-hidden border border-border/80">
+          <CardContent className="p-5 flex items-start gap-3 bg-muted/20">
+            <ShieldCheck className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Authorized & Awaiting Disbursement</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                You have authorized this request as Approval Two. It is now awaiting cash disbursement by the Cashier / Accountant.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── RECORD PAYMENT DRAWER (Accountant / Cashier only — Separation of Duties) ── */}
+      {isAccountantRole && !isSuperAdmin && request.status === 'APPROVED' && (
         <Card className="overflow-hidden border border-border/80">
           <CardHeader className="border-b border-border bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>

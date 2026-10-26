@@ -16,11 +16,35 @@ export class RequestsService {
   async create(userId: string, companyId: string, departmentId: string, dto: CreateRequestDto) {
     await this.validateDimensionCompany(companyId, dto.projectId, dto.regionId, dto.budgetHeadId);
 
-    // Generate Request Number
-    const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const prefix = `PC-${todayStr}-`;
-    
-    // Suffix count
+    // Generate Request Number (matching planupdate.md: PCR-[BK|ST]-[RegionCode]-[Seq])
+    let companyCode = 'BK';
+    const comp = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { name: true },
+    });
+    if (comp?.name?.toLowerCase().includes('somtel')) {
+      companyCode = 'ST';
+    }
+
+    let regionCode = 'HQ';
+    if (dto.regionId) {
+      const reg = await this.prisma.region.findUnique({
+        where: { id: dto.regionId },
+        select: { name: true },
+      });
+      if (reg?.name) {
+        const cleanName = reg.name.trim().toUpperCase();
+        if (cleanName.startsWith('NU')) regionCode = 'NG';
+        else if (cleanName.startsWith('BA')) regionCode = 'BR';
+        else if (cleanName.startsWith('MU')) regionCode = 'MD';
+        else if (cleanName.startsWith('SA')) regionCode = 'SN';
+        else if (cleanName.startsWith('KA')) regionCode = 'KR';
+        else if (cleanName.startsWith('SO')) regionCode = 'SL';
+        else regionCode = cleanName.slice(0, 2).replace(/[^A-Z]/g, '') || 'HQ';
+      }
+    }
+
+    const prefix = `PCR-${companyCode}-${regionCode}-`;
     const count = await this.prisma.pettyCashRequest.count({
       where: {
         requestNumber: {
@@ -28,7 +52,6 @@ export class RequestsService {
         },
       },
     });
-    
     const suffix = String(count + 1).padStart(4, '0');
     const requestNumber = `${prefix}${suffix}`;
 
@@ -108,7 +131,18 @@ export class RequestsService {
       await this.checkRegionBudget(dto.regionId, dto.requestedAmount);
     }
 
-    const initialStatus = dto.status === RequestStatus.PENDING_APPROVAL ? RequestStatus.PENDING_APPROVAL : RequestStatus.DRAFT;
+    // Check if requester is an Accountant (Approval One)
+    const requester = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: { select: { name: true } } },
+    });
+    const isAccountantRequester = requester?.role?.name === RoleName.ACCOUNTANT;
+
+    // If an Accountant submits a request, skip Stage 1 (since they are Approval 1) and route directly to Stage 2 (ACCOUNTANT_REVIEW) for Head of Finance / Approval Two authorization!
+    let initialStatus: RequestStatus = RequestStatus.DRAFT;
+    if (dto.status === RequestStatus.PENDING_APPROVAL) {
+      initialStatus = isAccountantRequester ? RequestStatus.ACCOUNTANT_REVIEW : RequestStatus.PENDING_APPROVAL;
+    }
 
     let costCenter = dto.costCenter || null;
     if (!costCenter && dto.regionId) {
@@ -161,7 +195,17 @@ export class RequestsService {
       },
     });
 
-    if (initialStatus === RequestStatus.PENDING_APPROVAL) {
+    if (initialStatus === RequestStatus.ACCOUNTANT_REVIEW) {
+      try {
+        await this.notifySuperAdmins(
+          `Accountant request submitted: ${requestNumber}`,
+          `Accountant ${request.user.fullName} submitted request ${requestNumber} for ${request.currency} ${request.requestedAmount}. Direct Stage 2 (Approval Two) authorization required.`,
+          companyId,
+        );
+      } catch (error) {
+        console.error('Request submission notification to Super Admins failed:', error);
+      }
+    } else if (initialStatus === RequestStatus.PENDING_APPROVAL) {
       try {
         await this.notifyAccountants(
           `New request submitted: ${requestNumber}`,
@@ -392,7 +436,13 @@ export class RequestsService {
           );
         }
 
-        data.status = RequestStatus.PENDING_APPROVAL;
+        const requester = await this.prisma.user.findUnique({
+          where: { id: request.userId },
+          select: { role: { select: { name: true } } },
+        });
+        const isAccountantRequester = requester?.role?.name === RoleName.ACCOUNTANT;
+
+        data.status = isAccountantRequester ? RequestStatus.ACCOUNTANT_REVIEW : RequestStatus.PENDING_APPROVAL;
         wasResubmitted = true;
         if (request.status === RequestStatus.CORRECTION_REQUIRED) {
           data.correctionNotes = null;
@@ -435,11 +485,19 @@ export class RequestsService {
     });
     if (wasResubmitted) {
       try {
-        await this.notifyAccountants(
-          `Resubmitted request: ${request.requestNumber}`,
-          `Employee resubmitted corrected request ${request.requestNumber} for review.`,
-          request.companyId,
-        );
+        if (data.status === RequestStatus.ACCOUNTANT_REVIEW) {
+          await this.notifySuperAdmins(
+            `Resubmitted request: ${request.requestNumber}`,
+            `Accountant resubmitted request ${request.requestNumber} for Stage 2 (Approval Two) authorization.`,
+            request.companyId,
+          );
+        } else {
+          await this.notifyAccountants(
+            `Resubmitted request: ${request.requestNumber}`,
+            `Employee resubmitted corrected request ${request.requestNumber} for review.`,
+            request.companyId,
+          );
+        }
       } catch (error) {
         console.error('Request resubmission notification failed:', error);
       }
@@ -519,7 +577,7 @@ export class RequestsService {
     // -- STAGE 1: PENDING_APPROVAL ? ACCOUNTANT_REVIEW --------------------
     } else if (newStatus === 'ACCOUNTANT_REVIEW') {
       if (currentStatus !== 'PENDING_APPROVAL') {
-        throw new BadRequestException('Request must be in Pending Approval to forward to CFO review.');
+        throw new BadRequestException('Request must be in Pending Approval to forward to Approval Two review.');
       }
       data.status = RequestStatus.ACCOUNTANT_REVIEW;
       if (dto.approvedAmount !== undefined) {
@@ -531,21 +589,23 @@ export class RequestsService {
 
       notification = {
         title: `Accountant Reviewed: ${request.requestNumber}`,
-        message: `Your petty cash request ${request.requestNumber} was reviewed by the Accountant and is now awaiting Finance/CFO Approval.`,
+        message: `Your petty cash request ${request.requestNumber} was reviewed by the Accountant and is now awaiting Approval Two (Head of Finance) authorization.`,
       };
 
-    // -- STAGE 2: → APPROVED (CFO/Finance final, or SUPER_ADMIN direct) ----
-    // Accepts from ACCOUNTANT_REVIEW (normal) or PENDING_APPROVAL (SUPER_ADMIN bypass)
+    // -- STAGE 2: → APPROVED (Head of Finance / Approval Two final, or SUPER_ADMIN direct) ----
+    // Accepts from ACCOUNTANT_REVIEW (normal) or PENDING_APPROVAL (SUPER_ADMIN bypass only)
     } else if (newStatus === 'APPROVED') {
+      // APPROVAL_TWO must wait for Accountant Stage 1 review before final approval.
+      // Only SUPER_ADMIN may bypass Stage 1 directly.
       if (currentStatus === 'PENDING_APPROVAL' && reviewerRole !== RoleName.SUPER_ADMIN) {
         throw new BadRequestException('An accountant must forward this request for final review before approval');
       }
 
       // Self-approval guard: An Accountant cannot approve a request they submitted themselves.
-      // SUPER_ADMIN (CFO) is exempt from this restriction.
+      // SUPER_ADMIN and APPROVAL_TWO (Head of Finance) are exempt from this restriction.
       if (reviewerRole === RoleName.ACCOUNTANT && request.userId === reviewerId) {
         throw new ForbiddenException(
-          'You cannot approve your own request. Please ask a Super Admin (CFO) to review and approve it.'
+          'You cannot approve your own request. Please ask the Head of Finance (Approval Two) to review and approve it.'
         );
       }
 
@@ -562,7 +622,7 @@ export class RequestsService {
         // Double-check inside the transaction to prevent race conditions
         if (reviewerRole === RoleName.ACCOUNTANT && latestRequest.userId === reviewerId) {
           throw new ForbiddenException(
-            'You cannot approve your own request. Please ask a Super Admin (CFO) to review and approve it.'
+            'You cannot approve your own request. Please ask a Super Admin (Head of Finance) to review and approve it.'
           );
         }
 
@@ -602,7 +662,7 @@ export class RequestsService {
         throw new BadRequestException('Request is no longer in a reviewable state');
       }
       if (newStatus === 'ACCOUNTANT_REVIEW' && latestRequest.status !== RequestStatus.PENDING_APPROVAL) {
-        throw new BadRequestException('Request must be in Pending Approval to forward to CFO review.');
+        throw new BadRequestException('Request must be in Pending Approval to forward to Approval Two review.');
       }
       return (tx as any).pettyCashRequest.update({ where: { id: targetId }, data });
     });
@@ -711,6 +771,24 @@ export class RequestsService {
 
     for (const acc of accountants) {
       await this.notifications.create(acc.id, title, message);
+    }
+  }
+
+  private async notifySuperAdmins(title: string, message: string, companyId?: string) {
+    // Notify both SUPER_ADMIN and APPROVAL_TWO users (both are authorized Stage 2 approvers)
+    const whereConditions: any[] = [
+      { role: { name: RoleName.SUPER_ADMIN }, status: 'ACTIVE' },
+      { role: { name: RoleName.APPROVAL_TWO }, status: 'ACTIVE' },
+    ];
+
+    for (const where of whereConditions) {
+      if (companyId) {
+        where.companyId = companyId;
+      }
+      const approvers = await this.prisma.user.findMany({ where });
+      for (const approver of approvers) {
+        await this.notifications.create(approver.id, title, message);
+      }
     }
   }
 }

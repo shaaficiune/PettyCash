@@ -1,5 +1,6 @@
 import React from 'react';
 import { Printer, X } from 'lucide-react';
+import { amountInWords } from '../utils/format';
 
 interface PaymentVoucherModalProps {
   isOpen: boolean;
@@ -17,7 +18,6 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
   if (!isOpen || !request) return null;
 
   const isSomtel = request.company?.name?.toLowerCase().includes('somtel');
-  const isBluekom = request.company?.name?.toLowerCase().includes('bluekom') || !isSomtel;
 
   // Extract payment details
   const activePayment = payment || (request.payments && request.payments.length > 0 ? request.payments[0] : null);
@@ -35,6 +35,7 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
   const rawAmount = activePayment?.amountPaid ?? request.approvedAmount ?? request.requestedAmount ?? 0;
   const numAmount = Number(rawAmount);
   const formattedAmount = numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const amountWords = amountInWords(numAmount, request.currency || 'USD');
 
   // Voucher Number: Each company starts at 1 (Somtel starts 1, Bluekom starts 1)
   const displayVoucherNo = request.voucherNumber != null
@@ -42,6 +43,12 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
     : (activePayment?.voucherNumber != null
       ? String(activePayment.voucherNumber)
       : '1');
+
+  // Serialized PV Number (PV-BK-YYYY-XXXX or PV-ST-YYYY-XXXX) per planupdate.md
+  const compCode = isSomtel ? 'ST' : 'BK';
+  const voucherYear = formattedYear || new Date().getFullYear().toString();
+  const seqStr = String(displayVoucherNo).padStart(4, '0');
+  const serializedVoucherNo = `PV-${compCode}-${voucherYear}-${seqStr}`;
 
   // Approver / Accountant
   const approverName = activePayment?.paidBy?.fullName || 'Finance Office';
@@ -182,7 +189,7 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#F5B700] hover:bg-[#D9A300] text-[#1A1400] text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
               title="Print Voucher or Save as PDF"
             >
               <Printer className="h-3.5 w-3.5" />
@@ -288,15 +295,18 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
             </div>
 
             {/* Right: Voucher Number */}
-            <div className="w-24 sm:w-28 flex-shrink-0 text-right pt-1">
+            <div className="w-40 sm:w-48 flex-shrink-0 text-right pt-1">
               <span className="text-xs font-bold text-slate-800">No. </span>
               <span 
-                className={`text-xl sm:text-2xl font-black font-mono tracking-wider ${
+                className={`text-base sm:text-lg font-black font-mono tracking-wider ${
                   isSomtel ? 'text-[#d63031]' : 'text-[#17375e]'
                 }`}
               >
-                {displayVoucherNo}
+                {serializedVoucherNo}
               </span>
+              <div className="text-[10px] text-slate-500 font-mono">
+                Pad #{displayVoucherNo}
+              </div>
             </div>
           </div>
 
@@ -361,10 +371,10 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
                           <span className="font-bold">{request.purpose}</span>
                         ) : null}
                       </td>
-                      <td className="border-r border-[#2d588f] px-2 py-0 text-right font-mono text-slate-800 text-[11px]">
+                      <td className="border-r border-[#2d588f] px-2 py-0 text-right font-financial text-slate-800 text-[11px]">
                         {isFirstRow ? `$ ${formattedAmount}` : ''}
                       </td>
-                      <td className="px-2.5 py-0 text-right font-mono font-bold text-slate-900 text-[11px]">
+                      <td className="px-2.5 py-0 text-right font-financial font-bold text-slate-900 text-[11px]">
                         {isFirstRow ? `$ ${formattedAmount}` : ''}
                       </td>
                     </tr>
@@ -376,10 +386,10 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
                   <td colSpan={2} className="py-1 px-2.5 text-left border-r border-[#2d588f] text-xs sm:text-[13px] tracking-wide">
                     Grand Total
                   </td>
-                  <td className="border-r border-[#2d588f] px-2 py-1 text-right font-mono">
+                  <td className="border-r border-[#2d588f] px-2 py-1 text-right font-financial">
                     {/* Empty cell per original scanned voucher */}
                   </td>
-                  <td className="px-2.5 py-1 text-right font-mono text-xs sm:text-[13px] font-black text-[#17375e]">
+                  <td className="px-2.5 py-1 text-right font-financial text-xs sm:text-[13px] font-black text-[#17375e]">
                     $ {formattedAmount}
                   </td>
                 </tr>
@@ -387,25 +397,36 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
             </table>
           </div>
 
-          {/* ── SIGNATURES FOOTER (INITIAL SIGNITURE & APROVED BY) ── */}
-          <div className="mt-3.5 pt-1 flex items-end justify-between gap-8 text-xs sm:text-[13px]">
-            {/* Initial Signiture (Stacked on 2 lines like original pad) */}
-            <div className="flex-1">
-              <div className="font-bold text-[#17375e] leading-tight">Initial</div>
-              <div className="flex items-baseline gap-1">
-                <span className="font-bold text-[#17375e]">Signiture</span>
-                <div className="flex-1 border-b border-slate-700 pb-0.5" />
+          {/* ── AMOUNT IN WORDS ── */}
+          <div className="mt-2 flex items-baseline gap-2 text-xs text-slate-900">
+            <span className="font-bold text-[#17375e] whitespace-nowrap min-w-[115px]">Amount in Words:</span>
+            <div className="flex-1 border-b border-slate-700 pb-0.5 px-1 font-semibold text-slate-800 leading-tight">
+              {amountWords}
+            </div>
+          </div>
+
+          {/* ── FORMAL DUAL-SIGNATURE FOOTER (INITIATED BY, APPROVED BY) ── */}
+          <div className="mt-4 pt-2.5 border-t border-slate-300 grid grid-cols-2 gap-8 text-xs sm:text-[12px]">
+            {/* 1. Initiated By: Accountant / Approval One */}
+            <div className="flex flex-col justify-end">
+              <span className="font-bold text-[#17375e] text-[11px] uppercase tracking-wider mb-1">
+                Initiated By:
+              </span>
+              <div className="border-b border-slate-700 pb-0.5 text-slate-900 font-bold px-1 min-h-[22px] truncate text-[11px]">
+                {approverName || 'Abshir Qasim'}
               </div>
+              <span className="text-[10px] text-slate-500 font-medium mt-0.5">Accountant / Approval One</span>
             </div>
 
-            {/* Aproved By (Spelled with single 'p' like original pad) */}
-            <div className="flex-1">
-              <div className="flex items-baseline gap-1 mt-3">
-                <span className="font-bold text-[#17375e] whitespace-nowrap">Aproved By</span>
-                <div className="flex-1 border-b border-slate-700 pb-0.5 text-slate-800 font-bold px-1 text-right">
-                  {approverName}
-                </div>
+            {/* 2. Approved By: Approval Two (Head of Finance / DG) */}
+            <div className="flex flex-col justify-end">
+              <span className="font-bold text-[#17375e] text-[11px] uppercase tracking-wider mb-1 text-right">
+                Approved By:
+              </span>
+              <div className="border-b border-slate-700 pb-0.5 text-slate-900 font-bold px-1 min-h-[22px] text-right truncate text-[11px]">
+                {request.status === 'PAID' || request.status === 'COMPLETED' ? 'Authorized & Approved' : 'Approved (Stage 2)'}
               </div>
+              <span className="text-[10px] text-slate-500 font-medium mt-0.5 text-right">Approval Two / Head of Finance</span>
             </div>
           </div>
 
@@ -417,21 +438,21 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
         </div>
 
         {/* Modal Footer (Action buttons) - Hidden during print */}
-        <div className="flex items-center justify-between px-5 py-2.5 bg-slate-50 border-t border-slate-200 voucher-no-print">
-          <p className="text-[11px] text-slate-500">
-            Tip: You can print directly or choose <strong className="text-slate-700">"Save as PDF"</strong> in your print window.
+        <div className="flex items-center justify-between px-5 py-2.5 bg-muted/50 border-t border-border voucher-no-print">
+          <p className="text-[11px] text-muted-foreground">
+            Tip: You can print directly or choose <strong className="text-foreground">"Save as PDF"</strong> in your print window.
           </p>
 
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors cursor-pointer"
             >
               Close
             </button>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-[#F5B700] hover:bg-[#D9A300] text-[#1A1400] text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer"
             >
               <Printer className="h-3.5 w-3.5" />
               <span>Print Payment Voucher</span>

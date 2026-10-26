@@ -19,29 +19,29 @@ interface StatusBadgeProps {
 
 const STATUS_STYLES: Record<string, string> = {
   DRAFT:
-    'bg-muted text-muted-foreground border-border',
+    'bg-[#ECEFF5] text-[#73809C] dark:bg-[#18233D] dark:text-[#7584A6] border-transparent',
   PENDING_APPROVAL:
-    'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400 dark:border-amber-500/30',
+    'bg-[#FFF3C4] text-[#8A6100] dark:bg-[#2E2710] dark:text-[#F5C21B] border-transparent',
   ACCOUNTANT_REVIEW:
-    'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400 dark:border-amber-500/30',
+    'bg-[#E2EAF8] text-[#1F4FA3] dark:bg-[#15254A] dark:text-[#8DB2F5] border-transparent',
   CORRECTION_REQUIRED:
-    'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400 dark:border-amber-500/30',
+    'bg-[#FCE9D6] text-[#A3500B] dark:bg-[#36230F] dark:text-[#F0A15E] border-transparent',
   REJECTED:
-    'bg-rose-500/10 text-rose-700 border-rose-500/20 dark:text-rose-400 dark:border-rose-500/30',
+    'bg-[#F9E1E1] text-[#B42323] dark:bg-[#3A1719] dark:text-[#F27D7D] border-transparent',
   APPROVED:
-    'bg-teal-500/10 text-teal-700 border-teal-500/20 dark:text-teal-400 dark:border-teal-500/30',
+    'bg-[#DFF2E5] text-[#1F7A3E] dark:bg-[#13301F] dark:text-[#6BD08F] border-transparent',
   PAID:
-    'bg-teal-500/10 text-teal-700 border-teal-500/20 dark:text-teal-400 dark:border-teal-500/30',
+    'bg-[#DFF2E5] text-[#1F7A3E] dark:bg-[#13301F] dark:text-[#6BD08F] border-transparent',
   COMPLETED:
-    'bg-teal-500/10 text-teal-700 border-teal-500/20 dark:text-teal-400 dark:border-teal-500/30',
+    'bg-[#DFF2E5] text-[#1F7A3E] dark:bg-[#13301F] dark:text-[#6BD08F] border-transparent',
   PAYMENT_PROCESSING:
-    'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400 dark:border-amber-500/30',
+    'bg-[#E2EAF8] text-[#1F4FA3] dark:bg-[#15254A] dark:text-[#8DB2F5] border-transparent',
 };
 
 const SIZE_CLASSES: Record<StatusSize, string> = {
-  sm: 'text-[10px] px-2 py-0.5 font-semibold rounded-full border',
-  md: 'text-xs px-2.5 py-1 font-semibold rounded-full border whitespace-nowrap',
-  lg: 'text-xs px-3 py-1 font-bold rounded-full border whitespace-nowrap',
+  sm: 'text-[10.5px] px-2 py-0.5 font-semibold rounded-full gap-1.5',
+  md: 'text-xs px-2.5 py-0.5 font-semibold rounded-full gap-1.5 whitespace-nowrap',
+  lg: 'text-xs px-3 py-1 font-bold rounded-full gap-2 whitespace-nowrap',
 };
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
@@ -54,6 +54,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     <span
       className={`inline-flex items-center ${SIZE_CLASSES[size]} ${styles} ${className}`}
     >
+      <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" aria-hidden="true" />
       {humanStatus(status)}
     </span>
   );

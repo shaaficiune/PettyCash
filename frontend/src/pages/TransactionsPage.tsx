@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { ColumnDef } from '@tanstack/react-table';
 import {
   DollarSign,
@@ -10,6 +11,8 @@ import {
   Calendar,
   MapPin,
   Filter,
+  Building2,
+  Receipt,
 } from 'lucide-react';
 import { EmptyState } from '../components/ui/EmptyState';
 import { formatCurrency, formatDate } from '../utils/format';
@@ -30,8 +33,11 @@ import {
 } from '../components/ui';
 
 export const TransactionsPage: React.FC = () => {
+  const { user } = useAuth();
+  const isEmployee = user?.role === 'EMPLOYEE';
   const [transactions, setTransactions] = useState<any[]>([]);
   const [regions, setRegions] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportingExcel, setExportingExcel] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -41,24 +47,34 @@ export const TransactionsPage: React.FC = () => {
   // Filters
   const [typeFilter, setTypeFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
+  const [companyFilter, setCompanyFilter] = useState('');
   const [datePreset, setDatePreset] = useState<'ALL' | 'THIS_MONTH' | 'THIS_WEEK' | 'TODAY' | 'CUSTOM'>('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Fetch Regions for dropdown grouped by company
+  // Fetch Regions & Companies
   useEffect(() => {
     const fetchRegions = async () => {
       try {
-        const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
+        const saved = sessionStorage.getItem('companyFilter') || 'ALL';
         const params: any = {};
-        if (companyFilter !== 'ALL') params.companyId = companyFilter;
+        if (saved !== 'ALL') params.companyId = saved;
         const res = await api.get('/companies/regions', { params });
         setRegions(res.data || []);
       } catch (err) {
         console.error('Failed to load regions', err);
       }
     };
+    const fetchCompanies = async () => {
+      try {
+        const res = await api.get('/companies');
+        setCompanies(res.data || []);
+      } catch (err) {
+        console.error('Failed to load companies', err);
+      }
+    };
     fetchRegions();
+    fetchCompanies();
     window.addEventListener('companyFilterChanged', fetchRegions);
     return () => window.removeEventListener('companyFilterChanged', fetchRegions);
   }, []);
@@ -66,9 +82,10 @@ export const TransactionsPage: React.FC = () => {
   const loadTransactions = async () => {
     setLoading(true);
     try {
-      const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
+      const saved = sessionStorage.getItem('companyFilter') || 'ALL';
       const params: any = { page: 1, pageSize: 500 };
-      if (companyFilter !== 'ALL') params.companyId = companyFilter;
+      if (saved !== 'ALL') params.companyId = saved;
+      if (companyFilter) params.companyId = companyFilter;
       if (typeFilter) params.transactionType = typeFilter;
       if (regionFilter) params.regionId = regionFilter;
       if (startDate) params.startDate = startDate;
@@ -93,7 +110,7 @@ export const TransactionsPage: React.FC = () => {
     return () => {
       window.removeEventListener('companyFilterChanged', loadTransactions);
     };
-  }, [typeFilter, regionFilter, startDate, endDate]);
+  }, [typeFilter, regionFilter, companyFilter, startDate, endDate]);
 
   const applyDatePreset = (preset: 'ALL' | 'THIS_MONTH' | 'THIS_WEEK' | 'TODAY' | 'CUSTOM') => {
     setDatePreset(preset);
@@ -260,22 +277,6 @@ export const TransactionsPage: React.FC = () => {
         },
       },
 
-      {
-        id: 'company',
-        meta: { title: 'Company' },
-        accessorFn: (row) => row.company?.name || row.request?.company?.name || '',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Company" />
-        ),
-        cell: ({ row }) => {
-          const cName = row.original.company?.name || row.original.request?.company?.name || '—';
-          return (
-            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground whitespace-nowrap">
-              {cName}
-            </span>
-          );
-        },
-      },
 
       {
         id: 'reqNumber',
@@ -548,32 +549,143 @@ export const TransactionsPage: React.FC = () => {
     []
   );
 
+  const renderMobileTransactionCard = (tx: any) => {
+    const isDebit = Number(tx.debitAmount || 0) > 0;
+    const isCredit = Number(tx.creditAmount || 0) > 0;
+
+    return (
+      <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 transition-all space-y-2.5">
+        {/* Header: Date + Type Badge */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5 text-slate-400" />
+            <span className="font-medium text-foreground">{formatDate(tx.transactionDate || tx.createdAt)}</span>
+          </div>
+          <Badge
+            variant={
+              tx.transactionType === 'EXPENSE'
+                ? 'destructive'
+                : tx.transactionType === 'ALLOCATION'
+                ? 'success'
+                : 'warning'
+            }
+            size="sm"
+            className="text-[10px] px-2 py-0.5 font-semibold uppercase"
+          >
+            {tx.transactionType}
+          </Badge>
+        </div>
+
+        {/* Financial Flow: Debit / Credit & Balance */}
+        <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-100 dark:border-slate-800/60 text-xs">
+          <div>
+            <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+              {isDebit ? 'Cash In (Debit)' : 'Cash Out (Credit)'}
+            </span>
+            {isDebit ? (
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                +{formatCurrency(tx.debitAmount, tx.currency || 'USD')}
+              </span>
+            ) : isCredit ? (
+              <span className="font-bold text-rose-600 dark:text-rose-400 text-sm">
+                −{formatCurrency(tx.creditAmount, tx.currency || 'USD')}
+              </span>
+            ) : (
+              <span className="text-muted-foreground text-xs">—</span>
+            )}
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Running Balance</span>
+            <span className="font-mono font-bold text-foreground text-sm">
+              {formatCurrency(tx.runningBalance, tx.currency || 'USD')}
+            </span>
+          </div>
+        </div>
+
+        {/* References: Req # & Invoice # */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {tx.request?.requestNumber && (
+            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+              <Receipt className="h-3 w-3" />
+              {tx.request.requestNumber}
+            </span>
+          )}
+          {(tx.receiptNumber || tx.referenceNumber) && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded font-mono">
+              Inv: {tx.receiptNumber || tx.referenceNumber}
+            </span>
+          )}
+        </div>
+
+        {/* Recipient & Location */}
+        <div className="text-xs space-y-0.5">
+          {(tx.recipientName || tx.user?.fullName) && (
+            <p className="font-medium text-foreground truncate">
+              {tx.recipientName || tx.user?.fullName}
+              {tx.recipientPhone && <span className="text-muted-foreground font-mono text-[11px] ml-1.5">({tx.recipientPhone})</span>}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground truncate">
+            {tx.region?.name || '—'} {tx.category?.name ? `· ${tx.category.name}` : ''}
+          </p>
+        </div>
+
+        {/* Description */}
+        {tx.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 italic px-0.5">
+            "{tx.description}"
+          </p>
+        )}
+
+        {/* Footer: Detail button */}
+        <div className="pt-1 flex justify-end">
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedTx(tx);
+            }}
+            className="gap-1.5 h-7 px-3 text-xs font-semibold hover:border-primary hover:text-primary cursor-pointer w-full sm:w-auto"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            View Details
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4 font-sans">
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-primary" />
-            Transactions Ledger
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2 font-display">
+            <DollarSign className="h-5 w-5 text-[#F5B700]" />
+            {isEmployee ? 'My Petty Cash Reports' : 'Petty Cash Reports'}
           </h2>
           <p className="text-xs text-muted-foreground">
-            Chronological log of petty cash allocations, disbursements, payments, and financial movements
+            {isEmployee
+              ? 'Personal petty cash disbursements and settlement history for your approved requests'
+              : 'Petty cash book showing cash received (Debit) and payments (Credit) with running balance'}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportMonthlyBook}
-            disabled={exportingBook}
-            className="gap-1.5"
-            title="Export Monthly Petty Cash Book (.xlsx)"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
-            {exportingBook ? 'Generating...' : 'Monthly Book (.xlsx)'}
-          </Button>
+          {!isEmployee && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportMonthlyBook}
+              disabled={exportingBook}
+              className="gap-1.5"
+              title="Export Monthly Petty Cash Book (.xlsx)"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
+              {exportingBook ? 'Generating...' : 'Monthly Book (.xlsx)'}
+            </Button>
+          )}
 
           <Button
             variant="outline"
@@ -629,6 +741,28 @@ export const TransactionsPage: React.FC = () => {
               </Select>
             </div>
 
+            {/* COMPANY FILTER - Admin/Accountant only */}
+            {!isEmployee && (
+              <div className="flex items-center gap-1.5 min-w-[135px] flex-1 sm:flex-initial">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Select
+                  value={companyFilter}
+                  onChange={(e) => {
+                    setCompanyFilter(e.target.value);
+                    setRegionFilter('');
+                  }}
+                  className="text-xs h-8 font-medium"
+                >
+                  <option value="">All Companies</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
+
             {/* REGION FILTER - GROUPED BY COMPANY */}
             <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -639,15 +773,19 @@ export const TransactionsPage: React.FC = () => {
               >
                 <option value="">All Regions</option>
                 {(() => {
+                  const visibleRegions = companyFilter
+                    ? regions.filter((r) => (r.companyId || r.company?.id) === companyFilter)
+                    : regions;
+
                   const groups: { [key: string]: any[] } = {};
-                  regions.forEach((r) => {
+                  visibleRegions.forEach((r) => {
                     const cName = r.company?.name || 'Other';
                     if (!groups[cName]) groups[cName] = [];
                     groups[cName].push(r);
                   });
                   const compKeys = Object.keys(groups);
                   if (compKeys.length <= 1) {
-                    return regions.map((r) => (
+                    return visibleRegions.map((r) => (
                       <option key={r.id} value={r.id}>
                         {r.name}
                       </option>
@@ -721,11 +859,12 @@ export const TransactionsPage: React.FC = () => {
         searchPlaceholder="Filter transactions by ref, name, description..."
         pageSize={20}
         pageSizeOptions={[10, 20, 50, 100]}
+        renderMobileCard={renderMobileTransactionCard}
         emptyState={
           <EmptyState
             icon={DollarSign}
-            title="No transactions found"
-            description="No ledger movements matching the selected criteria."
+            title="No records found"
+            description="No petty cash report entries matching the selected criteria."
           />
         }
       />

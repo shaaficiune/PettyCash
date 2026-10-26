@@ -4,8 +4,9 @@
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CASHDESK ENTERPRISE — DESIGN SYSTEM
-   Color: Deep Teal (#0D3B3B) + Golden Amber (#E8A020)
-   Inspired by: Professional financial SaaS UI
+   Color: Navy Blue (#0B1F4D) + Signal Gold (#F5B700)
+   Companies: Bluekom Royal Blue (#1F5FBF) · Somtel Warm Orange (#C2571A)
+   Inspired by: Petty Cash Office — Financial SaaS UI
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
@@ -13,24 +14,31 @@
   /* ── Light Mode ──────────────────────────────────────────────────────────── */
   :root {
     /* ── Explicit Design Tokens ───────────────────────────────────────────── */
-    --color-primary:          #0a2e2e;  /* Dark Deep Teal */
-    --color-primary-hover:    #0d3b3b;
-    --color-primary-active:   #061e1e;
-    --color-secondary:        #E8A020;  /* Golden Amber */
-    --color-secondary-hover:  #D4911A;
-    --color-background:       #f8fafc;
-    --color-surface:          #ffffff;
-    --color-surface-muted:    #f1f5f9;
-    --color-border:           #e2e8f0;
-    --color-text:             #0f172a;
+    --color-primary:          #0D1C3D;  /* Bluekom Heritage Navy */
+    --color-primary-hover:    #152B5C;
+    --color-primary-active:   #09142C;
+    --color-secondary:        #F5B700;  /* Somtel Solar Gold */
+    --color-secondary-hover:  #D9A300;
+    --color-background:       #F8FAFC;
+    --color-surface:          #FFFFFF;
+    --color-surface-muted:    #F1F5F9;
+    --color-border:           #E2E8F0;
+    --color-text:             #0F172A;
     --color-text-secondary:   #475569;
-    --color-text-muted:       #64748b;
+    --color-text-muted:       #64748B;
     --color-success:          #059669;
-    --color-warning:          #d97706;
-    --color-error:            #dc2626;
-    --color-info:             #0284c7;
-    --color-amber:            #E8A020;
-    --color-amber-hover:      #D4911A;
+    --color-warning:          #D97706;
+    --color-error:            #DC2626;
+    --color-info:             #0284C7;
+    --color-amber:            #F5B700;  /* Somtel Solar Gold */
+    --color-amber-hover:      #D9A300;
+    /* Company brand tokens */
+    --color-bluekom:          #1F5FBF;  /* Bluekom Royal Blue */
+    --color-bluekom-soft:     #EFF6FF;
+    --color-somtel:           #D97706;  /* Somtel Solar Gold/Amber */
+    --color-somtel-soft:      #FEF3C7;
+    /* Financial mono font */
+    --font-mono-financial:    'IBM Plex Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
 
     /* ── Tailwind HSL Tokens ──────────────────────────────────────────────── */
     --background:          210 40% 98%;
@@ -40,8 +48,8 @@
     --popover:             0 0% 100%;
     --popover-foreground:  222 47% 11%;
 
-    /* Primary: Dark Deep Teal — hsl(180, 64%, 11%) ≈ #0a2e2e */
-    --primary:             180 64% 11%;
+    /* Primary: Navy Blue — hsl(222, 65%, 15%) ≈ #0D1C3D */
+    --primary:             222 65% 15%;
     --primary-foreground:  0 0% 100%;
 
     /* Secondary: Slate */
@@ -56,52 +64,56 @@
     --destructive-foreground: 210 40% 98%;
     --border:              214.3 31.8% 91.4%;
     --input:               214.3 31.8% 91.4%;
-    --ring:                180 64% 14%;
+    --ring:                43 96% 56%;  /* Gold focus ring */
     --radius:              0.625rem;
   }
 
-
-  /* ── Dark Mode ───────────────────────────────────────────────────────────── */
+  /* ── Dark Mode (Sleek Obsidian Navy) ─────────────────────────────────────── */
   .dark {
-    --color-primary:          #1a8080;
-    --color-primary-hover:    #1d9090;
-    --color-primary-active:   #156868;
-    --color-secondary:        #E8A020;
-    --color-secondary-hover:  #D4911A;
-    --color-background:       #0b0f19;
-    --color-surface:          #111827;
-    --color-surface-muted:    #1e293b;
-    --color-border:           #1e293b;
-    --color-text:             #f8fafc;
-    --color-text-secondary:   #cbd5e1;
-    --color-text-muted:       #94a3b8;
-    --color-success:          #10b981;
-    --color-warning:          #f59e0b;
-    --color-error:            #f43f5e;
-    --color-info:             #38bdf8;
+    --color-primary:          #3B82F6;  /* Vibrant Blue for dark contrast */
+    --color-primary-hover:    #60A5FA;
+    --color-primary-active:   #2563EB;
+    --color-secondary:        #FBBF24;  /* Somtel Solar Gold */
+    --color-secondary-hover:  #F59E0B;
+    --color-background:       #080D1A;  /* Deep Obsidian Navy */
+    --color-surface:          #0E172C;  /* Elevated Navy Card */
+    --color-surface-muted:    #15223E;
+    --color-border:           #1C2B4E;  /* Radiant subtle navy border */
+    --color-text:             #F8FAFC;
+    --color-text-secondary:   #CBD5E1;
+    --color-text-muted:       #94A3B8;
+    --color-success:          #10B981;
+    --color-warning:          #FBBF24;
+    --color-error:            #F43F5E;
+    --color-info:             #38BDF8;
+    --color-amber:            #FBBF24;
+    --color-amber-hover:      #F59E0B;
+    --color-bluekom:          #60A5FA;
+    --color-bluekom-soft:     #0E1F3D;
+    --color-somtel:           #FBBF24;
+    --color-somtel-soft:      #2C1F08;
 
-    --background:          222.2 84% 4.9%;
+    --background:          222 53% 7%;    /* #080D1A */
     --foreground:          210 40% 98%;
-    --card:                222.2 84% 6.5%;
+    --card:                222 50% 11%;   /* #0E172C */
     --card-foreground:     210 40% 98%;
-    --popover:             222.2 84% 6.5%;
+    --popover:             222 50% 11%;
     --popover-foreground:  210 40% 98%;
 
-    /* Primary (dark): slightly lighter teal for contrast */
-    --primary:             180 60% 30%;
+    --primary:             221 83% 53%;   /* Electric Blue accent */
     --primary-foreground:  0 0% 100%;
 
-    --secondary:           217.2 32.6% 17.5%;
+    --secondary:           222 45% 16%;
     --secondary-foreground: 210 40% 98%;
-    --muted:               217.2 32.6% 17.5%;
-    --muted-foreground:    215 20.2% 65.1%;
-    --accent:              217.2 32.6% 17.5%;
+    --muted:               222 45% 16%;
+    --muted-foreground:    215 20% 65%;
+    --accent:              222 45% 16%;
     --accent-foreground:   210 40% 98%;
     --destructive:         0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border:              217.2 32.6% 17.5%;
-    --input:               217.2 32.6% 17.5%;
-    --ring:                180 60% 30%;
+    --border:              222 47% 21%;   /* #1C2B4E */
+    --input:               222 47% 21%;
+    --ring:                43 96% 56%;    /* Somtel Gold focus ring */
   }
 }
 
@@ -151,13 +163,23 @@
     transform: translateY(-1px);
   }
 
-  /* ── Golden Amber CTA button helper class ─────────────────────────────────── */
+  /* ── Somtel Solar Gold CTA button helper class ──────────────────────────── */
   .btn-amber {
-    background-color: var(--color-amber);
-    color: #ffffff;
-    transition: background-color 0.15s ease;
+    background: linear-gradient(135deg, #F5B700 0%, #E6A700 100%);
+    color: #0F172A;
+    font-weight: 600;
+    box-shadow: 0 1px 3px 0 rgba(245, 183, 0, 0.35);
+    transition: all 0.15s ease;
   }
-  .btn-amber:hover { background-color: var(--color-amber-hover); }
+  .btn-amber:hover {
+    background: linear-gradient(135deg, #FFC30B 0%, #D99B00 100%);
+    box-shadow: 0 4px 12px 0 rgba(245, 183, 0, 0.4);
+    transform: translateY(-0.5px);
+  }
+  .btn-amber:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px 0 rgba(245, 183, 0, 0.25);
+  }
 
   .badge {
     @apply inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full;
@@ -207,32 +229,33 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FINANCIAL TABLE — Deep Teal header + clean white rows
+   FINANCIAL TABLE — Navy Blue header + clean modern rows
    Apply class="fin-table" to <table> elements
    ═══════════════════════════════════════════════════════════════════════════ */
 @layer utilities {
 
-  /* ── Deep Dark Teal thead ─────────────────────────────────────────────── */
+  /* ── Deep Navy thead ─────────────────────────────────────────────────── */
   .fin-table thead tr {
-    background-color: #0a2e2e;
+    background: linear-gradient(180deg, #0D1C3D 0%, #0A1630 100%);
   }
   .dark .fin-table thead tr {
-    background-color: #051818;
+    background: linear-gradient(180deg, #0D172A 0%, #080D1A 100%);
+    border-bottom: 1px solid #1C2B4E;
   }
   .fin-table th {
     @apply text-[11px] font-bold uppercase tracking-wider text-white py-3.5 px-4;
     white-space: nowrap;
   }
 
-  /* ── White rows + thin horizontal-only dividers ────────────────────────── */
+  /* ── Modern rows + subtle dividers ───────────────────────────────────── */
   .fin-table td {
-    @apply text-xs py-3.5 px-4 border-b border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-900;
+    @apply text-xs py-3.5 px-4 border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-[#0E172C];
   }
   .fin-table tbody tr:hover td {
-    background-color: #f0fafa;  /* cashdesk-50 tint */
+    background-color: #F1F5FB;
   }
   .dark .fin-table tbody tr:hover td {
-    background-color: rgba(13, 59, 59, 0.15);
+    background-color: rgba(31, 95, 191, 0.12);
   }
   .fin-table tbody tr:last-child td { border-bottom: none; }
 
@@ -243,16 +266,66 @@
   .num-neutral { @apply text-slate-800 dark:text-slate-200 font-mono font-semibold; }
 
   /* ── Legacy .financial-table alias ────────────────────────────────────── */
-  .financial-table thead tr { background-color: #0a2e2e; }
-  .dark .financial-table thead tr { background-color: #051818; }
+  .financial-table thead tr { background: linear-gradient(180deg, #0D1C3D 0%, #0A1630 100%); }
+  .dark .financial-table thead tr { background: linear-gradient(180deg, #0D172A 0%, #080D1A 100%); }
   .financial-table th {
     @apply text-[11px] font-bold uppercase tracking-wider text-white py-3.5 px-4;
     white-space: nowrap;
   }
   .financial-table td {
-    @apply text-xs py-3 px-4 border-b border-slate-100 dark:border-slate-800/60;
+    @apply text-xs py-3 px-4 border-b border-slate-100 dark:border-slate-800/80;
   }
   .financial-table tbody tr {
-    @apply transition-colors hover:bg-[#f0fafa] dark:hover:bg-[rgba(13,59,59,0.15)];
+    @apply transition-colors hover:bg-[#F1F5FB] dark:hover:bg-[rgba(31,95,191,0.12)];
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FINANCIAL MONO — IBM Plex Mono for all amounts and reference numbers
+   Use .font-financial on any <td>, <span>, or element showing numbers
+   ═══════════════════════════════════════════════════════════════════════════ */
+@layer utilities {
+  .font-financial {
+    font-family: var(--font-mono-financial);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Company Badge Pills (Somtel Solar Gold & Bluekom Tech Blue) ────────── */
+  .co-badge-bluekom {
+    background-color: var(--color-bluekom-soft);
+    color: var(--color-bluekom);
+    @apply text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shadow-sm;
+    border-color: #BFDBFE;
+  }
+  .dark .co-badge-bluekom {
+    background-color: rgba(31, 95, 191, 0.22);
+    color: #93C5FD;
+    border-color: rgba(147, 197, 253, 0.35);
+  }
+  .co-badge-somtel {
+    background-color: var(--color-somtel-soft);
+    color: var(--color-somtel);
+    @apply text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shadow-sm;
+    border-color: #FDE68A;
+  }
+  .dark .co-badge-somtel {
+    background-color: rgba(245, 183, 0, 0.16);
+    color: #FCD34D;
+    border-color: rgba(252, 211, 77, 0.35);
+  }
+
+  /* ── Low-balance alert banner ───────────────────────────────────────────── */
+  .alert-low-balance {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-medium;
+    background-color: #FFFBEB;
+    border-color: #F5B700;
+    color: #92400E;
+  }
+  .dark .alert-low-balance {
+    background-color: rgba(245, 183, 0, 0.12);
+    border-color: rgba(245, 183, 0, 0.4);
+    color: #FCD34D;
   }
 }

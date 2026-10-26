@@ -498,7 +498,7 @@ export class MonthlyBookService {
 
     ws.getCell(`H${sigRow}`).value = 'Approved By: ___________________________';
     ws.getCell(`H${sigRow}`).font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '475569' } };
-    ws.getCell(`H${sigRow + 1}`).value = 'Chief Financial Officer (CFO)';
+    ws.getCell(`H${sigRow + 1}`).value = 'Head of Finance';
     ws.getCell(`H${sigRow + 1}`).font = { name: 'Segoe UI', size: 8, italic: true, color: { argb: '64748B' } };
   }
 }

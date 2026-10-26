@@ -7,10 +7,10 @@ import { Roles } from '../auth/roles.decorator';
 import { RoleName } from '@prisma/client';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
-@ApiTags('User Management (Super Admin)')
+@ApiTags('User Management (Super Admin & Accountant)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleName.SUPER_ADMIN)
+@Roles(RoleName.SUPER_ADMIN, RoleName.ACCOUNTANT)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

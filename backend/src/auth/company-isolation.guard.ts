@@ -19,6 +19,11 @@ export class CompanyIsolationGuard implements CanActivate {
       return true;
     }
 
+    // Approval Two bypasses company isolation (has cross-company executive view for approvals)
+    if (user.role === RoleName.APPROVAL_TWO) {
+      return true;
+    }
+
     // Accountant bypasses company isolation (has cross-company approval access)
     if (user.role === RoleName.ACCOUNTANT) {
       return true;

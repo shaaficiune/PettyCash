@@ -1,7 +1,7 @@
 # 📚 PETTY CASH MANAGEMENT SYSTEM — MASTER KNOWLEDGE DOCUMENT
 **Project:** Somtel / Bluekom Petty Cash App  
 **GitHub:** https://github.com/shaaficiune/PettyCash.git  
-**Last Updated:** 2026-10-22
+**Last Updated:** 2026-10-23
 **Purpose:** Full context restoration for any future AI assistant — read this file before starting any work.
 
 ---
@@ -1403,6 +1403,134 @@ Based on enterprise UI modernization goals and financial review usability requir
     1. *Live Financial Voucher Preview:* Branded voucher card displaying live company header (Bluekom Royal Blue / Somtel Amber), Initiator credentials, Real-Time total amount with words, Category, Vehicle plate, and Beneficiary details.
     2. *Regional Budget Progress Bar:* Real-time visual gauge of current region's monthly limit, amount used, and remaining balance.
     3. *Action Control Hub:* Prominent "Submit for Approval" (Gold button) and "Save as Draft" buttons with instant policy checklist validation.
+
+### 9. Production Server Recovery Script & Cloudflare Domain Routing (`fix-production.sh`)
+- **Problem:** When deploying updates on Ubuntu servers where the app is cloned in a home folder (e.g. `~/app/app` or `~/app`) rather than `/var/www/petty-cash`, hardcoded Nginx roots broke SPA route serving (causing 500 errors). Additionally, Cloudflare Tunnel injects Web Analytics (`static.cloudflareinsights.com`) which were blocked by strict default CSP.
+- **Solution (`fix-production.sh`):**
+  - **Dynamic Root Resolution:** Automatically determines `APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` and writes `root ${APP_DIR}/frontend/dist;` directly into `/etc/nginx/sites-available/petty-cash`.
+  - **Cloudflare Beacon Whitelist:** Updates Nginx Content-Security-Policy to explicitly whitelist `script-src https://static.cloudflareinsights.com` and `connect-src https://cloudflareinsights.com`.
+  - **Dynamic Domain CORS:** Automatically appends/verifies `https://pettycash.himilotech.com` alongside `https://pettycash.bluekompl.com` in `backend/.env` under `ALLOWED_ORIGINS`.
+  - **Zero-Downtime Reload:** Re-tests Nginx syntax (`sudo nginx -t`), reloads Nginx (`sudo systemctl reload nginx`), and restarts PM2 (`pm2 restart petty-cash-backend --update-env`).
+
+---
+
+## 25. 🎨 CLAUDE ARTIFACT NEW REQUEST FORM REDESIGN & VEHICLE FLEET API (2026-10-23)
+
+### Overview
+The employee new request form (`frontend/src/pages/RequestFormPage.tsx`) was completely redesigned to strictly match the Claude *Petty Cash Office* artifact workflow without breaking existing backend DTOs or database integrity.
+
+### Key Changes Implemented:
+
+1. **Budget Head as the First Field (Step 1):**
+   - Replaced `<Select>` dropdown with high-contrast **pill/chip buttons**.
+   - Active state: **Signal Gold (`#F5B700`)** background with dark bold text.
+   - Inactive state: Subtle outlined border with muted text.
+   - Header note: *"Fields marked * are required. Approval One is notified when you submit."*
+
+2. **Conditional Sub-Fields per Budget Head:**
+   - **Repair of Vehicles:**
+     - `Vehicle plate no.` dropdown dynamically populated via `GET /companies/vehicles` API filtered by user's company and region.
+     - `Work done or parts bought` (required text).
+     - `Garage or mechanic` (optional text).
+     - `Extra detail` (optional text).
+   - **Repair of Generators:**
+     - `Generator site` (e.g. Carmo site).
+     - `Work done or parts bought` (required text).
+     - `Extra detail` (optional text).
+   - **Transportations:**
+     - `What was transported?` (required textarea).
+     - `From` (origin) and `To` (destination) route fields.
+   - **Repair of Buildings:**
+     - `Building / location name` (required text).
+     - `Work done or parts bought` (required text).
+     - `Extra detail` (optional text).
+   - **Other / Default Categories:**
+     - Direct free-text description textarea.
+
+3. **Auto-Generated Purpose & Description:**
+   - Purpose string is automatically assembled from the conditional fields (e.g., `"Repair of Vehicles — JI119"`, `"Repair of Generators — Carmo site"`, or `"Transportations: Fiber cables"`).
+   - Live **"DESCRIPTION THAT WILL BE SAVED"** amber preview box shows the exact concatenated description before submitting.
+
+4. **Receipt Pill Toggle & Invoice Number:**
+   - Pill toggle: `Receipt` (gold) vs `No receipt` (outline).
+   - Optional `Receipt / invoice number` field with dynamic placeholder depending on receipt selection.
+
+5. **Actions:**
+   - `Clear` button resets all fields back to blank default without page reload.
+   - `Submit for approval` button triggers submission.
+   - Hidden fields (`priority`, `projectId`): Defaults sent in payload behind the scenes to maintain strict backend schema compatibility.
+
+6. **Backend Vehicle Fleet API (`GET /companies/vehicles`):**
+   - Implemented in `backend/src/companies/companies.controller.ts` and `companies.service.ts`.
+   - Filters vehicles by `companyName` and `regionName` query parameters.
+   - Built-in fallback: If an employee's region is unassigned or differs slightly, all active vehicles for the company are returned to ensure employees are never blocked with an empty vehicle list.
+   - Exported `VehicleEntry` and `FleetRecord` interfaces to eliminate TypeScript `TS4053` return type visibility errors.
+
+---
+
+## 26. ⏳ WAXA KA DHIMAN / ROADMAP (HOW TO RESUME TOMORROW)
+
+The following items are planned and documented for subsequent phases:
+
+### Phase 1: Payment Voucher (PV) & Official PDF Export
+- **Goal:** When a request is in `PAID` status, generate a formal Payment Voucher matching the Claude artifact.
+- **Voucher Layout:**
+  - Company Header (Bluekom Royal Blue `#1F5FBF` or Somtel Vibrant Orange `#C2571A`).
+  - Serialized Voucher Number (e.g. `PV-BK-2026-0001` or `PV-ST-2026-0001`).
+  - Beneficiary / Recipient Name & Phone, Budget Head, Vehicle Plate/Details, Payment Date.
+  - **Amount in Words:** Formal English words (e.g. *"One thousand two hundred and fifty US dollars and fifty cents only"*).
+  - **3 Formal Signatures (Tri-Signature Block):**
+    1. *Prepared By:* Accountant / Cashier (e.g., Abshir Qasim).
+    2. *Verified By:* Internal Auditor / Supervisor (e.g., Mohamoud Abdullahi).
+    3. *Approved By:* DG Telecom / Head of Accounting (e.g., Abdijabar Jama).
+- **Files to touch:** `frontend/src/components/PaymentVoucherModal.tsx`, `RequestDetailPage.tsx`, `PaymentsPage.tsx`.
+
+### Phase 2: 2-Tier Approval Workflow UI Alignment
+- **Goal:** Surface the 2-Tier approval structure in the UI without modifying existing Prisma database enum values.
+- **Workflow Mapping:**
+  - `PENDING_APPROVAL` ➔ Displayed as **Stage 1 (Approval One / Supervisor)**.
+  - `ACCOUNTANT_REVIEW` ➔ Displayed as **Stage 2 (Approval Two / Head of Accounting)**.
+  - `APPROVED` ➔ Approved / Awaiting Disbursement.
+  - `PAID` ➔ Paid + Voucher Generated.
+- **Benefit:** 100% backward-compatible with database while giving users the exact 2-tier approval clarity shown in the artifact.
+
+### Phase 3: Dynamic Vehicle Fleet Database Table (`CompanyVehicle`)
+- **Current State:** Vehicles are managed via clean backend static configuration in `companies.service.ts` (Phase A/B-lite, zero database migration risk).
+- **Future Migration:**
+  - Add `CompanyVehicle` table to `backend/prisma/schema.prisma` (`id`, `plate`, `model`, `companyId`, `regionId`, `status`, `createdAt`).
+  - Provide Admin CRUD interface under Settings/Fleet Management.
+  - Seamless switch: `companiesService.getVehicles()` will query `prisma.companyVehicle.findMany()` instead of the in-memory array.
+
+---
+
+## 29. 🚀 PLANUPDATE.MD IMPLEMENTATION COMPLETE (2026-10-23)
+
+### Overview
+Executed the comprehensive system upgrade defined in `planupdate.md` without modifying existing database structures, without corrupting or deleting historical records, and maintaining 100% backward compatibility for production:
+
+1. **2-Tier Approval Workflow Labels:**
+   - `PENDING_APPROVAL` mapped to **Stage 1: Awaiting Approval** / **Stage 1: Approval One Review**.
+   - `ACCOUNTANT_REVIEW` mapped to **Stage 2: Awaiting Approval** / **Stage 2: Approval Two (Head of Accounting / Finance)**.
+   - Updated throughout `StatusBadge.tsx`, `format.ts`, and `RequestDetailPage.tsx`.
+2. **Serialized Payment Voucher & Tri-Signature Block:**
+   - Voucher numbers formatted as `PV-BK-YYYY-XXXX` and `PV-ST-YYYY-XXXX` in `PaymentVoucherModal.tsx`.
+   - Formal 3-Signature Block integrated: **Prepared By** (Accountant/Cashier), **Verified By** (Internal Auditor/Supervisor), and **Approved By** (Head of Accounting/DG).
+   - Recipient sign-off maintained.
+3. **Cash Float Threshold Alert (< $300):**
+   - Global top-bar alert banner added to `DashboardLayout.tsx` for Accountants and Super Admins when any company float is below $300.
+   - Summary cards alert maintained in `DashboardPage.tsx`.
+4. **Auto-fit KPI Numbers (`fitKpis`):**
+   - Integrated dynamic font scaling in `DashboardPage.tsx` and `format.ts` to prevent large figures from overflowing cards.
+   - Financial numbers aligned with `font-financial tabular-nums`.
+5. **Vehicle Fleet Indicator in Requests List:**
+   - Automatic plate detection pill badge (`🚗 Plate`) added to the Purpose column in `RequestsListPage.tsx`.
+6. **Smart Request Numbering (Backward Compatible):**
+   - New requests generate with `PCR-[BK|ST]-[RegionCode]-[Seq]` in `requests.service.ts` (e.g., `PCR-BK-NG-0001`).
+   - All historical requests (`PC-YYYYMMDD-XXXX`) and UUID lookups continue to resolve seamlessly.
+
+> **Verification:** `npx tsc --noEmit` (backend) passed with 0 errors. `npm run build` (frontend) passed in 22s. Ready for zero-downtime deployment via `bash update-server.sh`.
+
+
 
 
 
