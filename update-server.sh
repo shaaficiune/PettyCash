@@ -55,13 +55,31 @@ npm install
 npm run build
 cd ..
 
-# 7. Sync nginx config (safe: tests before applying — aborts if config is invalid)
+# 7. Sync nginx config with dynamic root path & permissions
 echo "🔒 [7/9] Syncing nginx security config..."
-NGINX_CONF_SRC="$(pwd)/nginx-ubuntu.conf"
+APP_DIR="$(pwd)"
+NGINX_CONF_SRC="${APP_DIR}/nginx-ubuntu.conf"
 NGINX_CONF_DEST="/etc/nginx/sites-available/petty-cash"
+
 if [ -f "$NGINX_CONF_SRC" ]; then
   sudo cp "$NGINX_CONF_SRC" "$NGINX_CONF_DEST"
-  echo "   ✔ Copied nginx-ubuntu.conf → $NGINX_CONF_DEST"
+  # Dynamically replace root path with actual repository location to prevent 500 error
+  sudo sed -i "s|root .*;|root ${APP_DIR}/frontend/dist;|g" "$NGINX_CONF_DEST"
+  echo "   ✔ Injected root path: ${APP_DIR}/frontend/dist"
+
+  # Ensure www-data (Nginx) has execute permissions to traverse parent directories & read dist
+  chmod o+x "${APP_DIR}" 2>/dev/null || true
+  chmod o+x "$(dirname "${APP_DIR}")" 2>/dev/null || true
+  chmod -R o+rX "${APP_DIR}/frontend/dist"
+
+  # Provide fallback symlink in /var/www/petty-cash
+  sudo mkdir -p /var/www/petty-cash/frontend
+  sudo ln -sfn "${APP_DIR}/frontend/dist" /var/www/petty-cash/frontend/dist 2>/dev/null || true
+
+  # Ensure site is enabled and default site is removed
+  sudo ln -sf "$NGINX_CONF_DEST" /etc/nginx/sites-enabled/petty-cash
+  sudo rm -f /etc/nginx/sites-enabled/default
+
   # Test nginx config BEFORE reloading — set -e will abort if test fails
   sudo nginx -t
   echo "   ✔ Nginx config test passed"
@@ -78,9 +96,9 @@ else
 fi
 pm2 save
 
-# 9. Reload Nginx (applies config + any pending systemd changes)
-echo "🌐 [9/9] Reloading Nginx..."
-sudo systemctl reload nginx 2>/dev/null || true
+# 9. Restart Nginx to apply config & permissions immediately
+echo "🌐 [9/9] Restarting Nginx..."
+sudo systemctl restart nginx || sudo systemctl reload nginx || true
 
 echo ""
 echo "=============================================="
