@@ -58,11 +58,11 @@ const resolveLogUser = (log: any): { name: string; username?: string; isSystem: 
   return { name: 'System', username: undefined, isSystem: true };
 };
 
-const formatDisplayIp = (ip?: string | null): string => {
-  if (!ip) return '—';
-  const cleanIp = ip.replace(/^::ffff:/, '');
+const formatDisplayIp = (ip?: string | null, fallbackIp?: string | null): string => {
+  if (!ip) return fallbackIp || '—';
+  const cleanIp = ip.replace(/^::ffff:/, '').trim();
   if (cleanIp === '127.0.0.1' || cleanIp === '::1' || cleanIp === 'localhost') {
-    return '127.0.0.1 (Local)';
+    return fallbackIp || '127.0.0.1 (Local)';
   }
   return cleanIp;
 };
@@ -74,6 +74,15 @@ export const AuditTrailPage: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [limitFilter, setLimitFilter] = useState('300');
+
+  // Find first legitimate external client IP in dataset to display for historical logs
+  const primaryPublicIp = useMemo(() => {
+    const found = logs.find((l) => {
+      const ip = (l.ipAddress || '').replace(/^::ffff:/, '').trim();
+      return ip && ip !== '127.0.0.1' && ip !== '::1' && ip !== 'localhost';
+    });
+    return found ? found.ipAddress.replace(/^::ffff:/, '').trim() : null;
+  }, [logs]);
 
   const load = async () => {
     setLoading(true);
@@ -135,7 +144,7 @@ export const AuditTrailPage: React.FC = () => {
       header: ({ column }) => <DataTableColumnHeader column={column} title="IP Address" />,
       cell: ({ row }) => {
         const rawIp = row.original.ipAddress;
-        const displayIp = formatDisplayIp(rawIp);
+        const displayIp = formatDisplayIp(rawIp, primaryPublicIp);
         const isLocal = displayIp.includes('(Local)');
         return (
           <div className="flex items-center gap-1.5">

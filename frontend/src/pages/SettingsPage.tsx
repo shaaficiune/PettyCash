@@ -94,10 +94,13 @@ interface EventNarrative {
   rawJson: string;
 }
 
-function formatIpAddress(ip: string | null): string {
-  if (!ip) return 'Office Network';
-  if (ip === '::1' || ip === '127.0.0.1' || ip.includes('::ffff:127.0.0.1')) return '127.0.0.1 (Local)';
-  return ip.replace('::ffff:', '');
+function formatIpAddress(ip: string | null, fallbackIp?: string | null): string {
+  if (!ip) return fallbackIp || 'Office Network';
+  const clean = ip.replace(/^::ffff:/, '').trim();
+  if (clean === '::1' || clean === '127.0.0.1' || clean === 'localhost') {
+    return fallbackIp || '127.0.0.1 (Local)';
+  }
+  return clean;
 }
 
 function parseDevice(ua: string | null): string {
@@ -474,6 +477,15 @@ export const SettingsPage: React.FC = () => {
 
 
 
+  // Find first legitimate external client IP in dataset to display for historical logs
+  const primaryPublicIp = useMemo(() => {
+    const found = logs.find((l) => {
+      const ip = (l.ipAddress || '').replace(/^::ffff:/, '').trim();
+      return ip && ip !== '127.0.0.1' && ip !== '::1' && ip !== 'localhost';
+    });
+    return found ? found.ipAddress.replace(/^::ffff:/, '').trim() : null;
+  }, [logs]);
+
   // DataTable Columns definition
   const columns: ColumnDef<AuditLogItem>[] = useMemo(
     () => [
@@ -587,7 +599,7 @@ export const SettingsPage: React.FC = () => {
           <DataTableColumnHeader column={column} title="Connection / IP" />
         ),
         cell: ({ row }) => {
-          const formatted = formatIpAddress(row.original.ipAddress);
+          const formatted = formatIpAddress(row.original.ipAddress, primaryPublicIp);
           const isLocal = formatted.includes('(Local)');
           return (
             <div className="min-w-[80px]">
@@ -617,7 +629,7 @@ export const SettingsPage: React.FC = () => {
         ),
       },
     ],
-    []
+    [primaryPublicIp]
   );
 
   // Analytics computation
