@@ -238,6 +238,7 @@ export const RequestsListPage: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (e) {
       console.error('Excel Export failed', e);
+      alert('Failed to export Excel report. Please try again.');
     }
   };
 

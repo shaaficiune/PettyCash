@@ -152,13 +152,14 @@ export const TransactionsPage: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `transactions_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.download = `transactions_${new Date().toISOString().slice(0, 10)}.xls`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to export transactions to Excel', err);
+      alert('Failed to export Excel report. Please ensure you have permission and try again.');
     } finally {
       setExportingExcel(false);
     }
@@ -221,8 +222,9 @@ export const TransactionsPage: React.FC = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to export monthly book', err);
+      alert('Failed to export Monthly Petty Cash Book. Please try again.');
     } finally {
       setExportingBook(false);
     }

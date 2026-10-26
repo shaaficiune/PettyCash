@@ -21,8 +21,8 @@ export class FundsController {
 
   @Get('export/monthly-book')
   @UseGuards(RolesGuard)
-  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Export historical-formatted Monthly Petty Cash Book (.xlsx) — ACCOUNTANT/SUPER_ADMIN only' })
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO, RoleName.EMPLOYEE)
+  @ApiOperation({ summary: 'Export historical-formatted Monthly Petty Cash Book (.xlsx)' })
   async exportMonthlyBook(
     @Request() req: any,
     @Response() res: any,
@@ -30,26 +30,31 @@ export class FundsController {
     @Query('year') year?: string,
     @Query('companyId') companyId?: string,
   ) {
-    const isRestricted = req.user.role === RoleName.EMPLOYEE;
-    const effectiveCompanyId = isRestricted ? req.user.companyId : companyId;
-    const parsedMonth = month ? parseInt(month, 10) : undefined;
-    const parsedYear = year ? parseInt(year, 10) : undefined;
+    try {
+      const isRestricted = req.user.role === RoleName.EMPLOYEE;
+      const effectiveCompanyId = isRestricted ? req.user.companyId : companyId;
+      const parsedMonth = month ? parseInt(month, 10) : undefined;
+      const parsedYear = year ? parseInt(year, 10) : undefined;
 
-    const { buffer, filename } = await this.monthlyBookService.generateMonthlyBook(
-      parsedMonth,
-      parsedYear,
-      effectiveCompanyId,
-    );
+      const { buffer, filename } = await this.monthlyBookService.generateMonthlyBook(
+        parsedMonth,
+        parsedYear,
+        effectiveCompanyId,
+      );
 
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${filename}"`,
-    );
-    return res.status(200).send(buffer);
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${filename}"`,
+      );
+      return res.status(200).send(buffer);
+    } catch (err: any) {
+      console.error('[exportMonthlyBook ERROR]', err);
+      return res.status(500).json({ error: err.message, stack: err.stack });
+    }
   }
 
   @Post('init')
