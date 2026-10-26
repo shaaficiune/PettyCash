@@ -7,7 +7,7 @@ import {
   RefreshCw, User, Building2, MapPin, Tag, Calendar, FileText,
   Paperclip, CheckCircle2, AlertCircle, CircleDollarSign,
   Banknote, Edit3, Send, ReceiptText, ClipboardCheck, Loader2,
-  Printer,
+  Printer, Trash2,
 } from 'lucide-react';
 import { PaymentVoucherModal } from '../components/PaymentVoucherModal';
 import {
@@ -176,6 +176,10 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
   const [remainingBalance, setRemainingBalance] = useState('');
   const [settlementNotes, setSettlementNotes] = useState('');
 
+  // Delete modal state — must be here (before any early returns) to satisfy React Rules of Hooks
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const openAttachment = async (event: React.MouseEvent<HTMLAnchorElement>, attachment: any) => {
     event.preventDefault();
     const previewWindow = window.open('about:blank', '_blank');
@@ -242,6 +246,10 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
   const isOwnRequest = isAccountantRole && request?.userId === user?.id;
   const canEdit = (isEmployee || isOwnRequest) && (request.status === 'DRAFT' || request.status === 'CORRECTION_REQUIRED');
 
+  // Employee can delete their own request before first approval (DRAFT or PENDING_APPROVAL)
+  const isOwner = request?.userId === user?.id;
+  const canDelete = isOwner && (request.status === 'DRAFT' || request.status === 'PENDING_APPROVAL');
+
   const withLoading = async (fn: () => Promise<void>) => {
     setActionLoading(true);
     setError(null);
@@ -300,6 +308,25 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
       onActionCompleted?.();
     });
 
+  const handleDeleteRequest = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      await api.delete(`/requests/${request?.id || id}`);
+      setIsDeleteModalOpen(false);
+      onActionCompleted?.();
+      if (isInline && onClose) {
+        onClose();
+      } else {
+        navigate('/requests');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete request');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-5 font-sans pb-10">
 
@@ -348,6 +375,17 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
                 Edit Request
               </Button>
             </Link>
+          )}
+          {canDelete && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="gap-1.5 shadow-sm font-semibold"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete Request
+            </Button>
           )}
         </div>
       </div>
@@ -1012,6 +1050,46 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
         request={request}
         payment={selectedPaymentForVoucher}
       />
+
+      {/* ── Delete Confirmation Modal ── */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-200">
+          <div className="bg-card border border-border shadow-2xl rounded-xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-full bg-destructive/10 text-destructive shrink-0">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">Delete Request</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Are you sure you want to delete request <strong className="text-foreground">#{request.requestNumber}</strong>? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteRequest}
+                disabled={deleting}
+                className="gap-1.5 font-semibold"
+              >
+                {deleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                <span>{deleting ? 'Deleting...' : 'Delete Request'}</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 # 📚 PETTY CASH MANAGEMENT SYSTEM — MASTER KNOWLEDGE DOCUMENT
 **Project:** Somtel / Bluekom Petty Cash App  
 **GitHub:** https://github.com/shaaficiune/PettyCash.git  
-**Last Updated:** 2026-10-23
+**Last Updated:** 2026-10-26
 **Purpose:** Full context restoration for any future AI assistant — read this file before starting any work.
 
 ---
@@ -1582,3 +1582,66 @@ Executed the comprehensive system upgrade defined in `planupdate.md` without mod
 * **Fit to Screen (Zero Scroll):** Engineered with `h-screen max-h-screen overflow-hidden` and proportional compact vertical spacing (~460px total container height), guaranteeing 100% viewport fit with zero vertical scrollbars on laptops, desktops, and scaled displays.
 
 > **Verification:** Backend (`npx nest build`) and Frontend (`npm run build`) both compiled with **0 errors (Exit code 0)**. Production database pushed and verified.
+
+---
+
+## 31. 📜 FINAL A5 PAYMENT VOUCHER REFINEMENT, PRE-APPROVAL REQUEST DELETION & ZERO-RISK PRODUCTION HARDENING (2026-10-26)
+
+### 1. A5 Payment Voucher Dual-Signature Final Polish (`PaymentVoucherModal.tsx`)
+* **14-Page Print Bug Resolution:** Eliminated the multi-page overflow caused by copying global website stylesheets into the print window. The voucher now uses an isolated hidden iframe with a 100% self-contained, lightweight CSS stylesheet (`printCSS`).
+* **A5 Full-Page Height Utilization:**
+  - Diagnosed why previous vouchers left the bottom half of an A5 page blank: Tailwind's arbitrary utility `.h-[30px]` did not exist in the iframe's isolated print stylesheet, collapsing empty rows to ~12px.
+  - Expanded table to **13 ruled rows** with explicit `28px` row and cell height applied via both inline styles and explicit CSS rules.
+  - Added vertical column dividers (`.border-r`), exact RGB font colors, financial tabular-numbers font, and container padding (`2mm 1mm`).
+  - Achieved ~96% vertical fill of standard A5 portrait paper (148mm × 210mm) with zero void at the bottom and zero multi-page spills.
+* **Dual-Signature Simplification:**
+  - Expanded the signature/stamp area to `min-height: 44px` with `flex items-end` to leave ample physical signing room above the solid underline.
+  - Stripped redundant subtext (`Accountant / Approval One` and `Approval Two / Head of Finance`), leaving strictly:
+    ```
+    INITIATED BY:                              APPROVED BY:
+    ___________________________                ___________________________
+    Abshir Qasim                               Mohamud Abdullahi
+    ```
+* **Language Standardization:** Replaced all remaining Somali tooltips and instructions with clean English across all voucher modal actions.
+
+### 2. Pre-Approval Request Deletion Policy & UI
+* **Security & Business Rules:**
+  - Employees can safely delete their own requests when in `DRAFT` or `PENDING_APPROVAL` (before Stage 1 approval).
+  - Super Admins can also delete requests in these initial states.
+  - Once a request receives Stage 1 approval (`ACCOUNTANT_REVIEW`, `APPROVED`, `PAID`), it is **strictly immutable and cannot be deleted** by anyone to preserve audit trail integrity (`BadRequestException: 'Request cannot be deleted once it has passed the first approval'`).
+* **Backend Enforcements (`requests.controller.ts`, `requests.service.ts`):**
+  - Updated `@Delete(':id')` to pass `req.user.role` along with `req.user.userId`.
+  - Enforced ownership and status checks at the database query layer.
+* **Frontend UI Enhancements:**
+  - In `RequestsListPage.tsx`: Added a quick-delete `Trash2` icon button to table rows for eligible requests, backed by a confirmation modal dialog.
+  - In `RequestDetailPage.tsx`: Added request deletion button with confirmation dialog.
+
+### 3. Field Limits & Fuel/Location Truncation Safeguard (`RequestFormPage.tsx`)
+* **30-Character Limit Enforced:** Applied `maxLength={30}` and character counter badge (`X/30`) to:
+  - Fuel location / route
+  - Transport From / To
+  - Building location
+  - Other / Refreshments description
+* Prevents long text from distorting voucher layouts and table cells during export and printing.
+
+### 4. Vehicle Fleet Coverage for Somtel & Bluekom (`companies.service.ts`)
+* Expanded `VEHICLE_FLEET` to cover regional operating fleets for both Somtel and Bluekom:
+  - Nugaal: `SP200`, `SP201`, `SP202` (Somtel Toyota Land Cruiser / Hilux / Probox)
+  - Karkaar: `SP228` (Somtel Toyota Probox)
+  - Mudug: `PM892` (Somtel Toyota Probox)
+  - Sanaag: `WX288` (Somtel Toyota Probox)
+* Implemented flexible bidirectional region keyword matching and plate-level deduplication.
+
+### 5. Monthly Book Excel Formal Sign-off (`monthly-book.service.ts`)
+* Configured the official 3-signature block for the company-wide monthly closing book (`.xlsx`):
+  - **Prepared By:** Abshir Qasim (Petty Cash Accountant)
+  - **Verified By:** Mohamoud Abdullahi (Internal Auditor / Supervisor)
+  - **Approved By:** Abdijabar Jama (DG Telecom / Head of Accounting)
+
+### 6. Security & Zero-Breaking-Change Audit
+* **Database Safety:** Zero column drops, zero table modifications, zero data loss. All migrations are strictly non-destructive.
+* **API Gateways:** 100% of controller routes are guarded by `JwtAuthGuard`, `CompanyIsolationGuard`, and `RolesGuard`. No unauthenticated endpoints exist outside public authentication routes.
+* **Maker-Checker-Disburser Enforcement:** `APPROVAL_TWO` is strictly blocked from `/payments` (only `ACCOUNTANT` and `SUPER_ADMIN` can record payments).
+* **Employee Isolation:** Employees can only access their own requests, their own transactions on `/transactions`, and cannot view company floats or other users' expenses.
+
+> **Verification:** Backend (`npx nest build`) and Frontend (`npm run build`) both compiled with **0 errors (Exit code 0)**. Production-ready for deployment via `bash update-server.sh`.

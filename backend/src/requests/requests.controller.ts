@@ -67,9 +67,9 @@ export class RequestsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete Petty Cash Request (Drafts only)' })
+  @ApiOperation({ summary: 'Delete Petty Cash Request (Before first approval)' })
   async delete(@Param('id') id: string, @Request() req) {
-    return this.requestsService.delete(id, req.user.userId);
+    return this.requestsService.delete(id, req.user.userId, req.user.role);
   }
 
   @Post(':id/review')

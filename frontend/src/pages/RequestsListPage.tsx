@@ -15,6 +15,8 @@ import {
   X,
   ArrowLeft,
   Car,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -61,9 +63,29 @@ export const RequestsListPage: React.FC = () => {
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
 
+  // Quick delete state for table row
+  const [requestToDelete, setRequestToDelete] = useState<any | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const openSidePanel = (req: any) => {
     setSelectedRequestId(req.requestNumber || req.id);
     setIsSidePanelOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!requestToDelete) return;
+    setDeletingId(requestToDelete.id);
+    setDeleteError(null);
+    try {
+      await api.delete(`/requests/${requestToDelete.id}`);
+      setRequestToDelete(null);
+      loadRequests();
+    } catch (err: any) {
+      setDeleteError(err.response?.data?.message || 'Failed to delete request');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   // Restore saved filters from sessionStorage if available
@@ -485,8 +507,11 @@ export const RequestsListPage: React.FC = () => {
         header: () => <div className="text-center">Action</div>,
         cell: ({ row }) => {
           const req = row.original;
+          const isOwner = req.userId === user?.id;
+          const canDelete = isOwner && (req.status === 'DRAFT' || req.status === 'PENDING_APPROVAL');
+
           return (
-            <div className="text-center">
+            <div className="text-center flex items-center justify-center gap-1.5">
               <Button
                 variant="outline"
                 size="xs"
@@ -496,6 +521,20 @@ export const RequestsListPage: React.FC = () => {
                 <Eye className="h-3 w-3" />
                 View
               </Button>
+              {canDelete && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRequestToDelete(req);
+                  }}
+                  className="h-6.5 px-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                  title="Delete Request"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           );
         },
@@ -910,6 +949,50 @@ export const RequestsListPage: React.FC = () => {
                   loadRequests();
                 }}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Table Row Delete Confirmation Modal ── */}
+      {requestToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-200">
+          <div className="bg-card border border-border shadow-2xl rounded-xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-full bg-destructive/10 text-destructive shrink-0">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">Delete Request</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Are you sure you want to delete request <strong className="text-foreground">#{requestToDelete.requestNumber}</strong>? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <p className="text-xs text-destructive font-medium">{deleteError}</p>
+            )}
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setRequestToDelete(null); setDeleteError(null); }}
+                disabled={!!deletingId}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={confirmDelete}
+                disabled={!!deletingId}
+                className="gap-1.5 font-semibold"
+              >
+                {deletingId && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                <span>{deletingId ? 'Deleting...' : 'Delete Request'}</span>
+              </Button>
             </div>
           </div>
         </div>

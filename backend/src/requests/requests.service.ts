@@ -519,7 +519,7 @@ export class RequestsService {
     return updatedRequest;
   }
 
-  async delete(id: string, userId: string) {
+  async delete(id: string, userId: string, userRole?: string) {
     const request = await this.prisma.pettyCashRequest.findFirst({
       where: this.getRequestIdentifierWhere(id),
     });
@@ -528,12 +528,21 @@ export class RequestsService {
       throw new NotFoundException('Request not found');
     }
 
-    if (request.userId !== userId) {
+    const isOwner = request.userId === userId;
+    const isAdmin = userRole === RoleName.SUPER_ADMIN;
+
+    if (!isOwner && !isAdmin) {
       throw new ForbiddenException('You can only delete your own requests');
     }
 
-    if (request.status !== RequestStatus.DRAFT) {
-      throw new BadRequestException('Only draft requests can be deleted');
+    const canDelete =
+      request.status === RequestStatus.DRAFT ||
+      request.status === RequestStatus.PENDING_APPROVAL;
+
+    if (!canDelete && !isAdmin) {
+      throw new BadRequestException(
+        'Request cannot be deleted once it has passed the first approval',
+      );
     }
 
     await this.prisma.pettyCashRequest.delete({

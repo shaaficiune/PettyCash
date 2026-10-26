@@ -19,82 +19,92 @@ export interface FleetRecord {
 }
 
 const VEHICLE_FLEET: FleetRecord[] = [
-  // ── Bluekom Fleet ──────────────────────────────────────────────────────────
+  // ── Bluekom Fleet (Artifact + Petty Cash Book) ──────────────────────────────
   {
     companyKeyword: 'bluekom',
-    regionKeyword: 'bari',
+    regionKeyword: 'nugaal',
     vehicles: [
-      { plate: 'JI119', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'JI119', model: 'Toyota Noah',   status: 'ACTIVE' },
       { plate: 'XH174', model: 'Toyota Noah',   status: 'ACTIVE' },
     ],
   },
   {
     companyKeyword: 'bluekom',
-    regionKeyword: 'nugaal',
+    regionKeyword: 'bari',
     vehicles: [
+      { plate: 'SG822', model: 'Toyota Probox', status: 'ACTIVE' },
       { plate: 'GM461', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'QK466', model: 'Toyota Probox', status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'bluekom',
+    regionKeyword: 'karkaar',
+    vehicles: [
+      { plate: 'SG822', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'GM461', model: 'Toyota Probox', status: 'ACTIVE' },
     ],
   },
   {
     companyKeyword: 'bluekom',
     regionKeyword: 'mudug',
     vehicles: [
-      { plate: 'MG001', model: 'Toyota Land Cruiser', status: 'ACTIVE' },
+      { plate: 'QK466', model: 'Toyota Noah',   status: 'ACTIVE' },
+      { plate: 'GM466', model: 'Toyota Probox', status: 'ACTIVE' },
     ],
   },
   {
     companyKeyword: 'bluekom',
     regionKeyword: 'sanaag',
     vehicles: [
-      { plate: 'SN001', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'SG822', model: 'Toyota Probox', status: 'ACTIVE' },
     ],
   },
-  {
-    companyKeyword: 'bluekom',
-    regionKeyword: 'hq',
-    vehicles: [
-      { plate: 'HQ001', model: 'Toyota Land Cruiser', status: 'ACTIVE' },
-      { plate: 'HQ002', model: 'Toyota Prado', status: 'ACTIVE' },
-    ],
-  },
-  {
-    companyKeyword: 'bluekom',
-    regionKeyword: 'coastal',
-    vehicles: [
-      { plate: 'CS001', model: 'Toyota Probox', status: 'ACTIVE' },
-    ],
-  },
-  // ── Somtel Fleet ───────────────────────────────────────────────────────────
+
+  // ── Somtel Fleet (Petty Cash Book - Somtel Puntland) ───────────────────────
   {
     companyKeyword: 'somtel',
-    regionKeyword: 'banaadir',
+    regionKeyword: 'nugaal',
     vehicles: [
-      { plate: 'BN001', model: 'Toyota Land Cruiser', status: 'ACTIVE' },
-      { plate: 'BN002', model: 'Toyota Probox',       status: 'ACTIVE' },
+      { plate: 'UY358', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'RN879', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'WX228', model: 'Toyota Probox', status: 'ACTIVE' },
     ],
   },
   {
     companyKeyword: 'somtel',
-    regionKeyword: 'puntland',
+    regionKeyword: 'bari',
     vehicles: [
-      { plate: 'PL001', model: 'Toyota Noah',   status: 'ACTIVE' },
-      { plate: 'PL002', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'OC087', model: 'Toyota Noah',   status: 'ACTIVE' },
+      { plate: 'PP631', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'VO436', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'VO346', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'QC263', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'MR964', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'SP228', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'CG067', model: 'Toyota Probox', status: 'ACTIVE' },
     ],
   },
   {
     companyKeyword: 'somtel',
-    regionKeyword: 'jubbaland',
+    regionKeyword: 'karkaar',
     vehicles: [
-      { plate: 'JB001', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'OC087', model: 'Toyota Noah',   status: 'ACTIVE' },
+      { plate: 'PP631', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'SP228', model: 'Toyota Probox', status: 'ACTIVE' },
     ],
   },
   {
     companyKeyword: 'somtel',
-    regionKeyword: 'somaliland',
+    regionKeyword: 'mudug',
     vehicles: [
-      { plate: 'SL001', model: 'Toyota Land Cruiser', status: 'ACTIVE' },
-      { plate: 'SL002', model: 'Toyota Probox',       status: 'ACTIVE' },
+      { plate: 'PM892', model: 'Toyota Probox', status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'somtel',
+    regionKeyword: 'sanaag',
+    vehicles: [
+      { plate: 'WX288', model: 'Toyota Probox', status: 'ACTIVE' },
     ],
   },
 ];
@@ -121,18 +131,32 @@ export class CompaniesService {
     const rn = (regionName || '').toLowerCase().trim();
 
     if (rn) {
-      const match = VEHICLE_FLEET.find(
-        (f) => cn.includes(f.companyKeyword) && rn.includes(f.regionKeyword),
+      const matches = VEHICLE_FLEET.filter(
+        (f) =>
+          cn.includes(f.companyKeyword) &&
+          (rn.includes(f.regionKeyword) || f.regionKeyword.includes(rn)),
       );
-      if (match && match.vehicles.length > 0) {
-        return match.vehicles.filter((v) => v.status === 'ACTIVE');
+      const vehicles = matches.flatMap((m) => m.vehicles || []);
+      if (vehicles.length > 0) {
+        // deduplicate by plate
+        const seen = new Set<string>();
+        return vehicles.filter((v) => {
+          if (v.status !== 'ACTIVE' || seen.has(v.plate)) return false;
+          seen.add(v.plate);
+          return true;
+        });
       }
     }
 
     // Fallback: return all vehicles for this company
     const companyFleets = VEHICLE_FLEET.filter((f) => cn.includes(f.companyKeyword));
     const all = companyFleets.flatMap((f) => f.vehicles || []);
-    return all.filter((v) => v.status === 'ACTIVE');
+    const seen = new Set<string>();
+    return all.filter((v) => {
+      if (v.status !== 'ACTIVE' || seen.has(v.plate)) return false;
+      seen.add(v.plate);
+      return true;
+    });
   }
 
   async findDepartments(companyId?: string) {

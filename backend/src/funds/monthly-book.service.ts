@@ -484,21 +484,37 @@ export class MonthlyBookService {
       });
     });
 
-    // Formal Sign-off Section
-    const sigRow = rStart + 6;
-    ws.getCell(`B${sigRow}`).value = 'Prepared By: ___________________________';
-    ws.getCell(`B${sigRow}`).font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '475569' } };
-    ws.getCell(`B${sigRow + 1}`).value = 'Petty Cash Accountant';
-    ws.getCell(`B${sigRow + 1}`).font = { name: 'Segoe UI', size: 8, italic: true, color: { argb: '64748B' } };
+    // Formal Sign-off Section (Official 3-Signature Block from Artifact)
+    const sigRow = rStart + 5;
 
-    ws.getCell(`E${sigRow}`).value = 'Verified By: ___________________________';
-    ws.getCell(`E${sigRow}`).font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '475569' } };
-    ws.getCell(`E${sigRow + 1}`).value = 'Internal Audit / Finance Controller';
-    ws.getCell(`E${sigRow + 1}`).font = { name: 'Segoe UI', size: 8, italic: true, color: { argb: '64748B' } };
+    // Prepared By: Abshir Qasim (Accountant)
+    ws.getCell(`B${sigRow}`).value = 'Prepared By:';
+    ws.getCell(`B${sigRow}`).font = { name: 'Segoe UI', size: 8.5, bold: true, color: { argb: '64748B' } };
+    ws.getCell(`B${sigRow + 1}`).value = 'Abshir Qasim';
+    ws.getCell(`B${sigRow + 1}`).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '1E293B' } };
+    ws.getCell(`B${sigRow + 2}`).value = 'Petty Cash Accountant';
+    ws.getCell(`B${sigRow + 2}`).font = { name: 'Segoe UI', size: 8.5, italic: true, color: { argb: '64748B' } };
+    ws.getCell(`B${sigRow + 3}`).value = 'Signature: ______________________';
+    ws.getCell(`B${sigRow + 3}`).font = { name: 'Segoe UI', size: 8.5, color: { argb: '94A3B8' } };
 
-    ws.getCell(`H${sigRow}`).value = 'Approved By: ___________________________';
-    ws.getCell(`H${sigRow}`).font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '475569' } };
-    ws.getCell(`H${sigRow + 1}`).value = 'Head of Finance';
-    ws.getCell(`H${sigRow + 1}`).font = { name: 'Segoe UI', size: 8, italic: true, color: { argb: '64748B' } };
+    // Verified By: Mohamoud Abdullahi (Internal Auditor / Supervisor)
+    ws.getCell(`E${sigRow}`).value = 'Verified By:';
+    ws.getCell(`E${sigRow}`).font = { name: 'Segoe UI', size: 8.5, bold: true, color: { argb: '64748B' } };
+    ws.getCell(`E${sigRow + 1}`).value = 'Mohamoud Abdullahi';
+    ws.getCell(`E${sigRow + 1}`).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '1E293B' } };
+    ws.getCell(`E${sigRow + 2}`).value = 'Internal Auditor / Supervisor';
+    ws.getCell(`E${sigRow + 2}`).font = { name: 'Segoe UI', size: 8.5, italic: true, color: { argb: '64748B' } };
+    ws.getCell(`E${sigRow + 3}`).value = 'Signature: ______________________';
+    ws.getCell(`E${sigRow + 3}`).font = { name: 'Segoe UI', size: 8.5, color: { argb: '94A3B8' } };
+
+    // Approved By: Abdijabar Jama (DG Telecom / Head of Accounting)
+    ws.getCell(`H${sigRow}`).value = 'Approved By:';
+    ws.getCell(`H${sigRow}`).font = { name: 'Segoe UI', size: 8.5, bold: true, color: { argb: '64748B' } };
+    ws.getCell(`H${sigRow + 1}`).value = 'Abdijabar Jama';
+    ws.getCell(`H${sigRow + 1}`).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '1E293B' } };
+    ws.getCell(`H${sigRow + 2}`).value = 'DG Telecom / Head of Accounting';
+    ws.getCell(`H${sigRow + 2}`).font = { name: 'Segoe UI', size: 8.5, italic: true, color: { argb: '64748B' } };
+    ws.getCell(`H${sigRow + 3}`).value = 'Signature: ______________________';
+    ws.getCell(`H${sigRow + 3}`).font = { name: 'Segoe UI', size: 8.5, color: { argb: '94A3B8' } };
   }
 }

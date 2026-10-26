@@ -35,11 +35,11 @@ function getBHType(name: string): BHType {
 }
 
 const DETAILS_HINT: Record<BHType, string> = {
-  VEHICLES:       'Choose the vehicle, then say what was repaired or bought.',
-  GENERATORS:     'Name the site, then say what was done to the generator.',
-  TRANSPORTATIONS:'Say what was transported and the route.',
-  BUILDINGS:      'Name the location and describe what was repaired.',
-  OTHER:          'Describe what was bought or the occasion.',
+  VEHICLES:       'Choose the vehicle registered for your company & region.',
+  GENERATORS:     'Enter generator site name (max 30 characters).',
+  TRANSPORTATIONS:'Specify what was transported, From, and To (max 30 chars each).',
+  BUILDINGS:      'Enter building or location (max 30 characters).',
+  OTHER:          'Enter concise description (max 30 characters).',
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -59,11 +59,8 @@ export const RequestFormPage: React.FC = () => {
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [hasReceipt, setHasReceipt]     = useState(true);
 
-  // Conditional sub-fields
+  // Conditional sub-fields (concise & unified, max 20 chars)
   const [vehiclePlate, setVehiclePlate]       = useState('');
-  const [workDone, setWorkDone]               = useState('');
-  const [garage, setGarage]                   = useState('');
-  const [extraDetail, setExtraDetail]         = useState('');
   const [generatorSite, setGeneratorSite]     = useState('');
   const [whatTransported, setWhatTransported] = useState('');
   const [transportFrom, setTransportFrom]     = useState('');
@@ -97,55 +94,49 @@ export const RequestFormPage: React.FC = () => {
   const autoDescription = useMemo(() => {
     switch (bhType) {
       case 'VEHICLES': {
-        const parts: string[] = [];
-        if (vehiclePlate)  parts.push(`Vehicle: ${vehiclePlate}`);
-        if (workDone)      parts.push(workDone);
-        if (garage)        parts.push(`Mechanic/Garage: ${garage}`);
-        if (extraDetail)   parts.push(extraDetail);
-        return parts.join('. ');
+        const v = vehicles.find(x => x.plate === vehiclePlate);
+        return v ? `${v.model} (${v.plate})` : (vehiclePlate ? `Vehicle: ${vehiclePlate}` : '');
       }
-      case 'GENERATORS': {
-        const parts: string[] = [];
-        if (generatorSite) parts.push(`Site: ${generatorSite}`);
-        if (workDone)      parts.push(workDone);
-        if (extraDetail)   parts.push(extraDetail);
-        return parts.join('. ');
-      }
+      case 'GENERATORS':
+        return generatorSite.trim() ? `Site: ${generatorSite.trim()}` : '';
       case 'TRANSPORTATIONS': {
-        const parts: string[] = [];
-        if (whatTransported) parts.push(`Transported: ${whatTransported}`);
-        if (transportFrom && transportTo) parts.push(`From ${transportFrom} to ${transportTo}`);
-        else if (transportFrom) parts.push(`From: ${transportFrom}`);
-        else if (transportTo)   parts.push(`To: ${transportTo}`);
-        return parts.join('. ');
+        const item = whatTransported.trim();
+        const from = transportFrom.trim();
+        const to = transportTo.trim();
+        if (item && from && to) return `Transport: ${item} (${from} to ${to})`;
+        if (from && to) return `Transport: ${from} to ${to}`;
+        if (item) return `Transport: ${item}`;
+        return '';
       }
-      case 'BUILDINGS': {
-        const parts: string[] = [];
-        if (buildingLocation) parts.push(`Location: ${buildingLocation}`);
-        if (workDone)         parts.push(workDone);
-        if (extraDetail)      parts.push(extraDetail);
-        return parts.join('. ');
-      }
+      case 'BUILDINGS':
+        return buildingLocation.trim() ? `Location: ${buildingLocation.trim()}` : '';
       default:
-        return freeDescription;
+        return freeDescription.trim();
     }
-  }, [
-    bhType, vehiclePlate, workDone, garage, extraDetail,
-    generatorSite, whatTransported, transportFrom, transportTo,
-    buildingLocation, freeDescription,
-  ]);
+  }, [bhType, vehiclePlate, vehicles, generatorSite, whatTransported, transportFrom, transportTo, buildingLocation, freeDescription]);
 
   // Auto-build short purpose (used as request title in lists)
   const autoPurpose = useMemo(() => {
     const bhName = selectedBH?.name || 'Petty Cash Request';
     switch (bhType) {
-      case 'VEHICLES':       return vehiclePlate      ? `${bhName} — ${vehiclePlate}`                        : bhName;
-      case 'GENERATORS':     return generatorSite     ? `${bhName} — ${generatorSite}`                       : bhName;
-      case 'TRANSPORTATIONS':return whatTransported   ? `${bhName}: ${whatTransported.substring(0, 40)}`     : bhName;
-      case 'BUILDINGS':      return buildingLocation  ? `${bhName} — ${buildingLocation}`                    : bhName;
-      default:               return freeDescription   ? `${bhName}: ${freeDescription.substring(0, 40)}`     : bhName;
+      case 'VEHICLES': {
+        const v = vehicles.find(x => x.plate === vehiclePlate);
+        return v ? `${bhName} — ${v.model} (${v.plate})` : bhName;
+      }
+      case 'GENERATORS':     return generatorSite.trim()   ? `${bhName} — ${generatorSite.trim()}`     : bhName;
+      case 'TRANSPORTATIONS': {
+        const item = whatTransported.trim();
+        const from = transportFrom.trim();
+        const to = transportTo.trim();
+        if (item && from && to) return `${bhName} — ${item} (${from} to ${to})`;
+        if (from && to) return `${bhName} — ${from} to ${to}`;
+        if (item) return `${bhName} — ${item}`;
+        return bhName;
+      }
+      case 'BUILDINGS':      return buildingLocation.trim()? `${bhName} — ${buildingLocation.trim()}`  : bhName;
+      default:               return freeDescription.trim() ? `${bhName} — ${freeDescription.trim()}`   : bhName;
     }
-  }, [bhType, selectedBH, vehiclePlate, generatorSite, whatTransported, buildingLocation, freeDescription]);
+  }, [bhType, selectedBH, vehiclePlate, vehicles, generatorSite, whatTransported, transportFrom, transportTo, buildingLocation, freeDescription]);
 
   // ─── Load data ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -199,8 +190,8 @@ export const RequestFormPage: React.FC = () => {
 
   // Reset conditional sub-fields when budget head changes
   useEffect(() => {
-    setVehiclePlate(''); setWorkDone('');     setGarage('');         setExtraDetail('');
-    setGeneratorSite(''); setWhatTransported(''); setTransportFrom(''); setTransportTo('');
+    setVehiclePlate(''); setGeneratorSite(''); setWhatTransported('');
+    setTransportFrom(''); setTransportTo('');
     setBuildingLocation(''); setFreeDescription('');
   }, [budgetHeadId]);
 
@@ -225,8 +216,8 @@ export const RequestFormPage: React.FC = () => {
   const handleClear = () => {
     setBudgetHeadId(''); setAmount(''); setReceiverName(''); setReceiverPhone('');
     setInvoiceNumber(''); setHasReceipt(true); setAttachments([]);
-    setVehiclePlate(''); setWorkDone('');      setGarage('');         setExtraDetail('');
-    setGeneratorSite(''); setWhatTransported(''); setTransportFrom(''); setTransportTo('');
+    setVehiclePlate(''); setGeneratorSite(''); setWhatTransported('');
+    setTransportFrom(''); setTransportTo('');
     setBuildingLocation(''); setFreeDescription('');
     setError(null);
     setRequiredDate(new Date().toISOString().substring(0, 10));
@@ -235,24 +226,27 @@ export const RequestFormPage: React.FC = () => {
   const getConditionalError = (): string | null => {
     switch (bhType) {
       case 'VEHICLES':
-        if (!vehiclePlate)       return 'Please select the vehicle plate number';
-        if (!workDone.trim())    return 'Please describe the work done or parts bought';
+        if (!vehiclePlate) return 'Please choose a vehicle';
         return null;
       case 'GENERATORS':
-        if (!generatorSite.trim()) return 'Please enter the generator site';
-        if (!workDone.trim())      return 'Please describe the work done or parts bought';
+        if (!generatorSite.trim()) return 'Please enter the generator site (max 30 chars)';
+        if (generatorSite.trim().length > 30) return 'Generator site cannot exceed 30 characters';
         return null;
       case 'TRANSPORTATIONS':
-        if (!whatTransported.trim()) return 'Please describe what was transported';
-        if (!transportFrom.trim())   return 'Please enter the origin (From)';
-        if (!transportTo.trim())     return 'Please enter the destination (To)';
+        if (!whatTransported.trim()) return 'Please enter what was transported (max 30 chars)';
+        if (whatTransported.trim().length > 30) return 'What was transported cannot exceed 30 characters';
+        if (!transportFrom.trim()) return 'Please enter origin (From)';
+        if (transportFrom.trim().length > 30) return 'Origin (From) cannot exceed 30 characters';
+        if (!transportTo.trim()) return 'Please enter destination (To)';
+        if (transportTo.trim().length > 30) return 'Destination (To) cannot exceed 30 characters';
         return null;
       case 'BUILDINGS':
-        if (!buildingLocation.trim()) return 'Please enter the building / location name';
-        if (!workDone.trim())         return 'Please describe the work done or parts bought';
+        if (!buildingLocation.trim()) return 'Please enter the building / location (max 30 chars)';
+        if (buildingLocation.trim().length > 30) return 'Building / location cannot exceed 30 characters';
         return null;
       default:
-        if (!freeDescription.trim()) return 'Please provide a description';
+        if (!freeDescription.trim()) return 'Please enter a description (max 30 chars)';
+        if (freeDescription.trim().length > 30) return 'Description cannot exceed 30 characters';
         return null;
     }
   };
@@ -479,7 +473,7 @@ export const RequestFormPage: React.FC = () => {
               {bhType === 'VEHICLES' && (
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label required className="text-xs font-semibold">Vehicle plate no.</Label>
+                    <Label required className="text-xs font-semibold">Vehicle plate & model</Label>
                     <Select
                       value={vehiclePlate}
                       onChange={e => setVehiclePlate(e.target.value)}
@@ -488,7 +482,7 @@ export const RequestFormPage: React.FC = () => {
                       <option value="">{vehiclesLoading ? 'Loading vehicles...' : 'Choose the vehicle'}</option>
                       {vehicles.map(v => (
                         <option key={v.plate} value={v.plate}>
-                          {v.plate} — {v.model}
+                          {v.model} ({v.plate})
                         </option>
                       ))}
                     </Select>
@@ -503,36 +497,6 @@ export const RequestFormPage: React.FC = () => {
                       </p>
                     )}
                   </div>
-
-                  <div className="space-y-1.5">
-                    <Label required className="text-xs font-semibold">Work done or parts bought</Label>
-                    <Input
-                      placeholder="e.g. Oil change and filter"
-                      value={workDone}
-                      onChange={e => setWorkDone(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Garage or mechanic</Label>
-                    <Input
-                      placeholder="Optional"
-                      value={garage}
-                      onChange={e => setGarage(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Extra detail</Label>
-                    <Input
-                      placeholder="Optional"
-                      value={extraDetail}
-                      onChange={e => setExtraDetail(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
                 </div>
               )}
 
@@ -540,31 +504,15 @@ export const RequestFormPage: React.FC = () => {
               {bhType === 'GENERATORS' && (
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label required className="text-xs font-semibold">Generator site</Label>
+                    <div className="flex items-center justify-between">
+                      <Label required className="text-xs font-semibold">Generator site</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{generatorSite.length}/30</span>
+                    </div>
                     <Input
                       placeholder="e.g. Carmo site"
+                      maxLength={30}
                       value={generatorSite}
                       onChange={e => setGeneratorSite(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label required className="text-xs font-semibold">Work done or parts bought</Label>
-                    <Input
-                      placeholder="e.g. Battery acid and filter"
-                      value={workDone}
-                      onChange={e => setWorkDone(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Extra detail</Label>
-                    <Input
-                      placeholder="Optional"
-                      value={extraDetail}
-                      onChange={e => setExtraDetail(e.target.value)}
                       className="text-xs"
                     />
                   </div>
@@ -575,10 +523,13 @@ export const RequestFormPage: React.FC = () => {
               {bhType === 'TRANSPORTATIONS' && (
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label required className="text-xs font-semibold">What was transported?</Label>
-                    <Textarea
-                      placeholder="e.g. Fiber cable, simcards, Eng. Mohamed"
-                      rows={2}
+                    <div className="flex items-center justify-between">
+                      <Label required className="text-xs font-semibold">What was transported?</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{whatTransported.length}/30</span>
+                    </div>
+                    <Input
+                      placeholder="e.g. Simcards, Fiber cables"
+                      maxLength={30}
                       value={whatTransported}
                       onChange={e => setWhatTransported(e.target.value)}
                       className="text-xs"
@@ -587,18 +538,26 @@ export const RequestFormPage: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label required className="text-xs font-semibold">From</Label>
+                      <div className="flex items-center justify-between">
+                        <Label required className="text-xs font-semibold">From</Label>
+                        <span className="text-[10px] text-muted-foreground font-mono">{transportFrom.length}/30</span>
+                      </div>
                       <Input
-                        placeholder="Origin"
+                        placeholder="e.g. Garowe"
+                        maxLength={30}
                         value={transportFrom}
                         onChange={e => setTransportFrom(e.target.value)}
                         className="text-xs"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label required className="text-xs font-semibold">To</Label>
+                      <div className="flex items-center justify-between">
+                        <Label required className="text-xs font-semibold">To</Label>
+                        <span className="text-[10px] text-muted-foreground font-mono">{transportTo.length}/30</span>
+                      </div>
                       <Input
-                        placeholder="Destination"
+                        placeholder="e.g. Burtinle"
+                        maxLength={30}
                         value={transportTo}
                         onChange={e => setTransportTo(e.target.value)}
                         className="text-xs"
@@ -612,31 +571,15 @@ export const RequestFormPage: React.FC = () => {
               {bhType === 'BUILDINGS' && (
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label required className="text-xs font-semibold">Building / location</Label>
+                    <div className="flex items-center justify-between">
+                      <Label required className="text-xs font-semibold">Building / location</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{buildingLocation.length}/30</span>
+                    </div>
                     <Input
-                      placeholder="e.g. Head office, Garowe branch"
+                      placeholder="e.g. Garowe HQ1 branch"
+                      maxLength={30}
                       value={buildingLocation}
                       onChange={e => setBuildingLocation(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label required className="text-xs font-semibold">Work done or parts bought</Label>
-                    <Input
-                      placeholder="e.g. Electrical wiring repair"
-                      value={workDone}
-                      onChange={e => setWorkDone(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Extra detail</Label>
-                    <Input
-                      placeholder="Optional"
-                      value={extraDetail}
-                      onChange={e => setExtraDetail(e.target.value)}
                       className="text-xs"
                     />
                   </div>
@@ -646,9 +589,13 @@ export const RequestFormPage: React.FC = () => {
               {/* ──── OTHER (Refreshments / Misc / Tasliix / General) ─────── */}
               {bhType === 'OTHER' && (
                 <div className="space-y-1.5">
-                  <Textarea
-                    placeholder="Describe what was bought or the occasion..."
-                    rows={3}
+                  <div className="flex items-center justify-between">
+                    <Label required className="text-xs font-semibold">Description</Label>
+                    <span className="text-[10px] text-muted-foreground font-mono">{freeDescription.length}/30</span>
+                  </div>
+                  <Input
+                    placeholder="e.g. Staff tea and water"
+                    maxLength={30}
                     value={freeDescription}
                     onChange={e => setFreeDescription(e.target.value)}
                     className="text-xs"
