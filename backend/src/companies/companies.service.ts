@@ -26,6 +26,7 @@ const VEHICLE_FLEET: FleetRecord[] = [
     vehicles: [
       { plate: 'JI119', model: 'Toyota Noah',   status: 'ACTIVE' },
       { plate: 'XH174', model: 'Toyota Noah',   status: 'ACTIVE' },
+      { plate: 'SA105', model: 'Toyota Probox', status: 'ACTIVE' },
     ],
   },
   {
