@@ -743,7 +743,7 @@ export const UserManagementPage: React.FC = () => {
                     <Label required>Phone Number</Label>
                     <Input
                       type="text"
-                      placeholder="+252 61 XXX XXXX"
+                      placeholder="+252 66 xxx xxxx"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       required
@@ -966,6 +966,7 @@ export const UserManagementPage: React.FC = () => {
                 <Label required>Phone Number</Label>
                 <Input
                   type="text"
+                  placeholder="+252 66 xxx xxxx"
                   value={editForm.phone}
                   onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                   required

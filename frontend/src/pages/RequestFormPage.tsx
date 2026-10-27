@@ -10,7 +10,6 @@ import {
   CardContent,
   Button,
   Input,
-  Textarea,
   Select,
   Label,
   Alert,
@@ -35,11 +34,11 @@ function getBHType(name: string): BHType {
 }
 
 const DETAILS_HINT: Record<BHType, string> = {
-  VEHICLES:       'Choose the vehicle registered for your company & region.',
-  GENERATORS:     'Enter generator site name (max 30 characters).',
-  TRANSPORTATIONS:'Specify what was transported, From, and To (max 30 chars each).',
-  BUILDINGS:      'Enter building or location (max 30 characters).',
-  OTHER:          'Enter concise description (max 30 characters).',
+  VEHICLES:       'Choose the vehicle registered for your company & region, then describe the work needed.',
+  GENERATORS:     'Enter generator site name (max 50 characters).',
+  TRANSPORTATIONS:'Specify what was transported, From, and To (max 50 chars each).',
+  BUILDINGS:      'Enter building or location (max 50 characters).',
+  OTHER:          'Enter concise description (max 50 characters).',
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -59,14 +58,15 @@ export const RequestFormPage: React.FC = () => {
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [hasReceipt, setHasReceipt]     = useState(true);
 
-  // Conditional sub-fields (concise & unified, max 20 chars)
-  const [vehiclePlate, setVehiclePlate]       = useState('');
-  const [generatorSite, setGeneratorSite]     = useState('');
-  const [whatTransported, setWhatTransported] = useState('');
-  const [transportFrom, setTransportFrom]     = useState('');
-  const [transportTo, setTransportTo]         = useState('');
-  const [buildingLocation, setBuildingLocation] = useState('');
-  const [freeDescription, setFreeDescription] = useState('');
+  // Conditional sub-fields (max 50 chars)
+  const [vehiclePlate, setVehiclePlate]             = useState('');
+  const [vehicleDescription, setVehicleDescription] = useState('');
+  const [generatorSite, setGeneratorSite]           = useState('');
+  const [whatTransported, setWhatTransported]       = useState('');
+  const [transportFrom, setTransportFrom]           = useState('');
+  const [transportTo, setTransportTo]               = useState('');
+  const [buildingLocation, setBuildingLocation]     = useState('');
+  const [freeDescription, setFreeDescription]       = useState('');
 
   // UI state
   const [attachments, setAttachments]   = useState<any[]>([]);
@@ -95,7 +95,10 @@ export const RequestFormPage: React.FC = () => {
     switch (bhType) {
       case 'VEHICLES': {
         const v = vehicles.find(x => x.plate === vehiclePlate);
-        return v ? `${v.model} (${v.plate})` : (vehiclePlate ? `Vehicle: ${vehiclePlate}` : '');
+        const plateStr = v ? `${v.model} (${v.plate})` : (vehiclePlate ? vehiclePlate : '');
+        const descStr = vehicleDescription.trim();
+        if (plateStr && descStr) return `${plateStr} — ${descStr}`;
+        return plateStr || descStr;
       }
       case 'GENERATORS':
         return generatorSite.trim() ? `Site: ${generatorSite.trim()}` : '';
@@ -113,7 +116,7 @@ export const RequestFormPage: React.FC = () => {
       default:
         return freeDescription.trim();
     }
-  }, [bhType, vehiclePlate, vehicles, generatorSite, whatTransported, transportFrom, transportTo, buildingLocation, freeDescription]);
+  }, [bhType, vehiclePlate, vehicleDescription, vehicles, generatorSite, whatTransported, transportFrom, transportTo, buildingLocation, freeDescription]);
 
   // Auto-build short purpose (used as request title in lists)
   const autoPurpose = useMemo(() => {
@@ -121,7 +124,11 @@ export const RequestFormPage: React.FC = () => {
     switch (bhType) {
       case 'VEHICLES': {
         const v = vehicles.find(x => x.plate === vehiclePlate);
-        return v ? `${bhName} — ${v.model} (${v.plate})` : bhName;
+        const plateStr = v ? `${v.model} (${v.plate})` : (vehiclePlate || '');
+        const descStr = vehicleDescription.trim();
+        if (plateStr && descStr) return `${bhName} — ${plateStr} — ${descStr}`;
+        if (plateStr) return `${bhName} — ${plateStr}`;
+        return bhName;
       }
       case 'GENERATORS':     return generatorSite.trim()   ? `${bhName} — ${generatorSite.trim()}`     : bhName;
       case 'TRANSPORTATIONS': {
@@ -136,7 +143,7 @@ export const RequestFormPage: React.FC = () => {
       case 'BUILDINGS':      return buildingLocation.trim()? `${bhName} — ${buildingLocation.trim()}`  : bhName;
       default:               return freeDescription.trim() ? `${bhName} — ${freeDescription.trim()}`   : bhName;
     }
-  }, [bhType, selectedBH, vehiclePlate, vehicles, generatorSite, whatTransported, transportFrom, transportTo, buildingLocation, freeDescription]);
+  }, [bhType, selectedBH, vehiclePlate, vehicleDescription, vehicles, generatorSite, whatTransported, transportFrom, transportTo, buildingLocation, freeDescription]);
 
   // ─── Load data ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -190,7 +197,7 @@ export const RequestFormPage: React.FC = () => {
 
   // Reset conditional sub-fields when budget head changes
   useEffect(() => {
-    setVehiclePlate(''); setGeneratorSite(''); setWhatTransported('');
+    setVehiclePlate(''); setVehicleDescription(''); setGeneratorSite(''); setWhatTransported('');
     setTransportFrom(''); setTransportTo('');
     setBuildingLocation(''); setFreeDescription('');
   }, [budgetHeadId]);
@@ -216,7 +223,7 @@ export const RequestFormPage: React.FC = () => {
   const handleClear = () => {
     setBudgetHeadId(''); setAmount(''); setReceiverName(''); setReceiverPhone('');
     setInvoiceNumber(''); setHasReceipt(true); setAttachments([]);
-    setVehiclePlate(''); setGeneratorSite(''); setWhatTransported('');
+    setVehiclePlate(''); setVehicleDescription(''); setGeneratorSite(''); setWhatTransported('');
     setTransportFrom(''); setTransportTo('');
     setBuildingLocation(''); setFreeDescription('');
     setError(null);
@@ -227,26 +234,28 @@ export const RequestFormPage: React.FC = () => {
     switch (bhType) {
       case 'VEHICLES':
         if (!vehiclePlate) return 'Please choose a vehicle';
+        if (!vehicleDescription.trim()) return 'Please enter a description for the vehicle work (max 50 chars)';
+        if (vehicleDescription.trim().length > 50) return 'Vehicle description cannot exceed 50 characters';
         return null;
       case 'GENERATORS':
-        if (!generatorSite.trim()) return 'Please enter the generator site (max 30 chars)';
-        if (generatorSite.trim().length > 30) return 'Generator site cannot exceed 30 characters';
+        if (!generatorSite.trim()) return 'Please enter the generator site (max 50 chars)';
+        if (generatorSite.trim().length > 50) return 'Generator site cannot exceed 50 characters';
         return null;
       case 'TRANSPORTATIONS':
-        if (!whatTransported.trim()) return 'Please enter what was transported (max 30 chars)';
-        if (whatTransported.trim().length > 30) return 'What was transported cannot exceed 30 characters';
+        if (!whatTransported.trim()) return 'Please enter what was transported (max 50 chars)';
+        if (whatTransported.trim().length > 50) return 'What was transported cannot exceed 50 characters';
         if (!transportFrom.trim()) return 'Please enter origin (From)';
-        if (transportFrom.trim().length > 30) return 'Origin (From) cannot exceed 30 characters';
+        if (transportFrom.trim().length > 50) return 'Origin (From) cannot exceed 50 characters';
         if (!transportTo.trim()) return 'Please enter destination (To)';
-        if (transportTo.trim().length > 30) return 'Destination (To) cannot exceed 30 characters';
+        if (transportTo.trim().length > 50) return 'Destination (To) cannot exceed 50 characters';
         return null;
       case 'BUILDINGS':
-        if (!buildingLocation.trim()) return 'Please enter the building / location (max 30 chars)';
-        if (buildingLocation.trim().length > 30) return 'Building / location cannot exceed 30 characters';
+        if (!buildingLocation.trim()) return 'Please enter the building / location (max 50 chars)';
+        if (buildingLocation.trim().length > 50) return 'Building / location cannot exceed 50 characters';
         return null;
       default:
-        if (!freeDescription.trim()) return 'Please enter a description (max 30 chars)';
-        if (freeDescription.trim().length > 30) return 'Description cannot exceed 30 characters';
+        if (!freeDescription.trim()) return 'Please enter a description (max 50 chars)';
+        if (freeDescription.trim().length > 50) return 'Description cannot exceed 50 characters';
         return null;
     }
   };
@@ -497,6 +506,23 @@ export const RequestFormPage: React.FC = () => {
                       </p>
                     )}
                   </div>
+
+                  {/* Description field — visible only after a plate is chosen */}
+                  {vehiclePlate && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label required className="text-xs font-semibold">Description of work</Label>
+                        <span className="text-[10px] text-muted-foreground font-mono">{vehicleDescription.length}/50</span>
+                      </div>
+                      <Input
+                        placeholder="e.g. Oil change, front tire repair"
+                        maxLength={50}
+                        value={vehicleDescription}
+                        onChange={e => setVehicleDescription(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -506,11 +532,11 @@ export const RequestFormPage: React.FC = () => {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label required className="text-xs font-semibold">Generator site</Label>
-                      <span className="text-[10px] text-muted-foreground font-mono">{generatorSite.length}/30</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{generatorSite.length}/50</span>
                     </div>
                     <Input
                       placeholder="e.g. Carmo site"
-                      maxLength={30}
+                      maxLength={50}
                       value={generatorSite}
                       onChange={e => setGeneratorSite(e.target.value)}
                       className="text-xs"
@@ -525,11 +551,11 @@ export const RequestFormPage: React.FC = () => {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label required className="text-xs font-semibold">What was transported?</Label>
-                      <span className="text-[10px] text-muted-foreground font-mono">{whatTransported.length}/30</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{whatTransported.length}/50</span>
                     </div>
                     <Input
                       placeholder="e.g. Simcards, Fiber cables"
-                      maxLength={30}
+                      maxLength={50}
                       value={whatTransported}
                       onChange={e => setWhatTransported(e.target.value)}
                       className="text-xs"
@@ -540,11 +566,11 @@ export const RequestFormPage: React.FC = () => {
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Label required className="text-xs font-semibold">From</Label>
-                        <span className="text-[10px] text-muted-foreground font-mono">{transportFrom.length}/30</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{transportFrom.length}/50</span>
                       </div>
                       <Input
                         placeholder="e.g. Garowe"
-                        maxLength={30}
+                        maxLength={50}
                         value={transportFrom}
                         onChange={e => setTransportFrom(e.target.value)}
                         className="text-xs"
@@ -553,11 +579,11 @@ export const RequestFormPage: React.FC = () => {
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Label required className="text-xs font-semibold">To</Label>
-                        <span className="text-[10px] text-muted-foreground font-mono">{transportTo.length}/30</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{transportTo.length}/50</span>
                       </div>
                       <Input
                         placeholder="e.g. Burtinle"
-                        maxLength={30}
+                        maxLength={50}
                         value={transportTo}
                         onChange={e => setTransportTo(e.target.value)}
                         className="text-xs"
@@ -573,11 +599,11 @@ export const RequestFormPage: React.FC = () => {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label required className="text-xs font-semibold">Building / location</Label>
-                      <span className="text-[10px] text-muted-foreground font-mono">{buildingLocation.length}/30</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{buildingLocation.length}/50</span>
                     </div>
                     <Input
                       placeholder="e.g. Garowe HQ1 branch"
-                      maxLength={30}
+                      maxLength={50}
                       value={buildingLocation}
                       onChange={e => setBuildingLocation(e.target.value)}
                       className="text-xs"
@@ -591,11 +617,11 @@ export const RequestFormPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <Label required className="text-xs font-semibold">Description</Label>
-                    <span className="text-[10px] text-muted-foreground font-mono">{freeDescription.length}/30</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">{freeDescription.length}/50</span>
                   </div>
                   <Input
                     placeholder="e.g. Staff tea and water"
-                    maxLength={30}
+                    maxLength={50}
                     value={freeDescription}
                     onChange={e => setFreeDescription(e.target.value)}
                     className="text-xs"
@@ -645,7 +671,7 @@ export const RequestFormPage: React.FC = () => {
               <Label required className="text-xs font-semibold">Recipient phone</Label>
               <Input
                 type="text"
-                placeholder="+252 90 xxx xxxx"
+                placeholder="+252 66 xxx xxxx"
                 value={receiverPhone}
                 onChange={e => setReceiverPhone(e.target.value)}
                 className="text-xs font-mono"
