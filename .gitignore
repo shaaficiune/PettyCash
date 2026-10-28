@@ -55,3 +55,12 @@ coverage/
 # Volume data should not be committed
 postgres_data/
 minio_data/
+
+# ─── Database Exports ─────────────────────────────────────────────────────────
+# Output files from db-export-local.sh — contain sensitive production data
+# NEVER commit these. The script itself (db-export-local.sh) is safe to commit.
+db_exports/
+*.dump
+*.sql
+live_backup*.sql
+live_backup*.dump
