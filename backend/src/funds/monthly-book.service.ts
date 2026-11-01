@@ -8,7 +8,7 @@ import * as path from 'path';
 export class MonthlyBookService {
   private readonly logger = new Logger(MonthlyBookService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * Generates a fully formatted Monthly Petty Cash Book (.xlsx) matching the historical format
@@ -91,8 +91,8 @@ export class MonthlyBookService {
     const sheetName = isSomtel
       ? 'somtel puntland petty Cash'
       : isBluekom
-      ? 'Bluekom Petty Cash'
-      : `${company.name} Petty Cash`;
+        ? 'Bluekom Petty Cash'
+        : `${company.name} Petty Cash`;
 
     const ws = wb.addWorksheet(sheetName, {
       views: [{ showGridLines: true }],
@@ -300,11 +300,11 @@ export class MonthlyBookService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-    // Fetch transactions
+    // Fetch transactions (all expenses and mid-month refunds, excluding initial month top-up)
     const ledgers = await this.prisma.pettyCashLedger.findMany({
       where: {
         companyId: company.id,
-        debit: { gt: 0 },
+        transactionType: { not: 'ALLOCATION' },
         date: {
           gte: startDate,
           lte: endDate,

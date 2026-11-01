@@ -25,7 +25,9 @@ echo ""
 
 # 1. Pull latest code from main
 echo -e "${YELLOW}📥 [1/8] Soo dejinaya code-ka ugu dambeeyay ee GitHub (main)...${NC}"
-git stash || true
+git reset --hard HEAD || true
+git clean -fd || true
+rm -f petty_cash_reconciled.sql || true
 git pull origin main
 
 # 2. Check for temp-db-sync branch and fetch the SQL file
