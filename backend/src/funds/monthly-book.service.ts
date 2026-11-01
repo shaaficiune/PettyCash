@@ -304,7 +304,7 @@ export class MonthlyBookService {
     const ledgers = await this.prisma.pettyCashLedger.findMany({
       where: {
         companyId: company.id,
-        transactionType: 'PAYMENT',
+        debit: { gt: 0 },
         date: {
           gte: startDate,
           lte: endDate,
@@ -316,7 +316,7 @@ export class MonthlyBookService {
           include: {
             region: { select: { name: true } },
             budgetHead: { select: { name: true } },
-            user: { select: { fullName: true } },
+            user: { select: { fullName: true, phone: true } },
           },
         },
       },
@@ -331,13 +331,21 @@ export class MonthlyBookService {
       const prevRow = currentRow - 1;
       const dateStr = item.date ? new Date(item.date).toISOString().slice(0, 10) : '';
 
-      // Invoice number or ref
-      const invoiceNo = item.referenceNumber || item.request?.invoiceNumber || item.request?.requestNumber || '—';
+      // Column 3 (#No): Phone number / Merchant Code / Account number
+      const phoneOrAccountNo =
+        item.request?.receiverPhone ||
+        item.employee?.phone ||
+        item.request?.user?.phone ||
+        item.referenceNumber ||
+        '—';
 
-      // Payee name
-      const payeeName = item.request?.receiverName
-        ? `${item.request.receiverName}${item.request.receiverPhone ? ` (${item.request.receiverPhone})` : ''}`
-        : item.request?.vendorName || item.employee?.fullName || '—';
+      // Column 4 (Payee Name#): Payee Name ONLY (WITHOUT phone attached)
+      const payeeName =
+        item.request?.receiverName ||
+        item.request?.vendorName ||
+        item.employee?.fullName ||
+        item.request?.user?.fullName ||
+        '—';
 
       // Description
       const desc = item.request?.purpose
@@ -352,7 +360,7 @@ export class MonthlyBookService {
       row.values = [
         sn++,
         dateStr,
-        invoiceNo,
+        phoneOrAccountNo,
         payeeName,
         desc,
         category,
