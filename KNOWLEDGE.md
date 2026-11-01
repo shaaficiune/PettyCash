@@ -1780,10 +1780,111 @@ git pull origin main
 
 ### 4. 📋 Xaaladda Hadda — October Reconciliation
 
-- [ ] Ubuntu server-ka internet-ka u sax (DNS ama routing)
-- [ ] `git pull origin main` ku samee Ubuntu-ga
-- [ ] `bash db-export-local.sh` ku fur Ubuntu-ga
-- [ ] Faylka `.dump` Windows-ka u dir (Shared Folder)
-- [ ] Excel-ka October qolada xisaabaadka ka qaad
-- [ ] Reconciliation script ku fur si loo barbardhigo
+- [x] Ubuntu server-ka internet-ka u sax (DNS ama routing)
+- [x] `git pull origin main` ku samee Ubuntu-ga
+- [x] `bash db-export-local.sh` ku fur Ubuntu-ga
+- [x] Faylka database-ka Windows-ka loo soo gudbiyay
+- [x] Excel-ka rasmiga ah ee October qolada xisaabaadka laga helay (`final pettycash.xlsx`)
+- [x] Is-waafajinta (reconciliation) buuxda ayaa la dhammaystiray (Somtel & Bluekom)
+- [x] Monthly Book Engine-ka waa la saxay oo la habeeyay
+- [x] Code-ka iyo database-ka la saxay GitHub iyo Server-ka waa loo diray
+
+---
+
+## 34. 📊 OCTOBER 2026 RECONCILIATION, MONTHLY BOOK ENGINE & PRODUCTION SYNC (2026-11-01)
+
+### 1. 🎯 Executive Summary & Final Confirmed Balances
+Bishii October 2026 intii lagu jiray downtime-ka server-ka (~10 maalmood), kharashaad badan ayaa lagu bixiyay gacanta (offline Excel / Dahabshiil PV statements). Is-waafajin buuxda (Reconciliation) ayaa la sameeyay labada shirkadoodba, iyadoo la waafajiyay buugga xisaabta rasmiga ah ee **`final pettycash.xlsx`**:
+
+| Shirkadda | Opening Float | Top-Up Funding | Mid-Month Credit | Total Available | Paid (Disbursed) | Remaining Balance | Requests |
+|---|---|---|---|---|---|---|---|
+| **Somtel Puntland** | **$16.98** | **$3,263.02** | **$22.00** (Claude Refund) | **$3,280.00** | **$3,272.36** | **$7.64** | **207 PAID** |
+| **Bluekom** | **$30.90** | **$969.10** | **$0.00** | **$1,000.00** | **$878.60** | **$121.40** | **71 PAID** |
+
+*Dhammaan bulk dummy/gap codsiyadii (sida `PCR-BK-NG-0097` oo $97 ahayd) waa la tirtiray waxaana lagu beddelay 7 codsi oo dhab ah oo mid kasta xogtiisa, rasiidkiisa, iyo numberkiisa wata (`PCR-BK-BR-0031` ilaa `0037`), sidoo kale codsigii laba-laabanka ahaa ee `PCR-BK-BR-0030` waa la tirtiray.*
+
+---
+
+### 2. 🔍 All Requests Page — Raadinta Tooska ah (Search Feature)
+* **Faylka la beddelay:** `frontend/src/pages/RequestsListPage.tsx`
+* **Astaamaha lagu daray:**
+  - Input cusub oo raadinta ah oo ku yaal toolbar-ka ka hor Status filter.
+  - Waxay si toos ah (real-time) u shaandheysaa:
+    - Magaca qaataha (`receiverName`)
+    - Telefoonka qaataha (`receiverPhone`)
+    - Numberka codsiga (`requestNumber`, e.g., `PC-202610...` ama `PCR-...`)
+    - Magaca codsadaha (`user.fullName`)
+    - Telefoonka codsadaha (`user.phone`)
+  - Badhan "X" ah oo lagu nadiifiyo raadinta.
+
+---
+
+### 3. 📑 Monthly Petty Cash Book Engine Fixes (`monthly-book.service.ts`)
+Buugga rasmiga ah ee bilaha ah ee Excel-ka (`.xlsx`) ee ay xisaabiyeyaashu kala soo degaan system-ka waxaa lagu sameeyay hagaajin heer sare ah si uu 100% ula mid noqdo buugga rasmiga ah ee maamulka:
+1. **Column 3 (`#No`):**
+   - Hore: Wuxuu soo qaadan jiray Request Number (`PC-2026...`).
+   - Hadda: Wuxuu si adag u soo qaataa Telefoonka / Merchant Code / eDahab Account (`receiverPhone || employee.phone || user.phone || referenceNumber`), haddii kalena `—`.
+2. **Column 4 (`Payee Name#`):**
+   - Hore: Magaca iyo telefoonka ayaa isku lifaaqnaa (`Axmed (660000...)`).
+   - Hadda: Magaca kaliya ayaa ku qoran (`receiverName || vendorName || employee.fullName || user.fullName`), telefoonku column-kiisa gaarka ah ayuu ku jiraa.
+3. **Wadarta Kharashka (Disbursed Ledger Filter):**
+   - Hore: Query-gu wuxuu soo saari jiray oo kaliya `transactionType: 'PAYMENT'`, taasoo keentay in laga tago 85 codsi oo `DISBURSEMENT` ahaa (oo ay ku jireen downtime data).
+   - Hadda: Query-gu wuxuu isticmaalaa `transactionType: { not: 'ALLOCATION' }`, taasoo si sax ah u soo xisaabisa dhammaan kharashaadka (`PAYMENT`, `DISBURSEMENT`, `EXPENSE`).
+4. **Running Balance & Summary Card:**
+   - Balance-ka socda wuxuu si sax ah u xisaabiyaa credit-yada dhexe (sida $22 Refund Row 156 Claude).
+   - Summary Card-ka hoose wuxuu si toos ah u muujiyaa:
+     - Opening Float Balance
+     - Additional Float Funding (Top-Up)
+     - Total Disbursed Expenses
+     - Net Available Remaining Float
+
+---
+
+### 4. 🧹 Database Field Cleanups & Standardization (108 Updates)
+Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu sameeyay nadiifin qoto-dheer iyadoo **aan hal senti oo lacag ah ama taariikh waxba laga beddelin**:
+1. **Kuwa Is-daba-marsanaa (Swapped Columns):**
+   - `PC-20261011-0018`: Magaca wuxuu ahaa `709573`, Phone-kuna `MPC Enterprise` ➡️ Waxaa loo kala saaray: Name = `MPC Enterprise`, Phone = `709573`.
+   - `PC-20261011-0023`: Name = `Caalami super market`, Phone = `59006`.
+   - `PC-20261007-0024`: Name = `Siciid muuse Aadan`, Phone = `667736955`.
+   - `PC-20261020-0004`: Name = `CABDIRAXMAAN YUUSUF CABDIRAXMAAN`, Phone = `667555917`.
+   - `PCR-ST-MD-0001`: Name = `CABDIRAXMAAN SHIIKH MUUSE`, Phone = `667544785`.
+2. **Magacyada Koobnaa (Single Names Expanded):**
+   - `Mustafe` ➡️ `MUSTAFE BASHIIR AXMED` (`667979347`)
+   - `Axmad` ➡️ `AXMED SALAAD XIRSI` (`667492233`)
+   - `Sharmaarke` ➡️ `SHARMAAKE CABDICASIIS XUSSEN` (`667384840`)
+   - Guud ahaan **108 codsi** (94 Somtel + 14 Bluekom) ayaa magacyadooda loo buuxiyay si buuxda.
+3. **Telefanada Standard-ka:**
+   - Telefanada bilaabanayay `066...` waxaa laga jaray eberka hore si ay u noqdaan `66...` iyadoo la raacayo nidaamka xisaabaadka.
+
+---
+
+### 5. 🚀 Live Server Sync & Cross-Version PostgreSQL Restore (`apply-reconciled-db.sh`)
+* **Dhibaatadii Version Mismatch-ka:**
+  - Windows wuxuu wataa PostgreSQL v18, halka Ubuntu VM-ku uu wato version hore.
+  - Binary format (`.dump`) ayaa ku fashilmay: `pg_restore: unsupported version (1.16) in file header`.
+  - **Xalka:** Waxaa loo beddelay **Plain SQL text dump** (`pg_dump -F p`) waxaana lagu shubaa **`psql -f`**, kaasoo shaqeeya dhammaan versions-ka PostgreSQL.
+* **Git Conflict Automation:**
+  - Script-ka `apply-reconciled-db.sh` waxaa lagu xoojiyay:
+    ```bash
+    git reset --hard HEAD || true
+    git clean -fd || true
+    rm -f petty_cash_reconciled.sql || true
+    git pull origin main
+    ```
+    Tani waxay ka hortagtaa wax kasta oo merge conflicts ah oo ka dhasha faylashii hore ee server-ka ku hadhay.
+* **Sida Live Server-ka loogu shubo:**
+  ```bash
+  cd ~/app/app && git pull && bash apply-reconciled-db.sh
+  ```
+  Script-gu wuxuu si toos ah u qabanayaa:
+  1. Pull main branch
+  2. Fetch `petty_cash_reconciled.sql` from `temp-db-sync`
+  3. Pre-migration safety backup (`~/db_exports/pre_reconciliation_backup_...`)
+  4. Restore via `psql -f`
+  5. Prisma generate & NestJS build
+  6. Frontend Vite build & Nginx reload
+  7. PM2 zero-downtime restart (`petty-cash-backend`)
+  8. Delete temporary sync branch on GitHub
+  9. Automatic balance verification output.
+
 
