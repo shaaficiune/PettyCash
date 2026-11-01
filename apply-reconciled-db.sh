@@ -41,24 +41,61 @@ if [ ! -f "$DUMP_FILE" ]; then
 fi
 echo -e "${GREEN}✅ Database dump-kii waa la helay: $DUMP_FILE ($(du -h "$DUMP_FILE" | cut -f1))${NC}"
 
+# Read database credentials from backend/.env
+ENV_FILE="$(pwd)/backend/.env"
+if [ -f "$ENV_FILE" ]; then
+    DATABASE_URL=$(grep "^DATABASE_URL=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    DB_NAME=$(echo "$DATABASE_URL" | sed 's/.*\///' | sed 's/?.*//')
+    DB_USER=$(echo "$DATABASE_URL" | sed 's/.*:\/\///' | sed 's/:.*//')
+    DB_HOST=$(echo "$DATABASE_URL" | sed 's/.*@//' | sed 's/:.*//' | sed 's/\/.*//')
+    DB_PORT=$(echo "$DATABASE_URL" | sed 's/.*@[^:]*://' | sed 's/\/.*//')
+    DB_PASS=$(echo "$DATABASE_URL" | sed 's/.*:\/\/[^:]*://' | sed 's/@.*//')
+    # URL decode %40 -> @
+    DB_PASS=$(printf '%b' "${DB_PASS//%/\\x}")
+fi
+
+[ -z "$DB_NAME" ] && DB_NAME="petty_cash_db"
+[ -z "$DB_USER" ] && DB_USER="petty_user"
+[ -z "$DB_HOST" ] && DB_HOST="localhost"
+[ -z "$DB_PORT" ] && DB_PORT="5432"
+
+echo -e "   Target DB: $DB_NAME | User: $DB_USER | Host: $DB_HOST:$DB_PORT"
+
 # 3. Create safety backup of existing live database before touching anything
 echo -e "${YELLOW}🛡️  [3/8] Qaadaya backup amni ah oo database-ka hadda jira...${NC}"
 mkdir -p "$HOME/db_exports"
 SAFETY_BACKUP="$HOME/db_exports/pre_reconciliation_backup_$(date +%Y%m%d_%H%M%S).dump"
-export PGPASSWORD="Somtel@PL"
-pg_dump -U postgres -h localhost -p 5432 -F c -b -f "$SAFETY_BACKUP" petty_cash_db || true
+export PGPASSWORD="$DB_PASS"
+pg_dump -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -F c -b -f "$SAFETY_BACKUP" "$DB_NAME" 2>/dev/null || sudo -u postgres pg_dump -F c -b -f "$SAFETY_BACKUP" "$DB_NAME" || true
 echo -e "${GREEN}✅ Backup-kii amniga waxaa lagu kaydiyay: $SAFETY_BACKUP${NC}"
 
 # 4. Terminate active connections & restore the clean reconciled database
 echo -e "${YELLOW}🗄️  [4/8] Ku shubaya database-kii la saxay ee October (pg_restore)...${NC}"
-psql -U postgres -h localhost -p 5432 -d postgres -c "
+PGPASSWORD="$DB_PASS" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d postgres -c "
 SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
-WHERE pg_stat_activity.datname = 'petty_cash_db'
+WHERE pg_stat_activity.datname = '$DB_NAME'
+  AND pid <> pg_backend_pid();
+" > /dev/null 2>&1 || sudo -u postgres psql -c "
+SELECT pg_terminate_backend(pg_stat_activity.pid)
+FROM pg_stat_activity
+WHERE pg_stat_activity.datname = '$DB_NAME'
   AND pid <> pg_backend_pid();
 " > /dev/null 2>&1 || true
 
-pg_restore -U postgres -h localhost -p 5432 -d petty_cash_db --clean --if-exists "$DUMP_FILE" || true
+RESTORED=0
+if PGPASSWORD="$DB_PASS" pg_restore -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" --clean --if-exists --no-owner --no-privileges "$DUMP_FILE"; then
+    RESTORED=1
+elif sudo -u postgres pg_restore -d "$DB_NAME" --clean --if-exists --no-owner --no-privileges "$DUMP_FILE"; then
+    RESTORED=1
+elif pg_restore -U postgres -h localhost -p 5432 -d "$DB_NAME" --clean --if-exists --no-owner --no-privileges "$DUMP_FILE"; then
+    RESTORED=1
+fi
+
+if [ "$RESTORED" -ne 1 ]; then
+    echo -e "${RED}❌ KHALAD: pg_restore wuu fashilmay! Fadlan hubi permissions-ka PostgreSQL.${NC}"
+    exit 1
+fi
 echo -e "${GREEN}✅ Database-kii si guul leh ayaa loogu shubay!${NC}"
 
 # 5. Remove local dump file copy
@@ -85,7 +122,7 @@ if [ -f "nginx-ubuntu.conf" ]; then
     sudo cp nginx-ubuntu.conf "$NGINX_CONF_DEST"
     sudo sed -i "s|root .*;|root ${APP_DIR}/frontend/dist;|g" "$NGINX_CONF_DEST"
     sudo chmod -R o+rX "${APP_DIR}/frontend/dist"
-    sudo nginx -t && sudo systemctl reload nginx || sudo service nginx reload
+    sudo nginx -t && (sudo systemctl reload nginx 2>/dev/null || sudo service nginx reload)
 fi
 
 if pm2 list | grep -q "petty-cash-backend"; then
@@ -101,9 +138,10 @@ git push "$REPO_URL" --delete temp-db-sync 2>/dev/null || true
 git branch -D temp-db-sync-local 2>/dev/null || true
 echo -e "${GREEN}✅ GitHub-ka waa la nadiifiyay si buuxda!${NC}"
 
-# 9. Verify live balances
+# 9. Verify live balances from inside backend directory
 echo ""
 echo -e "${CYAN}🔍 [8/8] Hubinaya xisaabaadka live-ka ah ee shirkadaha...${NC}"
+cd backend
 node -e '
 const { PrismaClient } = require("@prisma/client");
 const p = new PrismaClient();
@@ -117,7 +155,7 @@ async function v() {
 }
 v().catch(console.error).finally(() => p.$disconnect());
 '
+cd ..
 
 echo -e "${GREEN}🎉 GUUL DHAMMAAD AH! Live Server-kii 100% waa la cusboonaysiiyay!${NC}"
 echo ""
-
