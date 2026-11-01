@@ -28,18 +28,18 @@ echo -e "${YELLOW}📥 [1/8] Soo dejinaya code-ka ugu dambeeyay ee GitHub (main)
 git stash || true
 git pull origin main
 
-# 2. Check for temp-db-sync branch and fetch the dump
-echo -e "${YELLOW}📥 [2/8] Soo jiidaya database dump-ka branch-ka temp-db-sync...${NC}"
+# 2. Check for temp-db-sync branch and fetch the SQL file
+echo -e "${YELLOW}📥 [2/8] Soo jiidaya database SQL dump-ka branch-ka temp-db-sync...${NC}"
 git fetch "$REPO_URL" temp-db-sync:temp-db-sync-local 2>/dev/null || git fetch origin temp-db-sync
 
-DUMP_FILE="petty_cash_reconciled.dump"
-git checkout temp-db-sync-local -- "$DUMP_FILE" 2>/dev/null || git checkout origin/temp-db-sync -- "$DUMP_FILE"
+SQL_FILE="petty_cash_reconciled.sql"
+git checkout temp-db-sync-local -- "$SQL_FILE" 2>/dev/null || git checkout origin/temp-db-sync -- "$SQL_FILE"
 
-if [ ! -f "$DUMP_FILE" ]; then
-    echo -e "${RED}❌ $DUMP_FILE lagama helin branch-ka temp-db-sync!${NC}"
+if [ ! -f "$SQL_FILE" ]; then
+    echo -e "${RED}❌ $SQL_FILE lagama helin branch-ka temp-db-sync!${NC}"
     exit 1
 fi
-echo -e "${GREEN}✅ Database dump-kii waa la helay: $DUMP_FILE ($(du -h "$DUMP_FILE" | cut -f1))${NC}"
+echo -e "${GREEN}✅ Database SQL dump-kii waa la helay: $SQL_FILE ($(du -h "$SQL_FILE" | cut -f1))${NC}"
 
 # Read database credentials from backend/.env
 ENV_FILE="$(pwd)/backend/.env"
@@ -69,8 +69,8 @@ export PGPASSWORD="$DB_PASS"
 pg_dump -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -F c -b -f "$SAFETY_BACKUP" "$DB_NAME" 2>/dev/null || sudo -u postgres pg_dump -F c -b -f "$SAFETY_BACKUP" "$DB_NAME" || true
 echo -e "${GREEN}✅ Backup-kii amniga waxaa lagu kaydiyay: $SAFETY_BACKUP${NC}"
 
-# 4. Terminate active connections & restore the clean reconciled database
-echo -e "${YELLOW}🗄️  [4/8] Ku shubaya database-kii la saxay ee October (pg_restore)...${NC}"
+# 4. Terminate active connections & execute clean SQL restore
+echo -e "${YELLOW}🗄️  [4/8] Ku shubaya database-kii la saxay ee October (psql)...${NC}"
 PGPASSWORD="$DB_PASS" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d postgres -c "
 SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
@@ -84,22 +84,24 @@ WHERE pg_stat_activity.datname = '$DB_NAME'
 " > /dev/null 2>&1 || true
 
 RESTORED=0
-if PGPASSWORD="$DB_PASS" pg_restore -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" --clean --if-exists --no-owner --no-privileges "$DUMP_FILE"; then
+if PGPASSWORD="$DB_PASS" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -f "$SQL_FILE" > /dev/null 2>&1; then
     RESTORED=1
-elif sudo -u postgres pg_restore -d "$DB_NAME" --clean --if-exists --no-owner --no-privileges "$DUMP_FILE"; then
+elif sudo -u postgres psql -d "$DB_NAME" -f "$SQL_FILE" > /dev/null 2>&1; then
     RESTORED=1
-elif pg_restore -U postgres -h localhost -p 5432 -d "$DB_NAME" --clean --if-exists --no-owner --no-privileges "$DUMP_FILE"; then
+elif psql -U postgres -h localhost -p 5432 -d "$DB_NAME" -f "$SQL_FILE" > /dev/null 2>&1; then
     RESTORED=1
 fi
 
 if [ "$RESTORED" -ne 1 ]; then
-    echo -e "${RED}❌ KHALAD: pg_restore wuu fashilmay! Fadlan hubi permissions-ka PostgreSQL.${NC}"
+    echo -e "${RED}❌ KHALAD: psql restore wuu fashilmay!${NC}"
+    # Try one more time showing exact error
+    PGPASSWORD="$DB_PASS" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -f "$SQL_FILE" | tail -10
     exit 1
 fi
-echo -e "${GREEN}✅ Database-kii si guul leh ayaa loogu shubay!${NC}"
+echo -e "${GREEN}✅ Database-kii si buuxda oo guul leh ayaa loogu shubay!${NC}"
 
-# 5. Remove local dump file copy
-rm -f "$DUMP_FILE"
+# 5. Remove local SQL dump file
+rm -f "$SQL_FILE"
 
 # 6. Build Backend & Frontend
 echo -e "${YELLOW}🔨 [5/8] Dhisaya backend & frontend...${NC}"

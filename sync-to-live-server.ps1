@@ -14,8 +14,8 @@ Write-Host "  PETTY CASH - DIYAARINTA IYO U DIRISTA SERVER-KA LIVE-KA AH" -Foreg
 Write-Host "==============================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. Hubi oo soo saar PostgreSQL dump-ka saxan ee Windows
-Write-Host "[1/3] Qaadaya database dump-ka reconciled ee Windows..." -ForegroundColor Yellow
+# 1. Hubi oo soo saar PostgreSQL SQL dump-ka saxan ee Windows
+Write-Host "[1/3] Qaadaya database SQL dump-ka reconciled ee Windows..." -ForegroundColor Yellow
 
 $pgDumpPath = "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe"
 if (-not (Test-Path $pgDumpPath)) {
@@ -23,34 +23,39 @@ if (-not (Test-Path $pgDumpPath)) {
     if ($found) { $pgDumpPath = $found.FullName }
 }
 
-$dumpFile = "petty_cash_reconciled.dump"
+$sqlFile = "petty_cash_reconciled.sql"
 $env:PGPASSWORD = "Somtel@PL"
 
-& $pgDumpPath -U postgres -h localhost -p 5432 -F c -b -f $dumpFile petty_cash_db
+& $pgDumpPath -U postgres -h localhost -p 5432 --clean --if-exists --no-owner --no-privileges -f $sqlFile petty_cash_db
 
-if (-not (Test-Path $dumpFile)) {
+if (-not (Test-Path $sqlFile)) {
     Write-Host "X Database dump-ka lama abuuri karin!" -ForegroundColor Red
     exit 1
 }
 
-$dumpSize = (Get-Item $dumpFile).Length / 1KB
-Write-Host "Database dump-kii waa diyaar: $dumpFile ($([math]::Round($dumpSize, 1)) KB)" -ForegroundColor Green
+$dumpSize = (Get-Item $sqlFile).Length / 1KB
+Write-Host "Database SQL dump-kii waa diyaar: $sqlFile ($([math]::Round($dumpSize, 1)) KB)" -ForegroundColor Green
 
-# 2. U dir Database Dump-ka branch-ka kumeelgaarka ah (temp-db-sync)
+# 2. Push Code updates to main
+git add apply-reconciled-db.sh sync-to-live-server.ps1
+git commit -m "fix: use cross-version plain SQL restore to support all PostgreSQL versions" 2>$null
+git push $REPO_URL main 2>&1
+
+# 3. U dir Database Dump-ka branch-ka kumeelgaarka ah (temp-db-sync)
 Write-Host ""
 Write-Host "[2/3] U diraya database snapshot-ka branch-ka temp-db-sync..." -ForegroundColor Yellow
 git checkout -B temp-db-sync
-git add -f $dumpFile
-git commit -m "temp: reconciled database snapshot October 2026"
+git add -f $sqlFile
+git commit -m "temp: reconciled database SQL snapshot October 2026"
 git push $REPO_URL temp-db-sync --force
 
 # Dib ugu laabo main
 git checkout main
-Remove-Item -Force $dumpFile -ErrorAction SilentlyContinue
+Remove-Item -Force $sqlFile -ErrorAction SilentlyContinue
 
 Write-Host "Database snapshot-kii wuxuu u baxay GitHub (temp-db-sync)!" -ForegroundColor Green
 
-# 3. Tilmaamaha Ubuntu Live Server
+# 4. Tilmaamaha Ubuntu Live Server
 Write-Host ""
 Write-Host "==============================================================" -ForegroundColor Green
 Write-Host "GUUL! XOGTII OO DHAN WAXAY U BAXDAY SERVER-KA LIVE-KA AH!" -ForegroundColor Green
@@ -59,12 +64,4 @@ Write-Host ""
 Write-Host 'Hadda gal Ubuntu Server-ka oo ku dhufo amarkan kaliya:' -ForegroundColor Cyan
 Write-Host ""
 Write-Host '   cd ~/app/app && git pull && bash apply-reconciled-db.sh' -ForegroundColor White -BackgroundColor DarkGreen
-Write-Host ""
-Write-Host 'Script-ka Ubuntu wuxuu si toos ah u qaban doonaa:' -ForegroundColor Yellow
-Write-Host '  1. Backup amni ah ka qaadaya live DB ka hor intaan waxba la taaban'
-Write-Host '  2. Ku shubaya database-kii saxda ahaa ee October'
-Write-Host '  3. Dhisi doona backend & frontend (Search-ka cusub)'
-Write-Host '  4. Dib u kicinaya PM2 & Nginx'
-Write-Host '  5. Tirtiraya branch-ka GitHub si aysan xog u harin'
-Write-Host '  6. Hubinaya hadhaaga labada shirkadood (Somtel $7.64 iyo Bluekom $121.40)'
 Write-Host ""
