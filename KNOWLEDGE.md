@@ -1887,4 +1887,17 @@ Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu samee
   8. Delete temporary sync branch on GitHub
   9. Automatic balance verification output.
 
+---
+
+### 6. 🛠️ Request Number Collision Fix (Eliminating 500 Internal Server Error)
+* **Dhibaatada jirtay (Root Cause):**
+  - Marka codsi cusub la samaynayo (tusaale Transportation, iwm), backend-ku wuxuu lambarka cusub ku xisaabin jiray wadarta tirada codsiyada gobolkaas (`count + 1`).
+  - Maadaama dib-u-heshiisiintii October (Reconciliation) lagu daray codsiyo leh lambaro sare (sida `PCR-ST-NG-0032`, `PCR-BK-NG-0018`), `count + 1` waxay soo saareysay lambar horay database-ka ugu jiray!
+  - Prisma wuxuu ku dhacayay qalad `P2002 Unique constraint failed on (requestNumber)`, kaasoo NestJS u rogi jiray **500 Internal Server Error**.
+* **Xalka la hirgeliyay (`requests.service.ts`):**
+  - Waxaa `count + 1` lagu beddelay raadinta lambarka ugu weyn ee gobolkaas ka jira (`maxSeq + 1`).
+  - Waxaa lagu daray safety loop (`while existingSet.has(candidate)`) si marnaba laba codsi isku lambar u noqon.
+  - Waxaa lagu xaqiijiyay tijaabo toos ah (`PCR-BK-NG-0033` ayaa si guul leh u dhashay qalad la'aan).
+
+
 
