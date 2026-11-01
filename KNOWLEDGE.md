@@ -1858,34 +1858,24 @@ Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu samee
 
 ---
 
-### 5. 🚀 Live Server Sync & Cross-Version PostgreSQL Restore (`apply-reconciled-db.sh`)
-* **Dhibaatadii Version Mismatch-ka:**
-  - Windows wuxuu wataa PostgreSQL v18, halka Ubuntu VM-ku uu wato version hore.
-  - Binary format (`.dump`) ayaa ku fashilmay: `pg_restore: unsupported version (1.16) in file header`.
-  - **Xalka:** Waxaa loo beddelay **Plain SQL text dump** (`pg_dump -F p`) waxaana lagu shubaa **`psql -f`**, kaasoo shaqeeya dhammaan versions-ka PostgreSQL.
-* **Git Conflict Automation:**
-  - Script-ka `apply-reconciled-db.sh` waxaa lagu xoojiyay:
+### 5. 🚀 Live Server Sync & Deployment Procedures
+* **One-Time Database Restore (`apply-reconciled-db.sh` — COMPLETED & RETIRED):**
+  - Script-kan waxaa loo isticmaalay hal mar oo kaliya dib-u-heshiisiintii October (plain SQL restore via `psql -f` si looga gudbo dhibaatadii PostgreSQL 18 vs version-ka hore ee Ubuntu).
+  - 🛑 **Waa la soo gunaanaday oo lama isticmaalayo mar dambe**, maxaa yeelay database cusub oo la dirayo ma jiro.
+* **Habka Rasmiga ah ee Cusboonaysiinta & Bug Fixes (`update-server.sh` — THE STANDARD):**
+  - **Wixii code update ah, bug fix ah, ama hagaajin cusub**, waxaa had iyo jeer server-ka Ubuntu looga isticmaalaa script-ka rasmiga ah ee:
     ```bash
-    git reset --hard HEAD || true
-    git clean -fd || true
-    rm -f petty_cash_reconciled.sql || true
-    git pull origin main
+    cd ~/app/app && bash update-server.sh
+    # (ama cd ~/app && bash update-server.sh haddii app-ku ku jiro ~/app)
     ```
-    Tani waxay ka hortagtaa wax kasta oo merge conflicts ah oo ka dhasha faylashii hore ee server-ka ku hadhay.
-* **Sida Live Server-ka loogu shubo:**
-  ```bash
-  cd ~/app/app && git pull && bash apply-reconciled-db.sh
-  ```
-  Script-gu wuxuu si toos ah u qabanayaa:
-  1. Pull main branch
-  2. Fetch `petty_cash_reconciled.sql` from `temp-db-sync`
-  3. Pre-migration safety backup (`~/db_exports/pre_reconciliation_backup_...`)
-  4. Restore via `psql -f`
-  5. Prisma generate & NestJS build
-  6. Frontend Vite build & Nginx reload
-  7. PM2 zero-downtime restart (`petty-cash-backend`)
-  8. Delete temporary sync branch on GitHub
-  9. Automatic balance verification output.
+  - **Maxuu `update-server.sh` si toos ah u qabtaa:**
+    1. `git pull origin main` (wuxuu soo jiitaa code-ka ugu dambeeyay)
+    2. Node.js 24 LTS verification & dependency check
+    3. Backend compile & build (`npm run build`)
+    4. Frontend Vite compile & build (`npm run build`)
+    5. Nginx configuration check & reload
+    6. PM2 zero-downtime process reload (`pm2 reload petty-cash-backend --update-env`)
+  - **Amni buuxa:** Script-kani wax database ah ma tirtiro mana shubo, kaliya code-ka cusub ayuu dhisaa oo kiciyaa!
 
 ---
 
@@ -1898,6 +1888,8 @@ Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu samee
   - Waxaa `count + 1` lagu beddelay raadinta lambarka ugu weyn ee gobolkaas ka jira (`maxSeq + 1`).
   - Waxaa lagu daray safety loop (`while existingSet.has(candidate)`) si marnaba laba codsi isku lambar u noqon.
   - Waxaa lagu xaqiijiyay tijaabo toos ah (`PCR-BK-NG-0033` ayaa si guul leh u dhashay qalad la'aan).
+  - **Sida server-ka loogu dhaqangeliyay:** Kaliya orod `bash update-server.sh`!
+
 
 
 
