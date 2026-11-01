@@ -31,8 +31,12 @@ export class CompaniesController {
   async getVehicles(
     @Query('companyName') companyName?: string,
     @Query('regionName') regionName?: string,
+    @Query('company') company?: string,
+    @Query('region') region?: string,
   ) {
-    return this.companiesService.getVehicles(companyName, regionName);
+    const cName = companyName || company;
+    const rName = regionName || region;
+    return this.companiesService.getVehicles(cName, rName);
   }
 
   @Get('departments')

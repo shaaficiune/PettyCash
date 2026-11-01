@@ -19,21 +19,12 @@ export interface FleetRecord {
 }
 
 const VEHICLE_FLEET: FleetRecord[] = [
-  // ── Bluekom Fleet (Artifact + Petty Cash Book) ──────────────────────────────
-  {
-    companyKeyword: 'bluekom',
-    regionKeyword: 'nugaal',
-    vehicles: [
-      { plate: 'JI119', model: 'Toyota Noah',   status: 'ACTIVE' },
-      { plate: 'XH174', model: 'Toyota Noah',   status: 'ACTIVE' },
-      { plate: 'SA105', model: 'Toyota Probox', status: 'ACTIVE' },
-    ],
-  },
+  // ── Bluekom Fleet (Artifact + Petty Cash Book + Fleet List Excel) ─────────
   {
     companyKeyword: 'bluekom',
     regionKeyword: 'bari',
     vehicles: [
-      { plate: 'SG822', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'SQ266', model: 'Toyota Noah',   status: 'ACTIVE' },
       { plate: 'GM461', model: 'Toyota Probox', status: 'ACTIVE' },
     ],
   },
@@ -41,8 +32,8 @@ const VEHICLE_FLEET: FleetRecord[] = [
     companyKeyword: 'bluekom',
     regionKeyword: 'karkaar',
     vehicles: [
-      { plate: 'SG822', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'GM461', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'SG822', model: 'Toyota Mark II', status: 'ACTIVE' },
+      { plate: 'GM461', model: 'Toyota Probox',  status: 'ACTIVE' },
     ],
   },
   {
@@ -50,62 +41,127 @@ const VEHICLE_FLEET: FleetRecord[] = [
     regionKeyword: 'mudug',
     vehicles: [
       { plate: 'QK466', model: 'Toyota Noah',   status: 'ACTIVE' },
-      { plate: 'GM466', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'GM461', model: 'Toyota Probox', status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'bluekom',
+    regionKeyword: 'nugaal',
+    vehicles: [
+      { plate: 'JI 119', model: 'Toyota Noah',   status: 'ACTIVE' },
+      { plate: 'XH174',  model: 'Toyota Noah',   status: 'ACTIVE' },
+      { plate: 'SA105',  model: 'Toyota Probox', status: 'ACTIVE' },
     ],
   },
   {
     companyKeyword: 'bluekom',
     regionKeyword: 'sanaag',
     vehicles: [
-      { plate: 'SG822', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'SG822', model: 'Toyota Mark II', status: 'ACTIVE' },
+      { plate: 'GM461', model: 'Toyota Probox',  status: 'ACTIVE' },
     ],
   },
 
-  // ── Somtel Fleet (Petty Cash Book - Somtel Puntland) ───────────────────────
-  {
-    companyKeyword: 'somtel',
-    regionKeyword: 'nugaal',
-    vehicles: [
-      { plate: 'UY358', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'RN879', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'WX228', model: 'Toyota Probox', status: 'ACTIVE' },
-    ],
-  },
+  // ── Somtel Fleet (Petty Cash Book + Fleet List Excel) ─────────────────────
   {
     companyKeyword: 'somtel',
     regionKeyword: 'bari',
     vehicles: [
-      { plate: 'OC087', model: 'Toyota Noah',   status: 'ACTIVE' },
-      { plate: 'PP631', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'VO436', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'VO346', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'QC263', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'MR964', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'SP228', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'CG067', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: '44347',  model: 'Hardtop 1H',             status: 'ACTIVE' },
+      { plate: 'UY 358', model: 'Toyota Probox',          status: 'ACTIVE' },
+      { plate: 'LA 429', model: 'Wiish fuso',             status: 'ACTIVE' },
+      { plate: 'SR 221', model: 'Toyota Dyna',            status: 'ACTIVE' },
+      { plate: 'HR 546', model: 'Toyota Kluger',          status: 'ACTIVE' },
+      { plate: 'FK 277', model: 'Toyota Hilux',           status: 'ACTIVE' },
+      { plate: 'MR 964', model: 'Land Cruiser V8',        status: 'ACTIVE' },
+      { plate: 'MM 321', model: 'Wish (8 bolts)',         status: 'ACTIVE' },
+      { plate: 'TE 506', model: 'Hardtop V8',             status: 'ACTIVE' },
+      { plate: '31486',  model: 'Wiish (6 bolts)',         status: 'ACTIVE' },
+      { plate: 'OG552',  model: 'Hardtop bickup',         status: 'ACTIVE' },
+      { plate: 'OC087',  model: 'Toyota Noah (Xaabsade)', status: 'ACTIVE' },
+      { plate: 'MU141',  model: 'Toyota Probox',          status: 'ACTIVE' },
+      { plate: 'PP 631', model: 'Toyota Hilux',           status: 'ACTIVE' },
+      { plate: 'VO 436', model: 'Toyota Probox',          status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'somtel',
+    regionKeyword: 'nugaal',
+    vehicles: [
+      { plate: 'DC 643', model: 'Toyota Kluger',          status: 'ACTIVE' },
+      { plate: 'JE100',  model: 'Toyota Kluger',          status: 'ACTIVE' },
+      { plate: 'RP 492', model: 'Wiish (8 bolts)',         status: 'ACTIVE' },
+      { plate: '44349',  model: 'Hardtop 1H',             status: 'ACTIVE' },
+      { plate: 'AD 976', model: 'Toyota Noah',            status: 'ACTIVE' },
+      { plate: 'UJ 993', model: 'Land Cruiser',           status: 'ACTIVE' },
+      { plate: 'WX 288', model: 'Toyota Dyna',            status: 'ACTIVE' },
+      { plate: '34976',  model: 'Toyota Dyna',            status: 'ACTIVE' },
+      { plate: 'SP228',  model: 'Toyota Probox',          status: 'ACTIVE' },
+      { plate: 'GQ 083', model: 'Toyota Probox',          status: 'ACTIVE' },
+      { plate: 'GC067',  model: 'Toyota Surf',            status: 'ACTIVE' },
+      { plate: 'TH373',  model: 'Toyota Surf',            status: 'ACTIVE' },
+      { plate: 'PU474',  model: 'Toyota Kluger',          status: 'ACTIVE' },
+      { plate: 'UY 358', model: 'Toyota Probox',          status: 'ACTIVE' },
+      { plate: 'RN879',  model: 'Toyota Probox',          status: 'ACTIVE' },
     ],
   },
   {
     companyKeyword: 'somtel',
     regionKeyword: 'karkaar',
     vehicles: [
-      { plate: 'OC087', model: 'Toyota Noah',   status: 'ACTIVE' },
-      { plate: 'PP631', model: 'Toyota Probox', status: 'ACTIVE' },
-      { plate: 'SP228', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: '18301',  model: 'Toyota Dyna',            status: 'ACTIVE' },
+      { plate: 'VO 436', model: 'Toyota Probox',          status: 'ACTIVE' },
+      { plate: 'PP 631', model: 'Toyota Hilux',           status: 'ACTIVE' },
+      { plate: 'OC087',  model: 'Toyota Noah (Xaabsade)', status: 'ACTIVE' },
+      { plate: 'SP228',  model: 'Toyota Probox',          status: 'ACTIVE' },
     ],
   },
   {
     companyKeyword: 'somtel',
     regionKeyword: 'mudug',
     vehicles: [
-      { plate: 'PM892', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'OY 424', model: 'Toyota Noah',            status: 'ACTIVE' },
+      { plate: 'WO 030', model: 'Toyota Surf',            status: 'ACTIVE' },
+      { plate: '44348',  model: 'Hardtop 1H',             status: 'ACTIVE' },
+      { plate: 'YN 971', model: 'Hardtop V8',             status: 'ACTIVE' },
+      { plate: 'QC263',  model: 'Dhayne canter',          status: 'ACTIVE' },
+      { plate: 'PM892',  model: 'Toyota Probox',          status: 'ACTIVE' },
+      { plate: '38115',  model: 'Toyota Hilux',           status: 'ACTIVE' },
+      { plate: 'RN879',  model: 'Toyota Probox',          status: 'ACTIVE' },
+      { plate: 'EM255',  model: 'Toyota Probox',          status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'somtel',
+    regionKeyword: 'burtinle',
+    vehicles: [
+      { plate: '38115',  model: 'Toyota Hilux',           status: 'ACTIVE' },
+      { plate: 'RN879',  model: 'Toyota Probox',          status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'somtel',
+    regionKeyword: 'galdogob',
+    vehicles: [
+      { plate: 'EM255',  model: 'Toyota Probox',          status: 'ACTIVE' },
     ],
   },
   {
     companyKeyword: 'somtel',
     regionKeyword: 'sanaag',
     vehicles: [
-      { plate: 'WX288', model: 'Toyota Probox', status: 'ACTIVE' },
+      { plate: 'YQ174',  model: 'Toyota Probox',          status: 'ACTIVE' },
+      { plate: 'WX 288', model: 'Toyota Dyna',            status: 'ACTIVE' },
+    ],
+  },
+  {
+    companyKeyword: 'somtel',
+    regionKeyword: 'general',
+    vehicles: [
+      { plate: 'TH373',  model: 'Toyota Surf',            status: 'ACTIVE' },
+      { plate: 'BY 684', model: 'Toyota Pickup',          status: 'ACTIVE' },
+      { plate: 'PU474',  model: 'Toyota Kluger',          status: 'ACTIVE' },
+      { plate: 'XX923',  model: 'Toyota Hilux',           status: 'ACTIVE' },
     ],
   },
 ];
@@ -142,8 +198,9 @@ export class CompaniesService {
         // deduplicate by plate
         const seen = new Set<string>();
         return vehicles.filter((v) => {
-          if (v.status !== 'ACTIVE' || seen.has(v.plate)) return false;
-          seen.add(v.plate);
+          const key = v.plate.replace(/\s+/g, '').toUpperCase();
+          if (v.status !== 'ACTIVE' || seen.has(key)) return false;
+          seen.add(key);
           return true;
         });
       }
@@ -154,8 +211,9 @@ export class CompaniesService {
     const all = companyFleets.flatMap((f) => f.vehicles || []);
     const seen = new Set<string>();
     return all.filter((v) => {
-      if (v.status !== 'ACTIVE' || seen.has(v.plate)) return false;
-      seen.add(v.plate);
+      const key = v.plate.replace(/\s+/g, '').toUpperCase();
+      if (v.status !== 'ACTIVE' || seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
   }

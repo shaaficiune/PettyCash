@@ -1890,6 +1890,31 @@ Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu samee
   - Waxaa lagu xaqiijiyay tijaabo toos ah (`PCR-BK-NG-0033` ayaa si guul leh u dhashay qalad la'aan).
   - **Sida server-ka loogu dhaqangeliyay:** Kaliya orod `bash update-server.sh`!
 
+---
+
+### 7. 🚗 Complete Fleet Synchronization (Somtel & Bluekom Vehicles)
+* **Xogta Asalka ah (`list vehicle Somtel& Bluekom.xlsx`):**
+  - Faylka Excel wuxuu ka kooban yahay wadarta **48 gaari** labada shirkadood iyo gobolladooda:
+    - **Bluekom (7 gaari):** `SQ266` (Bari), `GM461` (Bari), `SG822` (Karkaar), `QK466` (Mudug), `JI 119` (Nugaal), `XH174` (Nugaal), `SA105` (Nugaal).
+    - **Somtel (41 gaari):**
+      - *Bari (13):* `44347`, `UY 358`, `LA 429`, `SR 221`, `HR 546`, `FK 277`, `MR 964`, `MM 321`, `TE 506`, `31486`, `OG552`, `OC087`, `MU141`.
+      - *Nugaal (12):* `DC 643`, `JE100`, `RP 492`, `44349`, `AD 976`, `UJ 993`, `WX 288`, `34976`, `SP228`, `GQ 083`, `GC067`, `UY 358`.
+      - *Mudug / Burtinle / Galdogob (9):* `OY 424`, `WO 030`, `44348`, `YN 971`, `QC263`, `PM892`, `38115`, `RN879`, `EM255`.
+      - *Karkaar (5):* `18301`, `VO 436`, `PP 631`, `OC087`, `SP228`.
+      - *Sanaag (2):* `YQ174`, `WX 288`.
+      - *General Somtel / Dare 1 (4):* `TH373`, `BY 684`, `PU474`, `XX923`.
+* **Hagaajinta la hirgeliyay (`companies.service.ts` & `companies.controller.ts`):**
+  - Dhammaan 48-ka gaari waxaa si buuxda loogu shubay `VEHICLE_FLEET` iyagoo u kala habaysan shirkadaha iyo gobollada.
+  - Baabuurta gobollada hoos yimaada Mudug (sida Burtinle & Galdogob) waxaa lagu daray Mudug iyo furayaashooda gaarka ah si qof kasta u helo.
+  - Plate Deduplication waxaa laga dhigay mid meesha ka saara boosaska bannaan iyo kala duwanaanshaha xarfaha waaweyn/yaryar (`v.plate.replace(/\s+/g, '').toUpperCase()`).
+  - `companies.controller.ts` waxaa lagu daray taageerada labada hab ee frontend-ku u diri karo query params: `@Query('company')` iyo `@Query('companyName')`, `@Query('region')` iyo `@Query('regionName')`.
+* **Dhaqangelinta Server-ka:**
+  - Kaliya orod:
+    ```bash
+    cd ~/app/app && bash update-server.sh
+    ```
+
+
 
 
 
