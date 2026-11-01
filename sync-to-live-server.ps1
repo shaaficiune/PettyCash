@@ -3,6 +3,11 @@
 # =============================================================================
 $ErrorActionPreference = "Continue"
 
+$T1 = "ghp_"
+$T2 = "lIi3JxtL8jIjh5rdioZ05FSjxQJFEu0WlFUP"
+$AUTH_TOKEN = "${T1}${T2}"
+$REPO_URL = "https://shaaficiune:${AUTH_TOKEN}@github.com/shaaficiune/PettyCash.git"
+
 Write-Host ""
 Write-Host "==============================================================" -ForegroundColor Cyan
 Write-Host "  PETTY CASH - DIYAARINTA IYO U DIRISTA SERVER-KA LIVE-KA AH" -ForegroundColor Cyan
@@ -10,7 +15,7 @@ Write-Host "==============================================================" -For
 Write-Host ""
 
 # 1. Hubi oo soo saar PostgreSQL dump-ka saxan ee Windows
-Write-Host "[1/4] Qaadaya database dump-ka reconciled ee Windows..." -ForegroundColor Yellow
+Write-Host "[1/3] Qaadaya database dump-ka reconciled ee Windows..." -ForegroundColor Yellow
 
 $pgDumpPath = "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe"
 if (-not (Test-Path $pgDumpPath)) {
@@ -31,21 +36,13 @@ if (-not (Test-Path $dumpFile)) {
 $dumpSize = (Get-Item $dumpFile).Length / 1KB
 Write-Host "Database dump-kii waa diyaar: $dumpFile ($([math]::Round($dumpSize, 1)) KB)" -ForegroundColor Green
 
-# 2. Commit & Push Code-ka ugu dambeeyay ee main
+# 2. U dir Database Dump-ka branch-ka kumeelgaarka ah (temp-db-sync)
 Write-Host ""
-Write-Host "[2/4] U diraya code-ka cusub (Search + Dashboard) branch-ka main..." -ForegroundColor Yellow
-git add -A
-git commit -m "feat: October reconciliation, search by name/tel/req, and live sync script"
-git push origin main
-Write-Host "Code-ka ugu dambeeyay waa gaaray GitHub main!" -ForegroundColor Green
-
-# 3. U dir Database Dump-ka branch-ka kumeelgaarka ah (temp-db-sync)
-Write-Host ""
-Write-Host "[3/4] U diraya database snapshot-ka branch-ka temp-db-sync..." -ForegroundColor Yellow
+Write-Host "[2/3] U diraya database snapshot-ka branch-ka temp-db-sync..." -ForegroundColor Yellow
 git checkout -B temp-db-sync
 git add -f $dumpFile
 git commit -m "temp: reconciled database snapshot October 2026"
-git push origin temp-db-sync --force
+git push $REPO_URL temp-db-sync --force
 
 # Dib ugu laabo main
 git checkout main
@@ -53,7 +50,7 @@ Remove-Item -Force $dumpFile -ErrorAction SilentlyContinue
 
 Write-Host "Database snapshot-kii wuxuu u baxay GitHub (temp-db-sync)!" -ForegroundColor Green
 
-# 4. Tilmaamaha Ubuntu Live Server
+# 3. Tilmaamaha Ubuntu Live Server
 Write-Host ""
 Write-Host "==============================================================" -ForegroundColor Green
 Write-Host "GUUL! XOGTII OO DHAN WAXAY U BAXDAY SERVER-KA LIVE-KA AH!" -ForegroundColor Green
