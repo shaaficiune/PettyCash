@@ -1675,3 +1675,115 @@ Executed the comprehensive system upgrade defined in `planupdate.md` without mod
   - Unified IP display: Highlights external IPs cleanly and marks loopback test addresses as `127.0.0.1 (Local)`.
 * **Database Backfill Script (`backend/scripts/fix-audit-logs.js`):**
   - Added to `update-server.sh` (Step 4) to retroactively match and link existing unlinked audit logs to their respective users in PostgreSQL.
+
+---
+
+## 33. 🗄️ DATABASE EXPORT & UBUNTU VM NETWORK TROUBLESHOOTING (2026-10-28)
+
+### Xaaladda
+Bisha October 2026 dabayaaqadeedii, database-ka live-ka ah waxaa loo baahday in la soo saaro (export) si loo sameeyo **October Downtime Reconciliation** — is-waafajinta lacagta mudadii server-ku hawada ka maqnaa (~10 maalmood).
+
+---
+
+### 1. 📦 Database Export Script
+
+Fayl cusub: **`db-export-local.sh`** (root folder, GitHub-ka ku jira)
+
+**Ujeeddo:** Database-ka live Ubuntu server-ka uga soo saaro si nabdoon — READ-ONLY, waxba lagama tirayo.
+
+**Sida loo isticmaalo (Ubuntu terminal):**
+```bash
+cd ~/app
+chmod +x db-export-local.sh
+bash db-export-local.sh
+```
+
+**Waxa script-ku samaynaa:**
+1. `backend/.env` ka akhrista `DATABASE_URL` si qarsoon
+2. `~/db_exports/` folder samaysaa
+3. Database-ka huba (count query keliya)
+4. `pg_dump` Custom format (`.dump`) — compressed, restore-able
+5. `pg_dump` Plain SQL (`.sql`) — akhrin fudud
+6. Natiijooyinka muujiyaa
+
+**Output location:** `~/db_exports/petty_cash_live_YYYYMMDD_HHMMSS.dump`
+
+> ⚠️ `.gitignore` waxaa lagu daray: `db_exports/`, `*.dump`, `*.sql` — faylasha export WELIGOOD GitHub-ka ku ma dalin.
+
+---
+
+### 2. 🌐 Ubuntu VM Internet Connectivity — Dhibaatada & Xalka
+
+#### Xaaladda la arkay:
+- **Cloudflare Tunnel wuu shaqaynayaa** — app `pettycash.himilotech.com` online wuu yahay ✅
+- **Laakiin `git pull`, `ping 8.8.8.8`, DNS** — dhammaan way guul darraystaan ❌
+- **Sabab:** VirtualBox NAT network routing/DNS dhibaato — badanaa ka dib Windows host-ka shabakaddiisa bedelato (WiFi → Ethernet, router restart, iwm).
+
+#### Maxay kala duwan yihiin Cloudflare Tunnel iyo internet-ka caadiga ah:
+| | Cloudflare Tunnel | Internet Caadi (git, ping) |
+|---|---|---|
+| **Xiriir kii hore** | TCP connection furan ayuu hayaa | Cusub ayuu u baahan yahay |
+| **DNS** | cloudflared DoH (DNS-over-HTTPS) isticmaalaa | System DNS (`/etc/resolv.conf`) |
+| **Hadduu VM network brokento** | Weli shaqaynayaa (existing connection) | Guul-darro |
+
+#### ⚠️ TAXADAR — Waxa LAMA SAMAYN:
+```
+VirtualBox → VM → Settings → Network → Adapter Disable
+```
+**Tani Cloudflare Tunnel dib u xidhaysaa oo app-ku OFFLINE noqonayaa!**
+
+#### Xalka DNS Kaliya (Hadduu shaqaynayo):
+```bash
+echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
+cat /etc/resolv.conf   # Hubi: waa inuu muujiyaa "nameserver 8.8.8.8" (hal erey)
+ping -c 2 github.com
+```
+> ⚠️ **Typo kala taxadar:** `nameserver` (hal erey) — KHALAD: `name server` (labo erey waa ku xumaan doona)
+
+#### Xalka Routing-ka (Hadduu DNS fix aanay shaqaynin):
+```bash
+# Hubi route-yada jira
+ip route show
+
+# Haddaan default gateway jirin, ku dar (192.168.x.1 waa router-kaaga)
+sudo ip route add default via 192.168.1.1
+
+# Ama network restart
+sudo systemctl restart networking
+```
+
+#### Hadduu internet la'aantaa database soo saari rabto:
+`pg_dump` **internet looma baahna** — local ayuu ku shaqaynayaa:
+```bash
+mkdir -p ~/db_exports
+pg_dump -U petty_user -h localhost -d petty_cash_db -f ~/db_exports/backup_$(date +%Y%m%d).sql
+ls -lh ~/db_exports/
+```
+
+---
+
+### 3. 🔗 Git Remote URL — Khaladka la Arkay
+
+Ubuntu server-ka `git remote` URL-kiisu wuxuu lahaa **typo**: `hithub.com` beddelkii `github.com`.
+
+**Xalka:**
+```bash
+cd ~/app
+git remote set-url origin https://github.com/shaaficiune/PettyCash.git
+git remote -v   # Hubi
+git pull origin main
+```
+
+> 💡 Hadduu `git pull` shaqaynin internetka la'aanta darteed, script-ka toos ku samee Ubuntu-ga iyada oo la isticmaalayo `nano` ama `cat`.
+
+---
+
+### 4. 📋 Xaaladda Hadda — October Reconciliation
+
+- [ ] Ubuntu server-ka internet-ka u sax (DNS ama routing)
+- [ ] `git pull origin main` ku samee Ubuntu-ga
+- [ ] `bash db-export-local.sh` ku fur Ubuntu-ga
+- [ ] Faylka `.dump` Windows-ka u dir (Shared Folder)
+- [ ] Excel-ka October qolada xisaabaadka ka qaad
+- [ ] Reconciliation script ku fur si loo barbardhigo
+

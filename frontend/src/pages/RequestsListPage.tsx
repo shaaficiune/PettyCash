@@ -17,6 +17,7 @@ import {
   Car,
   Trash2,
   Loader2,
+  Search,
 } from 'lucide-react';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -106,7 +107,6 @@ export const RequestsListPage: React.FC = () => {
   const isValidPreset = (p: string | null): p is 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM' =>
     p !== null && ['TODAY', 'THIS_WEEK', 'THIS_MONTH', 'ALL', 'CUSTOM'].includes(p);
 
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isApprovalTwo = user?.role === 'APPROVAL_TWO';
   // Default filter: Only APPROVAL_TWO defaults to Stage 2 approval; Super Admin and others see all requests
   const defaultStatusForRole = isApprovalTwo ? 'ACCOUNTANT_REVIEW' : '';
@@ -124,6 +124,7 @@ export const RequestsListPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [priorityFilter, setPriorityFilter] = useState(initialPriority);
   const [regionFilter, setRegionFilter] = useState(initialRegion);
+  const [searchText, setSearchText] = useState('');
   const [datePreset, setDatePreset] = useState<'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM'>(initialPreset);
   const [startDate, setStartDate] = useState(() => {
     if (savedFilters?.startDate !== undefined && !urlPreset) return savedFilters.startDate;
@@ -290,9 +291,20 @@ export const RequestsListPage: React.FC = () => {
   };
 
   const filteredData = useMemo(() => {
-    if (!priorityFilter) return requests;
-    return requests.filter((req) => req.priority === priorityFilter);
-  }, [requests, priorityFilter]);
+    let data = requests;
+    if (priorityFilter) data = data.filter((req) => req.priority === priorityFilter);
+    if (searchText) {
+      const q = searchText.toLowerCase();
+      data = data.filter((req) =>
+        (req.requestNumber && req.requestNumber.toLowerCase().includes(q)) ||
+        (req.user?.fullName && req.user.fullName.toLowerCase().includes(q)) ||
+        (req.user?.phone && req.user.phone.toLowerCase().includes(q)) ||
+        (req.receiverPhone && req.receiverPhone.toLowerCase().includes(q)) ||
+        (req.receiverName && req.receiverName.toLowerCase().includes(q))
+      );
+    }
+    return data;
+  }, [requests, priorityFilter, searchText]);
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
@@ -766,6 +778,26 @@ export const RequestsListPage: React.FC = () => {
               </div>
             )}
 
+
+            {/* Search Input */}
+            <div className="flex items-center gap-1.5 flex-1 min-w-[180px]">
+              <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Input
+                type="text"
+                placeholder="Magac, Tel, Req No..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="text-xs h-8 flex-1"
+              />
+              {searchText && (
+                <button
+                  onClick={() => setSearchText('')}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
             {/* Status Filter */}
             {isApprovalTwo ? (
               <div className="flex items-center gap-1.5 min-w-[170px] flex-1 sm:flex-initial">

@@ -1,0 +1,4 @@
+RequestDate,Company,BudgetHead,Description,Amount,VehiclePlate,RequesterEmail,Approver1Email,Approver2Email,PayerEmail,ReceiptNo
+2026-10-14,Bluekom,Repair of Vehicles,Shidaalka Toyota Probox SA105,35.00,SA105,employee@bluekom.com,manager@bluekom.com,finance@bluekom.com,cashier@bluekom.com,REC-9012
+2026-10-16,Somtel,Refreshment,Quraacda iyo biyaha kulanka shaqaalaha,45.50,,staff@somtel.com,hod@somtel.com,finance@somtel.com,accountant@somtel.com,REC-9015
+2026-10-18,Bluekom,Miscellaneous expenses,Iibsashada qalabka nadiifinta,20.00,,employee@bluekom.com,manager@bluekom.com,finance@bluekom.com,cashier@bluekom.com,

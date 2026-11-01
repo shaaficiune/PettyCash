@@ -241,8 +241,6 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
   const isAccountantRole = user?.role === 'ACCOUNTANT';
   // isAccountant = can record payment (Accountant/Cashier) — APPROVAL_TWO excluded intentionally
   const isAccountant = isAccountantRole || isSuperAdmin;
-  // canFinalApprove = allowed to do Stage 2 final approval
-  const canFinalApprove = isSuperAdmin || isApprovalTwo || isAccountantRole;
   const isOwnRequest = isAccountantRole && request?.userId === user?.id;
   const canEdit = (isEmployee || isOwnRequest) && (request.status === 'DRAFT' || request.status === 'CORRECTION_REQUIRED');
 

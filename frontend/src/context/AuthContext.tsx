@@ -17,7 +17,7 @@ interface UserProfile {
   companyId?: string;
   department: CompanySummary;
   departmentId?: string;
-  role: 'SUPER_ADMIN' | 'ACCOUNTANT' | 'EMPLOYEE';
+  role: 'SUPER_ADMIN' | 'ACCOUNTANT' | 'APPROVAL_TWO' | 'EMPLOYEE';
   resetPasswordRequired: boolean;
 }
 
