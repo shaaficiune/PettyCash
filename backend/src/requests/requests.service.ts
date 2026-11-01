@@ -45,15 +45,31 @@ export class RequestsService {
     }
 
     const prefix = `PCR-${companyCode}-${regionCode}-`;
-    const count = await this.prisma.pettyCashRequest.count({
+    const existingReqs = await this.prisma.pettyCashRequest.findMany({
       where: {
         requestNumber: {
           startsWith: prefix,
         },
       },
+      select: { requestNumber: true },
     });
-    const suffix = String(count + 1).padStart(4, '0');
-    const requestNumber = `${prefix}${suffix}`;
+
+    let maxSeq = 0;
+    const existingSet = new Set<string>();
+    for (const r of existingReqs) {
+      existingSet.add(r.requestNumber);
+      const numPart = parseInt(r.requestNumber.replace(prefix, ''), 10);
+      if (!isNaN(numPart) && numPart > maxSeq) {
+        maxSeq = numPart;
+      }
+    }
+
+    let nextSeq = maxSeq + 1;
+    let requestNumber = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    while (existingSet.has(requestNumber)) {
+      nextSeq++;
+      requestNumber = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    }
 
     // $50 Maximum Cap
     // Petty Cash is for small, routine expenses only. Maximum per request: $50.
