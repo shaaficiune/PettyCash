@@ -53,7 +53,38 @@ export class FundsController {
       return res.status(200).send(buffer);
     } catch (err: any) {
       console.error('[exportMonthlyBook ERROR]', err);
-      return res.status(500).json({ error: err.message, stack: err.stack });
+      return res.status(500).json({ error: 'Failed to generate monthly book report. Please try again.' });
+    }
+  }
+
+  @Get('export/monthly-book-pdf')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO, RoleName.EMPLOYEE)
+  @ApiOperation({ summary: 'Export historical-formatted Monthly Petty Cash Book as Printable HTML/PDF' })
+  async exportMonthlyBookPdf(
+    @Request() req: any,
+    @Response() res: any,
+    @Query('month') month?: string,
+    @Query('year') year?: string,
+    @Query('companyId') companyId?: string,
+  ) {
+    try {
+      const isRestricted = req.user.role === RoleName.EMPLOYEE;
+      const effectiveCompanyId = isRestricted ? req.user.companyId : companyId;
+      const parsedMonth = month ? parseInt(month, 10) : undefined;
+      const parsedYear = year ? parseInt(year, 10) : undefined;
+
+      const html = await this.monthlyBookService.generateMonthlyBookPdfHtml(
+        parsedMonth,
+        parsedYear,
+        effectiveCompanyId,
+      );
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(html);
+    } catch (err: any) {
+      console.error('[exportMonthlyBookPdf ERROR]', err);
+      return res.status(500).json({ error: 'Failed to generate monthly book PDF report. Please try again.' });
     }
   }
 

@@ -6,6 +6,9 @@ import {
   DollarSign,
   FileSpreadsheet,
   Printer,
+  Download,
+  ChevronDown,
+  BookOpen,
   RefreshCw,
   Eye,
   Calendar,
@@ -42,13 +45,16 @@ export const TransactionsPage: React.FC = () => {
   const [exportingExcel, setExportingExcel] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingBook, setExportingBook] = useState(false);
+  const [exportingBookPdf, setExportingBookPdf] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = React.useRef<HTMLDivElement>(null);
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
 
   // Filters
   const [typeFilter, setTypeFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
   const [companyFilter, setCompanyFilter] = useState('');
-  const [datePreset, setDatePreset] = useState<'ALL' | 'THIS_MONTH' | 'THIS_WEEK' | 'TODAY' | 'CUSTOM'>('ALL');
+  const [datePreset, setDatePreset] = useState<'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM'>('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -78,6 +84,39 @@ export const TransactionsPage: React.FC = () => {
     window.addEventListener('companyFilterChanged', fetchRegions);
     return () => window.removeEventListener('companyFilterChanged', fetchRegions);
   }, []);
+
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    };
+    if (exportMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [exportMenuOpen]);
+
+  // Resolve the active company ID prioritized from on-screen filter
+  const getActiveCompanyId = () => {
+    if (companyFilter && companyFilter !== 'ALL') {
+      return companyFilter;
+    }
+    const saved = sessionStorage.getItem('companyFilter');
+    if (saved && saved !== 'ALL') {
+      return saved;
+    }
+    return '';
+  };
+
+  const selectedCompanyObj = useMemo(() => {
+    const id = getActiveCompanyId();
+    if (!id) return null;
+    return companies.find((c) => c.id === id) || null;
+  }, [companyFilter, companies]);
 
   const loadTransactions = async () => {
     setLoading(true);
@@ -112,24 +151,35 @@ export const TransactionsPage: React.FC = () => {
     };
   }, [typeFilter, regionFilter, companyFilter, startDate, endDate]);
 
-  const applyDatePreset = (preset: 'ALL' | 'THIS_MONTH' | 'THIS_WEEK' | 'TODAY' | 'CUSTOM') => {
+  const applyDatePreset = (preset: 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM') => {
     setDatePreset(preset);
     const now = new Date();
+    const formatLocalYMD = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
     if (preset === 'TODAY') {
-      const todayStr = now.toISOString().slice(0, 10);
+      const todayStr = formatLocalYMD(now);
       setStartDate(todayStr);
       setEndDate(todayStr);
     } else if (preset === 'THIS_WEEK') {
       const day = now.getDay();
       const diffToMonday = (day === 0 ? -6 : 1) - day;
-      const monday = new Date(now);
-      monday.setDate(now.getDate() + diffToMonday);
-      setStartDate(monday.toISOString().slice(0, 10));
-      setEndDate(now.toISOString().slice(0, 10));
+      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
+      setStartDate(formatLocalYMD(monday));
+      setEndDate(formatLocalYMD(now));
     } else if (preset === 'THIS_MONTH') {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      setStartDate(firstDay.toISOString().slice(0, 10));
-      setEndDate(now.toISOString().slice(0, 10));
+      setStartDate(formatLocalYMD(firstDay));
+      setEndDate(formatLocalYMD(now));
+    } else if (preset === 'LAST_MONTH') {
+      const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      setStartDate(formatLocalYMD(firstDayLastMonth));
+      setEndDate(formatLocalYMD(lastDayLastMonth));
     } else if (preset === 'ALL') {
       setStartDate('');
       setEndDate('');
@@ -139,9 +189,9 @@ export const TransactionsPage: React.FC = () => {
   const handleExportExcel = async () => {
     setExportingExcel(true);
     try {
-      const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
+      const activeCompany = getActiveCompanyId();
       const params: any = {};
-      if (companyFilter !== 'ALL') params.companyId = companyFilter;
+      if (activeCompany) params.companyId = activeCompany;
       if (typeFilter) params.transactionType = typeFilter;
       if (regionFilter) params.regionId = regionFilter;
       if (startDate) params.startDate = startDate;
@@ -167,9 +217,9 @@ export const TransactionsPage: React.FC = () => {
 
   const handleExportPdf = async () => {
     setExportingPdf(true);
-    const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
+    const activeCompany = getActiveCompanyId();
     const params = new URLSearchParams();
-    if (companyFilter !== 'ALL') params.append('companyId', companyFilter);
+    if (activeCompany) params.append('companyId', activeCompany);
     if (typeFilter) params.append('transactionType', typeFilter);
     if (regionFilter) params.append('regionId', regionFilter);
     if (startDate) params.append('startDate', startDate);
@@ -201,13 +251,19 @@ export const TransactionsPage: React.FC = () => {
       let month = new Date().getMonth() + 1;
       let year = new Date().getFullYear();
       if (startDate) {
-        const d = new Date(startDate);
-        month = d.getMonth() + 1;
-        year = d.getFullYear();
+        const parts = startDate.split('-').map(Number);
+        if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          year = parts[0];
+          month = parts[1];
+        }
       }
-      const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
+      const activeCompany = getActiveCompanyId();
       const params: Record<string, string> = { month: String(month), year: String(year) };
-      if (companyFilter !== 'ALL') params.companyId = companyFilter;
+      if (activeCompany) {
+        params.companyId = activeCompany;
+      } else if (companies.length > 0) {
+        params.companyId = companies[0].id;
+      }
       const res = await api.get('/funds/export/monthly-book', { params, responseType: 'blob' });
       const contentDisposition = res.headers['content-disposition'] || '';
       const match = contentDisposition.match(/filename="?([^"]+)"?/);
@@ -227,6 +283,46 @@ export const TransactionsPage: React.FC = () => {
       alert('Failed to export Monthly Petty Cash Book. Please try again.');
     } finally {
       setExportingBook(false);
+    }
+  };
+
+  const handleExportMonthlyBookPdf = async () => {
+    setExportingBookPdf(true);
+    const printWindow = window.open('about:blank', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to view and print the Monthly Book PDF.');
+      setExportingBookPdf(false);
+      return;
+    }
+
+    try {
+      let month = new Date().getMonth() + 1;
+      let year = new Date().getFullYear();
+      if (startDate) {
+        const parts = startDate.split('-').map(Number);
+        if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          year = parts[0];
+          month = parts[1];
+        }
+      }
+      const activeCompany = getActiveCompanyId();
+      const params = new URLSearchParams({ month: String(month), year: String(year) });
+      if (activeCompany) {
+        params.append('companyId', activeCompany);
+      } else if (companies.length > 0) {
+        params.append('companyId', companies[0].id);
+      }
+
+      const res = await api.get(`/funds/export/monthly-book-pdf?${params.toString()}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(res.data);
+      printWindow.location.href = url;
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (err: any) {
+      printWindow.close();
+      console.error('Failed to export Monthly Book PDF', err);
+      alert('Failed to export Monthly Book PDF. Please try again.');
+    } finally {
+      setExportingBookPdf(false);
     }
   };
 
@@ -716,43 +812,150 @@ export const TransactionsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
-          {!isEmployee && (
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          {/* OPTION A: SLEEK EXPORT DROPDOWN MENU */}
+          <div className="relative" ref={exportMenuRef}>
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExportMonthlyBook}
-              disabled={exportingBook}
-              className="gap-1.5 text-xs h-8 justify-center"
-              title="Export Monthly Petty Cash Book (.xlsx)"
+              onClick={() => setExportMenuOpen((prev) => !prev)}
+              disabled={exportingBook || exportingBookPdf || exportingExcel || exportingPdf}
+              className="gap-1.5 text-xs h-8 font-semibold bg-card hover:bg-accent border-border shadow-xs cursor-pointer"
             >
-              <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <span className="truncate">{exportingBook ? 'Generating...' : 'Monthly Book'}</span>
+              <Download className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>
+                {exportingBook
+                  ? 'Generating Book...'
+                  : exportingBookPdf
+                  ? 'Preparing PDF...'
+                  : exportingExcel
+                  ? 'Exporting Excel...'
+                  : exportingPdf
+                  ? 'Preparing Ledger...'
+                  : 'Export Reports'}
+              </span>
+              <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform duration-200 ${exportMenuOpen ? 'rotate-180' : ''}`} />
             </Button>
-          )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportExcel}
-            disabled={exportingExcel}
-            className="gap-1.5 text-xs h-8 justify-center"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="truncate">{exportingExcel ? 'Exporting...' : 'Export Excel'}</span>
-          </Button>
+            {exportMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-72 rounded-xl border border-border bg-card p-2 shadow-lg z-50 animate-in fade-in-0 zoom-in-95">
+                {/* SECTION 1: OFFICIAL MONTHLY BOOK */}
+                {!isEmployee && (
+                  <div className="mb-2 pb-2 border-b border-border">
+                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <BookOpen className="h-3.5 w-3.5 text-primary" />
+                        Official Monthly Book
+                      </span>
+                      {selectedCompanyObj && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                          {selectedCompanyObj.name}
+                        </span>
+                      )}
+                    </div>
+                    <p className="px-2 pb-1 text-[10px] text-muted-foreground">
+                      {selectedCompanyObj
+                        ? `Official closing statement for ${selectedCompanyObj.name}`
+                        : 'Select a company to export branded closing book'}
+                    </p>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportPdf}
-            disabled={exportingPdf}
-            className="gap-1.5 text-xs h-8 justify-center"
-          >
-            <Printer className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="truncate">{exportingPdf ? 'Preparing...' : 'Export PDF'}</span>
-          </Button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        handleExportMonthlyBook();
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-muted text-foreground transition-colors cursor-pointer group text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0">
+                          <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-xs leading-tight">Monthly Book (Excel)</div>
+                          <div className="text-[9.5px] text-muted-foreground">Formulas, eDahab & reconciliation</div>
+                        </div>
+                      </div>
+                      <span className="text-[9.5px] font-mono text-muted-foreground group-hover:text-foreground">.xlsx</span>
+                    </button>
 
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        handleExportMonthlyBookPdf();
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-muted text-foreground transition-colors cursor-pointer group text-left mt-0.5"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                          <Printer className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-xs leading-tight">Monthly Book (PDF)</div>
+                          <div className="text-[9.5px] text-muted-foreground">Printable book with logos & signatures</div>
+                        </div>
+                      </div>
+                      <span className="text-[9.5px] font-mono text-muted-foreground group-hover:text-foreground">.pdf</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* SECTION 2: FILTERED TRANSACTION LEDGER */}
+                <div>
+                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Receipt className="h-3.5 w-3.5 text-slate-500" />
+                    Filtered Transaction Ledger
+                  </div>
+                  <p className="px-2 pb-1 text-[10px] text-muted-foreground">
+                    Exports based on current filters & date range
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      handleExportExcel();
+                    }}
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-muted text-foreground transition-colors cursor-pointer group text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+                        <FileSpreadsheet className="h-3.5 w-3.5 text-slate-700 dark:text-slate-300" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-xs leading-tight">Export Ledger (Excel)</div>
+                        <div className="text-[9.5px] text-muted-foreground">Raw data table for audit & analysis</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono text-muted-foreground group-hover:text-foreground">.xls</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      handleExportPdf();
+                    }}
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-muted text-foreground transition-colors cursor-pointer group text-left mt-0.5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+                        <Printer className="h-3.5 w-3.5 text-slate-700 dark:text-slate-300" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-xs leading-tight">Print Ledger (PDF)</div>
+                        <div className="text-[9.5px] text-muted-foreground">Printable transaction statements</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono text-muted-foreground group-hover:text-foreground">.pdf</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* REFRESH BUTTON */}
           <Button
             variant="outline"
             size="sm"
@@ -781,6 +984,7 @@ export const TransactionsPage: React.FC = () => {
                 <option value="TODAY">Today</option>
                 <option value="THIS_WEEK">This Week</option>
                 <option value="THIS_MONTH">This Month</option>
+                <option value="LAST_MONTH">Last Month</option>
                 <option value="CUSTOM">Custom Range...</option>
               </Select>
             </div>

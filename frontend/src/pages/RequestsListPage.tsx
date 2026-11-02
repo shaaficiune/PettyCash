@@ -104,8 +104,8 @@ export const RequestsListPage: React.FC = () => {
 
   const urlStatus = searchParams.get('status');
   const urlPreset = searchParams.get('datePreset');
-  const isValidPreset = (p: string | null): p is 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM' =>
-    p !== null && ['TODAY', 'THIS_WEEK', 'THIS_MONTH', 'ALL', 'CUSTOM'].includes(p);
+  const isValidPreset = (p: string | null): p is 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_MONTH' | 'ALL' | 'CUSTOM' =>
+    p !== null && ['TODAY', 'THIS_WEEK', 'THIS_MONTH', 'LAST_MONTH', 'ALL', 'CUSTOM'].includes(p);
 
   const isApprovalTwo = user?.role === 'APPROVAL_TWO';
   // Default filter: Only APPROVAL_TWO defaults to Stage 2 approval; Super Admin and others see all requests
@@ -125,7 +125,7 @@ export const RequestsListPage: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState(initialPriority);
   const [regionFilter, setRegionFilter] = useState(initialRegion);
   const [searchText, setSearchText] = useState('');
-  const [datePreset, setDatePreset] = useState<'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM'>(initialPreset);
+  const [datePreset, setDatePreset] = useState<'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_MONTH' | 'ALL' | 'CUSTOM'>(initialPreset);
   const [startDate, setStartDate] = useState(() => {
     if (savedFilters?.startDate !== undefined && !urlPreset) return savedFilters.startDate;
     if (initialPreset === 'THIS_MONTH') return getStartOfMonthString();
@@ -155,7 +155,7 @@ export const RequestsListPage: React.FC = () => {
     );
   }, [statusFilter, priorityFilter, regionFilter, datePreset, startDate, endDate]);
 
-  const applyDatePreset = (preset: 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL' | 'CUSTOM') => {
+  const applyDatePreset = (preset: 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_MONTH' | 'ALL' | 'CUSTOM') => {
     setDatePreset(preset);
     const today = getLocalDateString();
     if (preset === 'TODAY') {
@@ -167,6 +167,18 @@ export const RequestsListPage: React.FC = () => {
     } else if (preset === 'THIS_MONTH') {
       setStartDate(getStartOfMonthString());
       setEndDate(today);
+    } else if (preset === 'LAST_MONTH') {
+      const now = new Date();
+      const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      const formatLocalYMD = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+      setStartDate(formatLocalYMD(firstDayLastMonth));
+      setEndDate(formatLocalYMD(lastDayLastMonth));
     } else if (preset === 'ALL') {
       setStartDate('');
       setEndDate('');
@@ -734,6 +746,7 @@ export const RequestsListPage: React.FC = () => {
                 <option value="TODAY">Today</option>
                 <option value="THIS_WEEK">This Week</option>
                 <option value="THIS_MONTH">This Month</option>
+                <option value="LAST_MONTH">Last Month</option>
                 <option value="CUSTOM">Custom Date...</option>
                 <option value="ALL">All Time</option>
               </Select>

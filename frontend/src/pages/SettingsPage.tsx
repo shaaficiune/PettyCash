@@ -371,7 +371,7 @@ export const SettingsPage: React.FC = () => {
 
   // Filters
   const [actionCategory, setActionCategory] = useState<string>('ALL');
-  const [datePreset, setDatePreset] = useState<'ALL' | 'THIS_MONTH' | 'THIS_WEEK' | 'TODAY' | 'CUSTOM'>('ALL');
+  const [datePreset, setDatePreset] = useState<'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM'>('ALL');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
@@ -399,7 +399,7 @@ export const SettingsPage: React.FC = () => {
   }, []);
 
   // Date Preset handler
-  const applyDatePreset = (preset: 'ALL' | 'THIS_MONTH' | 'THIS_WEEK' | 'TODAY' | 'CUSTOM') => {
+  const applyDatePreset = (preset: 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM') => {
     setDatePreset(preset);
     const now = new Date();
     if (preset === 'TODAY') {
@@ -417,6 +417,18 @@ export const SettingsPage: React.FC = () => {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
       setStartDate(firstDay.toISOString().slice(0, 10));
       setEndDate(now.toISOString().slice(0, 10));
+    } else if (preset === 'LAST_MONTH') {
+      const now = new Date();
+      const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      const formatLocalYMD = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+      setStartDate(formatLocalYMD(firstDayLastMonth));
+      setEndDate(formatLocalYMD(lastDayLastMonth));
     } else if (preset === 'ALL') {
       setStartDate('');
       setEndDate('');
@@ -717,7 +729,7 @@ export const SettingsPage: React.FC = () => {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 {/* DATE RANGE PRESETS */}
                 <div className="flex flex-wrap items-center gap-1.5 bg-muted/60 dark:bg-muted/40 p-1 rounded-lg">
-                  {(['ALL', 'THIS_MONTH', 'THIS_WEEK', 'TODAY', 'CUSTOM'] as const).map((preset) => (
+                  {(['ALL', 'TODAY', 'THIS_WEEK', 'THIS_MONTH', 'LAST_MONTH', 'CUSTOM'] as const).map((preset) => (
                     <button
                       key={preset}
                       onClick={() => applyDatePreset(preset)}
@@ -731,6 +743,8 @@ export const SettingsPage: React.FC = () => {
                         ? 'All Time'
                         : preset === 'THIS_MONTH'
                         ? 'This Month'
+                        : preset === 'LAST_MONTH'
+                        ? 'Last Month'
                         : preset === 'THIS_WEEK'
                         ? 'This Week'
                         : preset === 'TODAY'
