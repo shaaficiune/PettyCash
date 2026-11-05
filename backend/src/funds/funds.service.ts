@@ -352,18 +352,25 @@ export class FundsService {
     }
 
     const totalAvailable = Number(fund.totalAvailable);
-    const alreadyCommitted = await this.getCommittedAmount(tx, fund);
-    const newApprovedAmount = alreadyCommitted + Number(approvedAmount);
-    const remainingBalance = totalAvailable - newApprovedAmount;
-    if (remainingBalance < 0) {
+    const currentPaid = Number(fund.paidAmount || 0);
+    const remainingBalance = Math.max(0, totalAvailable - currentPaid);
+
+    // Guard: Ensure total pool has not already been completely disbursed
+    if (remainingBalance <= 0) {
       throw new BadRequestException(
-        `Insufficient Petty Cash Balance. Available: $${Number(fund.remainingBalance).toLocaleString()} USD, Requested Approval: $${Number(approvedAmount).toLocaleString()} USD. Please top up your company's Petty Cash Fund.`,
+        `Insufficient Petty Cash Balance. Available vault balance is $0 USD. Please top up your company's Petty Cash Fund before approving new requests.`,
       );
     }
 
+    const newApprovedAmount = Number(fund.approvedAmount || 0) + Number(approvedAmount);
+
     return tx.pettyCashFund.update({
       where: { id: fund.id },
-      data: { approvedAmount: newApprovedAmount, remainingBalance, closingBalance: remainingBalance },
+      data: {
+        approvedAmount: newApprovedAmount,
+        remainingBalance, // Pure Cash Basis: Vault balance remains intact until physical payment (PAID)
+        closingBalance: remainingBalance,
+      },
     });
   }
 
@@ -426,13 +433,8 @@ export class FundsService {
       );
     }
 
-    // Approved requests reserve funds before payout. Paying one must not release
-    // the unpaid portion of another request's reservation.
-    const committedAmount = await this.getCommittedAmount(tx, lockedFund);
-    const remainingBalance = totalAvailable - committedAmount;
-    if (remainingBalance < 0) {
-      throw new BadRequestException('Committed requests exceed the available fund balance');
-    }
+    // Pure Cash Basis: Balance drops strictly upon actual payment disbursement
+    const remainingBalance = Math.max(0, totalAvailable - newPaid);
 
     const updatedFund = await tx.pettyCashFund.update({
       where: { id: fundId },
@@ -503,9 +505,7 @@ export class FundsService {
     const refund = Number(refundAmount);
     const newPaid = Math.max(0, Number(lockedFund.paidAmount || 0) - refund);
     const totalAvailable = Number(lockedFund.totalAvailable);
-
-    const committedAmount = await this.getCommittedAmount(tx, lockedFund);
-    const remainingBalance = totalAvailable - committedAmount;
+    const remainingBalance = Math.max(0, totalAvailable - newPaid);
 
     const updatedFund = await tx.pettyCashFund.update({
       where: { id: fundId },
@@ -598,7 +598,8 @@ export class FundsService {
     const liveApproved = Number(approvedAgg._sum.approvedAmount || 0);
 
     const totalAvailable = Number(fund.totalAvailable || 0);
-    const liveRemaining = Math.max(0, totalAvailable - liveApproved);
+    // Pure Cash Basis: Remaining balance is Total Available minus actual PAID disbursements
+    const liveRemaining = Math.max(0, totalAvailable - livePaid);
 
     return {
       ...fund,

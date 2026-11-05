@@ -108,7 +108,17 @@ export class ReportsService {
       // Build per-company lookup
       const fundMap: Record<string, any> = {};
       for (const f of allFunds) {
-        // Aggregate approved amounts for this company & month live
+        // Aggregate actual payments live from Payment table (pure cash basis)
+        const paidAgg = await this.prisma.payment.aggregate({
+          where: {
+            companyId: f.companyId,
+            paymentDate: { gte: startOfMonth, lte: endOfMonth },
+          },
+          _sum: { amountPaid: true },
+        });
+        const livePaid = Number(paidAgg._sum.amountPaid || f.paidAmount || 0);
+
+        // Aggregate approved amounts for informational / audit tracking
         const approvedAgg = await (this.prisma as any).pettyCashRequest.aggregate({
           where: {
             companyId: f.companyId,
@@ -119,12 +129,14 @@ export class ReportsService {
         });
         const liveApproved = Number(approvedAgg._sum.approvedAmount || 0);
         const allocated = Number(f.totalAvailable || 0);
-        const remaining = Math.max(0, allocated - liveApproved);
+        // Pure Cash Basis: Hadhaaga drops ONLY upon actual payment disbursement (PAID)
+        const remaining = Math.max(0, allocated - livePaid);
 
         fundMap[f.companyId] = {
           ...f,
           totalAvailable: allocated,
           approvedAmount: liveApproved,
+          paidAmount: livePaid,
           remainingBalance: remaining,
         };
       }

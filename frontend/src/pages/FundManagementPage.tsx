@@ -524,7 +524,8 @@ export const FundManagementPage: React.FC = () => {
       {!loadingFund && !fundError && fund && (() => {
         const totalAvailable = Number(fund.totalAvailable || 0);
         const remainingBalance = Number(fund.remainingBalance || 0);
-        const spentAmount = Number(fund.approvedAmount || fund.paidAmount || 0);
+        // Pure Cash Basis: Spent is strictly paid disbursements
+        const spentAmount = Number(fund.paidAmount || 0);
         const opening = Number(fund.openingBalance || 0);
         const topups = Number(fund.additionalFunding || 0);
 
