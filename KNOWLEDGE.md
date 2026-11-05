@@ -1,7 +1,7 @@
 # 📚 PETTY CASH MANAGEMENT SYSTEM — MASTER KNOWLEDGE DOCUMENT
 **Project:** Somtel / Bluekom Petty Cash App  
 **GitHub:** https://github.com/shaaficiune/PettyCash.git  
-**Last Updated:** 2026-10-26
+**Last Updated:** 2026-11-05
 **Purpose:** Full context restoration for any future AI assistant — read this file before starting any work.
 
 ---
@@ -1913,6 +1913,74 @@ Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu samee
     ```bash
     cd ~/app/app && bash update-server.sh
     ```
+
+---
+
+### 8. 💰 Pure Cash Basis: Vault & Fund Balance Architecture (Disbursement vs Approval)
+* **Dhibaatada Hore Jirtay:**
+  - Marka Approver 1 ama Approver 2 ay gujiyaan "Approve", lacagta haraaga khasnadda (`remainingBalance`) waxay markiiba go'i jirtay ka hor intaan lacagta bixin (xisaabiye bixin).
+  - Tani ma waafaqsanayn habka rasmiga ah ee xisaabaadka khasnadda (Cash Basis Accounting), sababtoo ah khasnadda lacag kama bixin inta xisaabiyuhu ku dhufto "PAID".
+* **Xalka la Hirgeliyay (`funds.service.ts`, `reports.service.ts`, `FundManagementPage.tsx`):**
+  - **`recordApprovalInTransaction`:** Hadda **ma dhimo** `remainingBalance`. Kaliya wuxuu kordhiyaa `approvedAmount` si loo ogaado lacagta ballanqaadka ku jirta (committed/pending payment).
+  - **`recordPaymentInTransaction`:** Hadda khasnadda waxaa si toos ah looga jaraa lacagta marka xisaabiyuhu bixiyo lacagta dhabta ah: `remainingBalance = totalAvailable - livePaid`.
+  - **`recordSettlementRefundInTransaction`:** Haddii shaqaaluhu lacag soo celiyo (settlement refund), waxay ku noqotaa `remainingBalance = totalAvailable - livePaid`.
+  - **Dashboard & Monthly Summary:** Haraaga nool (`liveRemaining`) wuxuu ku salaysan yahay wadarta la helay minus inta dhab ahaan la bixiyay (`totalAvailable - livePaid`).
+* **Git Commit:** `26b7f37`
+
+---
+
+### 9. 🔍 User Directory Search Bar Unification & UI Optimization
+* **Dhibaatada Jirtay (Root Cause):**
+  - Bogga User Directory (`UserManagementPage.tsx`) waxaa isku mar ka muuqday laba search input:
+    1. Search bar-ka sare oo ku jira Card: wuxuu si sax ah u baarayay `fullName`, `username`, iyo `phone`.
+    2. Search bar-ka hoose ee ku dhex jira `<DataTable>` component-ka: wuxuu ku koobnaa hal field oo keliya, taasoo khalad iyo jahwareer ku keentay UI-ga.
+* **Xalka la Hirgeliyay:**
+  - Component-ka guud ee [`data-table.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/components/ui/data-table/data-table.tsx) waxaa lagu daray prop cusub oo ah `hideSearch?: boolean` (default: `false`).
+  - [`UserManagementPage.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/pages/UserManagementPage.tsx) waxaa la siiyay `hideSearch={true}`.
+  - **Natiijada:** Search bar-kii hoose waa la damiyay, waxaana meesha ku haray hal search bar oo nadiif ah oo baaraaya **Name**, **Username**, iyo **Phone Number** isla mar ahaantaana leh filter-yada Company, Role, Status, iyo Region.
+* **Git Commit:** `2ab15c7`
+
+---
+
+### 10. 🖨️ A5 Payment Voucher Printing Fix (Full-Page / Margin Fix)
+* **Dhibaatada Jirtay (Root Cause):**
+  - Marka Payment Voucher-ka A5 la daabacayo (via iframe print), waxaa daabacmi jiray nus warqad ah (half paper) iyadoo cabbirka farta uu yaraanayay, request number-ka iyo margins-kana ay go'ayeen.
+  - Sababtu waxay ahayd CSS-ka iframe-ka daabacaadda oo lahaa `width: 134mm` iyo `overflow: hidden`, taasoo ku qasbeysay browser print engine-ka inuu gooyo waxyaabaha bannaanka u baxa.
+* **Xalka la Hirgeliyay ([`PaymentVoucherModal.tsx`](file:///d:/Petty%20Cash%20App/frontend/src/components/PaymentVoucherModal.tsx)):**
+  - Ballaca body-ga iframe waxaa loo beddelay `148mm` (cabbirka dhabta ah ee warqadda A5).
+  - `overflow: hidden` waxaa loo beddelay `overflow: visible`.
+  - **Natiijada:** Voucher-ka A5 hadda wuxuu ku daabacmayaa si buuxda (full page), xariiqyada iyo nambarada ma go'ayaan, margins-kuna waa standard A5 (`6mm 7mm`).
+* **Git Commit:** `2ab15c7`
+
+---
+
+### 11. 🔢 Monthly Resetting 9-Digit Payment Voucher Numbering (`YYYYMM###`)
+* **Ujeeddada & Shuruudaha:**
+  - Shirkadaha Somtel iyo Bluekom waxay leeyihiin nidaam kale (external accounting system) oo voucher numbers-ka lagu shubo.
+  - Nidaamkaas kale **ma ogola** hyphen (`-`), underscore (`_`), ama xarfo (sida `PV-ST-` / `PV-BK-`). Waxaa lagu qasban yahay **pure numbers** oo kaliya.
+  - Bil kasta oo cusub, nambarka voucher-ku waa inuu dib uga bilaabmaa `001`.
+* **Formaatka Rasmiga ah (9 Digits):**
+  $$\text{Voucher No} = \text{YYYY (4 god)} + \text{MM (2 god)} + \text{Sequence (3 god)}$$
+  - **Bisha November 2026:**
+    - Somtel: `202611001`, `202611002`, `202611003`...
+    - Bluekom: `202611001`, `202611002`, `202611003`...
+  - **Bisha December 2026 (Monthly Reset):**
+    - Somtel: `202612001`, `202612002`...
+    - Bluekom: `202612001`, `202612002`...
+  - **Bisha January 2027 (Year Reset):**
+    - Somtel: `202701001`...
+    - Bluekom: `202701001`...
+* **Hirgelinta Farsamo (Zero Database Migration):**
+  - Voucher Number-ka kuma xirna column go'an oo database-ka ah; waxaa dynamically looga xisaabiyaa taariikhda payment-ka (`paymentDate`) ee shirkaddaas bishaas gudaheeda (`startOfMonth` ilaa `paymentDate`).
+  - Dhammaan requests/payments-kii bishan November 2026 hore loo bixiyay si toos ah ayay u qaateen nambaradan cusub min kii ugu horreeyay ilaa kii ugu dambeeyay taariikh ahaan.
+* **Faylasha la Beddelay:**
+  - `backend/src/payments/payments.service.ts`: Xisaabinta bisha iyo shirkadda (`calculatePaymentVoucherNumber`).
+  - `backend/src/requests/requests.service.ts`: Request & payments sequence scoping.
+  - `backend/src/payments/payments.service.spec.ts`: Unit tests update (all 6 passed).
+  - `frontend/src/components/PaymentVoucherModal.tsx`: Muujinta nambarka nadiifka ah ee `No. 202611001` (xariiq iyo prefix la'aan).
+  - `frontend/src/pages/PaymentsPage.tsx`: Waxaa miiska payments-ka lagu daray column-ka **`Voucher #`** si toos looga arko loona koobiyeysto.
+* **Git Commit:** `2db0ebb`
+
 
 
 
