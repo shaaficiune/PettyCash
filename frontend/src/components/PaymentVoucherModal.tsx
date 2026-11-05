@@ -76,9 +76,9 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
         print-color-adjust: exact !important;
       }
       html, body {
-        width: 134mm;
+        width: 148mm;
         height: auto;
-        overflow: hidden;
+        overflow: visible;
         background: #ffffff;
         font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         font-size: 10px;

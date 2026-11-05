@@ -912,7 +912,7 @@ export const UserManagementPage: React.FC = () => {
               columns={userColumns}
               data={filteredUsers}
               isLoading={loading}
-              searchPlaceholder="Search users by name, username, phone..."
+              hideSearch={true}
               pageSize={15}
               pageSizeOptions={[10, 15, 25, 50]}
             />
