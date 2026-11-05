@@ -354,16 +354,78 @@ export class RequestsService {
       throw new ForbiddenException('This request is currently awaiting Stage 1 (Approval One) and is not yet accessible to Approval Two.');
     }
 
-    // Company-scoped sequential voucher number: Somtel starts at 1, Bluekom starts at 1
-    const voucherNumber = await this.prisma.pettyCashRequest.count({
-      where: {
-        companyId: request.companyId,
-        createdAt: { lte: request.createdAt },
-      },
-    });
+    // Monthly Company-scoped sequential voucher number: YYYYMM### (e.g. 202611001)
+    let voucherNumber: string | null = null;
+    let paymentsWithVoucher: any[] = request.payments;
+
+    if (request.companyId) {
+      if (request.payments && request.payments.length > 0) {
+        paymentsWithVoucher = await Promise.all(
+          request.payments.map(async (pm) => {
+            const pDate = pm.paymentDate || pm.createdAt || new Date();
+            const d = new Date(pDate);
+            const year = d.getFullYear();
+            const month = d.getMonth();
+            const startOfMonth = new Date(year, month, 1, 0, 0, 0, 0);
+
+            const seq = await this.prisma.payment.count({
+              where: {
+                companyId: request.companyId,
+                paymentDate: {
+                  gte: startOfMonth,
+                },
+                OR: [
+                  { paymentDate: { lt: pDate } },
+                  {
+                    paymentDate: pDate,
+                    id: { lte: pm.id },
+                  },
+                ],
+              },
+            });
+
+            const yyyy = String(year);
+            const mm = String(month + 1).padStart(2, '0');
+            const seqStr = String(Math.max(seq, 1)).padStart(3, '0');
+            return {
+              ...pm,
+              voucherNumber: `${yyyy}${mm}${seqStr}`,
+            };
+          })
+        );
+        voucherNumber = paymentsWithVoucher[0]?.voucherNumber || null;
+      } else {
+        const d = new Date(request.createdAt);
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        const startOfMonth = new Date(year, month, 1, 0, 0, 0, 0);
+
+        const seq = await this.prisma.pettyCashRequest.count({
+          where: {
+            companyId: request.companyId,
+            createdAt: {
+              gte: startOfMonth,
+            },
+            OR: [
+              { createdAt: { lt: request.createdAt } },
+              {
+                createdAt: request.createdAt,
+                id: { lte: request.id },
+              },
+            ],
+          },
+        });
+
+        const yyyy = String(year);
+        const mm = String(month + 1).padStart(2, '0');
+        const seqStr = String(Math.max(seq, 1)).padStart(3, '0');
+        voucherNumber = `${yyyy}${mm}${seqStr}`;
+      }
+    }
 
     return {
       ...request,
+      payments: paymentsWithVoucher,
       voucherNumber,
     };
   }

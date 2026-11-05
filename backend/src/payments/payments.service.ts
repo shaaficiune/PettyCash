@@ -166,14 +166,9 @@ export class PaymentsService {
 
     const itemsWithVoucher = await Promise.all(
       items.map(async (pm) => {
-        let voucherNumber: number | null = null;
+        let voucherNumber: string | null = null;
         if (pm.companyId) {
-          voucherNumber = await this.prisma.payment.count({
-            where: {
-              companyId: pm.companyId,
-              paymentDate: { lte: pm.paymentDate },
-            },
-          });
+          voucherNumber = await this.calculatePaymentVoucherNumber(pm.companyId, pm.paymentDate, pm.id);
         }
         return {
           ...pm,
@@ -190,11 +185,56 @@ export class PaymentsService {
   }
 
   async findPaymentsForRequest(requestId: string) {
-    return this.prisma.payment.findMany({
+    const payments = await this.prisma.payment.findMany({
       where: { requestId },
       include: {
         paidBy: { select: { fullName: true, username: true } },
       },
     });
+
+    return Promise.all(
+      payments.map(async (pm) => {
+        let voucherNumber: string | null = null;
+        if (pm.companyId) {
+          voucherNumber = await this.calculatePaymentVoucherNumber(pm.companyId, pm.paymentDate, pm.id);
+        }
+        return {
+          ...pm,
+          voucherNumber,
+        };
+      })
+    );
+  }
+
+  private async calculatePaymentVoucherNumber(
+    companyId: string,
+    paymentDate: Date | null | undefined,
+    paymentId: string,
+  ): Promise<string> {
+    const pDate = paymentDate ? new Date(paymentDate) : new Date();
+    const year = pDate.getFullYear();
+    const month = pDate.getMonth();
+    const startOfMonth = new Date(year, month, 1, 0, 0, 0, 0);
+
+    const seq = await this.prisma.payment.count({
+      where: {
+        companyId,
+        paymentDate: {
+          gte: startOfMonth,
+        },
+        OR: [
+          { paymentDate: { lt: pDate } },
+          {
+            paymentDate: pDate,
+            id: { lte: paymentId },
+          },
+        ],
+      },
+    });
+
+    const yyyy = String(year);
+    const mm = String(month + 1).padStart(2, '0');
+    const seqStr = String(Math.max(seq, 1)).padStart(3, '0');
+    return `${yyyy}${mm}${seqStr}`;
   }
 }

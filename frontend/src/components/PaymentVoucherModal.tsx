@@ -37,18 +37,19 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
   const formattedAmount = numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const amountWords = amountInWords(numAmount, request.currency || 'USD');
 
-  // Voucher Number: Each company starts at 1 (Somtel starts 1, Bluekom starts 1)
-  const displayVoucherNo = request.voucherNumber != null
-    ? String(request.voucherNumber)
-    : (activePayment?.voucherNumber != null
-      ? String(activePayment.voucherNumber)
+  // Payment Voucher Number: Format YYYYMM### (e.g. 202611001) per monthly reset
+  const rawVoucherNo = activePayment?.voucherNumber != null
+    ? String(activePayment.voucherNumber)
+    : (request.voucherNumber != null
+      ? String(request.voucherNumber)
       : '1');
 
-  // Serialized PV Number (PV-BK-YYYY-XXXX or PV-ST-YYYY-XXXX) per planupdate.md
-  const compCode = isSomtel ? 'ST' : 'BK';
-  const voucherYear = formattedYear || new Date().getFullYear().toString();
-  const seqStr = String(displayVoucherNo).padStart(4, '0');
-  const serializedVoucherNo = `PV-${compCode}-${voucherYear}-${seqStr}`;
+  // If already formatted as 9 digits (YYYYMM###), use directly; otherwise format as YYYYMM###
+  const serializedVoucherNo = /^\d{9}$/.test(rawVoucherNo)
+    ? rawVoucherNo
+    : `${formattedYear}${formattedMonth}${String(rawVoucherNo).replace(/\D/g, '').padStart(3, '0')}`;
+
+  const displayVoucherNo = serializedVoucherNo;
 
   const handlePrint = () => {
     const printContent = document.getElementById('printable-payment-voucher');
@@ -253,7 +254,7 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
 <html>
   <head>
     <meta charset="utf-8"/>
-    <title>${isSomtel ? 'Somtel' : 'Bluekom'} Payment Voucher #${request.requestNumber || displayVoucherNo}</title>
+    <title>${isSomtel ? 'Somtel' : 'Bluekom'} Payment Voucher #${serializedVoucherNo}</title>
     <style>${printCSS}</style>
   </head>
   <body>
@@ -407,9 +408,6 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
                 }`}
               >
                 {serializedVoucherNo}
-              </div>
-              <div className="text-[8px] text-slate-400 font-mono">
-                Pad #{displayVoucherNo}
               </div>
             </div>
           </div>

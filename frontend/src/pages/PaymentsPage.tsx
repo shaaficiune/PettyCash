@@ -117,6 +117,21 @@ export const PaymentsPage: React.FC = () => {
         },
       },
       {
+        accessorKey: 'voucherNumber',
+        id: 'voucherNumber',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Voucher #" />
+        ),
+        cell: ({ row }) => {
+          const p = row.original;
+          return (
+            <span className="font-mono font-bold text-xs text-foreground">
+              {p.voucherNumber || '—'}
+            </span>
+          );
+        },
+      },
+      {
         id: 'company',
         accessorFn: (row) => row.request?.company?.name || '',
         header: ({ column }) => (
