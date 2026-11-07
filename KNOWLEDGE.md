@@ -2002,8 +2002,9 @@ Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu samee
     - Waxaa la dhisay **Edit Details Modal (`Dialog`)**:
       - Wuxuu soo bandhigayaa **Requested Amount oo Locked ah** (`🔒 Locked — Original Employee Amount`).
       - Wuxuu u oggolaanayaa inuu saxo: Recipient Full Name, Recipient Phone, Budget Head dropdown (category), Purpose, Description, iyo Invoice Number.
+      - **Dynamic Sub-fields & Auto Summary (Sida Form-ka Shaqaalaha):** Marka Xisaabiyuhu doorto Budget Head-ka, markiiba hoostiisa waxaa ka soo dhex muuqanaya sanduuqyadii dynamic-ka ahaa ee category-gaas (Baabuurta & dropdown-kooda, Generator site, Transport From/To, Building location, ama Other description), waxaana si toos ah u dhismaaya una muuqanaya Live Preview Box (`autoPurpose` iyo `autoDescription`).
       - Marka la keydiyo (`Save Changes`), boggu si toos ah ayuu xogta cusub u soo qaadanayaa isagoo aan meelna uga bixin bogga.
-* **Git Commit:** `9ee5ada`
+* **Git Commit:** `9ee5ada`, `c321beb`
 
 
 
