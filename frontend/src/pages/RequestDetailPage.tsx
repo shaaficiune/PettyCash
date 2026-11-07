@@ -7,7 +7,7 @@ import {
   RefreshCw, User, Building2, MapPin, Tag, Calendar, FileText,
   Paperclip, CheckCircle2, AlertCircle, CircleDollarSign,
   Banknote, Edit3, Send, ReceiptText, ClipboardCheck, Loader2,
-  Printer, Trash2,
+  Printer, Trash2, Lock, Save,
 } from 'lucide-react';
 import { PaymentVoucherModal } from '../components/PaymentVoucherModal';
 import {
@@ -18,6 +18,7 @@ import {
   CardContent,
   Button,
   Input,
+  Textarea,
   Select,
   Label,
   Badge,
@@ -25,6 +26,12 @@ import {
   AlertDescription,
   Separator,
   StatusBadge,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '../components/ui';
 
 const TIMELINE_STEPS = [
@@ -180,6 +187,18 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Edit Details Modal state (for Accountant / Admin adjusting metadata)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editReceiverName, setEditReceiverName] = useState('');
+  const [editReceiverPhone, setEditReceiverPhone] = useState('');
+  const [editBudgetHeadId, setEditBudgetHeadId] = useState('');
+  const [editPurpose, setEditPurpose] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editInvoiceNumber, setEditInvoiceNumber] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [companyBudgetHeads, setCompanyBudgetHeads] = useState<any[]>([]);
+
   const openAttachment = async (event: React.MouseEvent<HTMLAnchorElement>, attachment: any) => {
     event.preventDefault();
     const previewWindow = window.open('about:blank', '_blank');
@@ -208,6 +227,60 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
       setError('Request details could not be found');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openEditModal = async () => {
+    if (!request) return;
+    setEditReceiverName(request.receiverName || '');
+    setEditReceiverPhone(request.receiverPhone || '');
+    setEditBudgetHeadId(request.budgetHeadId || request.budgetHead?.id || '');
+    setEditPurpose(request.purpose || '');
+    setEditDescription(request.description || '');
+    setEditInvoiceNumber(request.invoiceNumber || '');
+    setEditError(null);
+    setIsEditModalOpen(true);
+
+    const compId = request.companyId || request.company?.id;
+    if (compId && companyBudgetHeads.length === 0) {
+      try {
+        const res = await api.get(`/companies/budget-heads?companyId=${compId}`);
+        setCompanyBudgetHeads(res.data || []);
+      } catch (err) {
+        console.error('Failed to load budget heads', err);
+      }
+    }
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editReceiverName.trim() || !editReceiverPhone.trim()) {
+      setEditError('Recipient full name and phone number are required.');
+      return;
+    }
+    if (!editPurpose.trim()) {
+      setEditError('Purpose is required.');
+      return;
+    }
+
+    setSavingEdit(true);
+    setEditError(null);
+    try {
+      await api.put(`/requests/${request.requestNumber || request.id}`, {
+        receiverName: editReceiverName.trim(),
+        receiverPhone: editReceiverPhone.trim(),
+        budgetHeadId: editBudgetHeadId || undefined,
+        purpose: editPurpose.trim(),
+        description: editDescription.trim() || undefined,
+        invoiceNumber: editInvoiceNumber.trim() || undefined,
+      });
+
+      setIsEditModalOpen(false);
+      await loadRequestDetails();
+    } catch (err: any) {
+      setEditError(err.response?.data?.message || 'Failed to update request details');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -243,6 +316,12 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
   const isAccountant = isAccountantRole || isSuperAdmin;
   const isOwnRequest = isAccountantRole && request?.userId === user?.id;
   const canEdit = (isEmployee || isOwnRequest) && (request.status === 'DRAFT' || request.status === 'CORRECTION_REQUIRED');
+  const canAccountantEdit = isAccountant && (
+    request.status === 'PENDING_APPROVAL' ||
+    request.status === 'ACCOUNTANT_REVIEW' ||
+    request.status === 'DRAFT' ||
+    request.status === 'CORRECTION_REQUIRED'
+  );
 
   // Employee can delete their own request before first approval (DRAFT or PENDING_APPROVAL)
   const isOwner = request?.userId === user?.id;
@@ -362,6 +441,18 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
               <span>Print Payment Voucher</span>
             </Button>
           )}
+          {canAccountantEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openEditModal}
+              className="gap-1.5 shadow-sm border-primary/40 text-primary hover:bg-primary/10"
+              title="Edit Request Details (Recipient, Budget Head, Notes)"
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              <span>Edit Details</span>
+            </Button>
+          )}
           {canEdit && (
             <Link to={`/requests/edit/${request.requestNumber || request.id}`}>
               <Button
@@ -458,10 +549,24 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
 
         {/* Left column: Request Info */}
         <Card className="p-5 sm:p-6 space-y-5">
-          <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-            <FileText className="h-3.5 w-3.5" />
-            Request Information
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <FileText className="h-3.5 w-3.5" />
+              Request Information
+            </h3>
+            {canAccountantEdit && (
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={openEditModal}
+                className="gap-1 text-primary hover:text-primary/80 h-7 px-2 font-semibold"
+                title="Edit request details"
+              >
+                <Edit3 className="h-3 w-3" />
+                <span>Edit</span>
+              </Button>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             <Field label="Employee" icon={User}>
@@ -528,10 +633,24 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
 
           {/* Recipient Card */}
           <Card className="p-5 sm:p-6 space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <User className="h-3.5 w-3.5" />
-              Recipient Details
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <User className="h-3.5 w-3.5" />
+                Recipient Details
+              </h3>
+              {canAccountantEdit && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={openEditModal}
+                  className="gap-1 text-primary hover:text-primary/80 h-7 px-2 font-semibold"
+                  title="Edit recipient details"
+                >
+                  <Edit3 className="h-3 w-3" />
+                  <span>Edit</span>
+                </Button>
+              )}
+            </div>
             <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-3">
               <div>
                 <p className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5">Full Name</p>
@@ -616,6 +735,25 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
           </CardHeader>
 
           <CardContent className="p-6 space-y-4">
+            {canAccountantEdit && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs">
+                <div className="flex items-center gap-2 text-primary font-medium">
+                  <Edit3 className="h-4 w-4 shrink-0" />
+                  <span>Need to correct recipient name, phone, or budget category before approving?</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={openEditModal}
+                  className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/10 shrink-0 gap-1 font-semibold"
+                >
+                  <Edit3 className="h-3 w-3" />
+                  Edit Details
+                </Button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
@@ -1048,6 +1186,143 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
         request={request}
         payment={selectedPaymentForVoucher}
       />
+
+      {/* ── Edit Request Details Modal (Accountant / Super Admin) ── */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="h-4 w-4 text-primary" />
+              Edit Request Details
+            </DialogTitle>
+            <DialogDescription>
+              Adjust metadata (Recipient, Budget Category, Purpose). The requested amount is locked.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{editError}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            {/* Locked Requested Amount Banner */}
+            <div className="p-3 bg-muted/50 border border-border rounded-xl flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                  Requested Amount (Immutable)
+                </span>
+                <span className="text-base font-black text-foreground">
+                  {request.currency} {Number(request.requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <Badge variant="secondary" size="sm" className="gap-1 text-[11px] font-semibold text-muted-foreground">
+                <Lock className="h-3 w-3" /> Locked
+              </Badge>
+            </div>
+
+            {/* Recipient Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label required>Recipient Full Name</Label>
+                <Input
+                  type="text"
+                  placeholder="Receiver name"
+                  value={editReceiverName}
+                  onChange={(e) => setEditReceiverName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label required>Recipient Phone / Account</Label>
+                <Input
+                  type="text"
+                  placeholder="e.g. 667xxxxxx"
+                  value={editReceiverPhone}
+                  onChange={(e) => setEditReceiverPhone(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Budget Head Category */}
+            <div className="space-y-1.5">
+              <Label>Budget Head (Category)</Label>
+              <Select
+                value={editBudgetHeadId}
+                onChange={(e) => setEditBudgetHeadId(e.target.value)}
+              >
+                <option value="">Select Budget Head...</option>
+                {companyBudgetHeads.map((bh) => (
+                  <option key={bh.id} value={bh.id}>
+                    {bh.code ? `${bh.code} – ${bh.name}` : bh.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Purpose */}
+            <div className="space-y-1.5">
+              <Label required>Purpose</Label>
+              <Input
+                type="text"
+                placeholder="Purpose of request"
+                value={editPurpose}
+                onChange={(e) => setEditPurpose(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Detailed Description */}
+            <div className="space-y-1.5">
+              <Label>Description / Notes</Label>
+              <Textarea
+                rows={3}
+                placeholder="Detailed notes or description..."
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+
+            {/* Invoice Number */}
+            <div className="space-y-1.5">
+              <Label>Invoice Number</Label>
+              <Input
+                type="text"
+                placeholder="Optional invoice / ref"
+                value={editInvoiceNumber}
+                onChange={(e) => setEditInvoiceNumber(e.target.value)}
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditModalOpen(false)}
+                disabled={savingEdit}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="gold"
+                size="sm"
+                disabled={savingEdit}
+                isLoading={savingEdit}
+                className="gap-1.5 font-bold shadow-sm"
+              >
+                <Save className="h-3.5 w-3.5" />
+                <span>Save Changes</span>
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Delete Confirmation Modal ── */}
       {isDeleteModalOpen && (

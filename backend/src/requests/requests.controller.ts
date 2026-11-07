@@ -63,7 +63,7 @@ export class RequestsController {
   @Put(':id')
   @ApiOperation({ summary: 'Update Petty Cash Request' })
   async update(@Param('id') id: string, @Request() req, @Body() dto: UpdateRequestDto) {
-    return this.requestsService.update(id, req.user.userId, dto);
+    return this.requestsService.update(id, req.user.userId, req.user.role, dto);
   }
 
   @Delete(':id')

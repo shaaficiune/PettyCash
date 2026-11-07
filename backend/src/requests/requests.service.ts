@@ -324,11 +324,11 @@ export class RequestsService {
       where: this.getRequestIdentifierWhere(id),
       include: {
         user: { select: { fullName: true, username: true, phone: true } },
-        company: { select: { name: true } },
+        company: { select: { id: true, name: true } },
         department: { select: { name: true } },
         project: { select: { name: true } },
         region: { select: { name: true } },
-        budgetHead: { select: { name: true, code: true } },
+        budgetHead: { select: { id: true, name: true, code: true } },
         attachments: true,
         payments: {
           include: { paidBy: { select: { fullName: true } } }
@@ -430,7 +430,7 @@ export class RequestsService {
     };
   }
 
-  async update(id: string, userId: string, dto: UpdateRequestDto) {
+  async update(id: string, userId: string, userRole: RoleName, dto: UpdateRequestDto) {
     const request = await this.prisma.pettyCashRequest.findFirst({
       where: this.getRequestIdentifierWhere(id),
       include: { attachments: true },
@@ -440,13 +440,30 @@ export class RequestsService {
       throw new NotFoundException('Request not found');
     }
 
-    if (request.userId !== userId) {
-      throw new ForbiddenException('You can only update your own requests');
+    const isOwner = request.userId === userId;
+    const isAccountantOrAdmin = userRole === RoleName.ACCOUNTANT || userRole === RoleName.SUPER_ADMIN;
+
+    if (!isOwner && !isAccountantOrAdmin) {
+      throw new ForbiddenException('You do not have permission to update this request');
     }
 
-    // Requests can only be updated if they are DRAFT or CORRECTION_REQUIRED
-    if (request.status !== RequestStatus.DRAFT && request.status !== RequestStatus.CORRECTION_REQUIRED) {
-      throw new BadRequestException('Requests can only be modified when in DRAFT or CORRECTION REQUIRED status');
+    // Role-based status constraints:
+    // - Owner (e.g. Employee) can only modify when in DRAFT or CORRECTION_REQUIRED
+    // - Accountant/Admin can edit details when in DRAFT, CORRECTION_REQUIRED, PENDING_APPROVAL, or ACCOUNTANT_REVIEW
+    if (isOwner && !isAccountantOrAdmin) {
+      if (request.status !== RequestStatus.DRAFT && request.status !== RequestStatus.CORRECTION_REQUIRED) {
+        throw new BadRequestException('Requests can only be modified when in DRAFT or CORRECTION REQUIRED status');
+      }
+    } else if (isAccountantOrAdmin && !isOwner) {
+      const allowedStatuses: RequestStatus[] = [
+        RequestStatus.PENDING_APPROVAL,
+        RequestStatus.ACCOUNTANT_REVIEW,
+        RequestStatus.DRAFT,
+        RequestStatus.CORRECTION_REQUIRED,
+      ];
+      if (!allowedStatuses.includes(request.status)) {
+        throw new BadRequestException('Request details can only be edited before final authorization and disbursement');
+      }
     }
 
     // Build update data
@@ -454,6 +471,7 @@ export class RequestsService {
     let wasResubmitted = false;
     if (dto.projectId !== undefined) data.projectId = dto.projectId || null;
     if (dto.regionId !== undefined) data.regionId = dto.regionId || null;
+    if (dto.budgetHeadId !== undefined) data.budgetHeadId = dto.budgetHeadId || null;
     if (dto.costCenter !== undefined) {
       data.costCenter = dto.costCenter || null;
     } else if (dto.regionId) {
@@ -471,13 +489,17 @@ export class RequestsService {
     if (dto.invoiceNumber !== undefined) data.invoiceNumber = dto.invoiceNumber || null;
     if (dto.purpose !== undefined) data.purpose = dto.purpose;
     if (dto.description !== undefined) data.description = dto.description || '';
-    if (dto.requestedAmount !== undefined) {
+
+    // STRICT AMOUNT IMMUTABILITY:
+    // Only the request owner can edit requestedAmount while drafting or correcting.
+    // An Accountant or Admin editing someone else's request CANNOT change the requestedAmount!
+    if (dto.requestedAmount !== undefined && isOwner) {
       if (Number(dto.requestedAmount) > 50) {
         throw new BadRequestException('Petty Cash requests cannot exceed $50. For larger amounts, please use the formal procurement process.');
       }
       data.requestedAmount = dto.requestedAmount;
     }
-    if (dto.currency !== undefined) data.currency = dto.currency;
+    if (dto.currency !== undefined && isOwner) data.currency = dto.currency;
     if (dto.priority !== undefined) data.priority = dto.priority;
     if (dto.requiredDate !== undefined) data.requiredDate = new Date(dto.requiredDate);
 
