@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -7,7 +7,7 @@ import {
   RefreshCw, User, Building2, MapPin, Tag, Calendar, FileText,
   Paperclip, CheckCircle2, AlertCircle, CircleDollarSign,
   Banknote, Edit3, Send, ReceiptText, ClipboardCheck, Loader2,
-  Printer, Trash2, Lock, Save,
+  Printer, Trash2, Lock, Save, Sparkles,
 } from 'lucide-react';
 import { PaymentVoucherModal } from '../components/PaymentVoucherModal';
 import {
@@ -33,6 +33,26 @@ import {
   DialogDescription,
   DialogFooter,
 } from '../components/ui';
+
+// ─── Budget Head type detection for Edit Modal ──────────────────────────────
+type BHType = 'VEHICLES' | 'GENERATORS' | 'TRANSPORTATIONS' | 'BUILDINGS' | 'OTHER';
+
+function getBHType(name: string): BHType {
+  const n = (name || '').toLowerCase();
+  if (n.includes('vehicle'))    return 'VEHICLES';
+  if (n.includes('generator'))  return 'GENERATORS';
+  if (n.includes('transport'))  return 'TRANSPORTATIONS';
+  if (n.includes('building'))   return 'BUILDINGS';
+  return 'OTHER';
+}
+
+const DETAILS_HINT: Record<BHType, string> = {
+  VEHICLES:       'Choose the vehicle registered for company & region, then describe the work needed.',
+  GENERATORS:     'Enter generator site name (max 50 characters).',
+  TRANSPORTATIONS:'Specify what was transported, From, and To (max 50 chars each).',
+  BUILDINGS:      'Enter building or location (max 50 characters).',
+  OTHER:          'Enter concise description (max 50 characters).',
+};
 
 const TIMELINE_STEPS = [
   { key: 'DRAFT', label: 'Draft', icon: Edit3 },
@@ -192,12 +212,111 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
   const [editReceiverName, setEditReceiverName] = useState('');
   const [editReceiverPhone, setEditReceiverPhone] = useState('');
   const [editBudgetHeadId, setEditBudgetHeadId] = useState('');
-  const [editPurpose, setEditPurpose] = useState('');
-  const [editDescription, setEditDescription] = useState('');
   const [editInvoiceNumber, setEditInvoiceNumber] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [companyBudgetHeads, setCompanyBudgetHeads] = useState<any[]>([]);
+
+  // Conditional dynamic sub-fields for edit modal (mirroring RequestFormPage)
+  const [vehiclePlate, setVehiclePlate] = useState('');
+  const [vehicleDescription, setVehicleDescription] = useState('');
+  const [generatorSite, setGeneratorSite] = useState('');
+  const [whatTransported, setWhatTransported] = useState('');
+  const [transportFrom, setTransportFrom] = useState('');
+  const [transportTo, setTransportTo] = useState('');
+  const [buildingLocation, setBuildingLocation] = useState('');
+  const [freeDescription, setFreeDescription] = useState('');
+  const [vehicles, setVehicles] = useState<{ plate: string; model: string }[]>([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
+
+  const selectedBH = companyBudgetHeads.find(b => b.id === editBudgetHeadId) ||
+    (request?.budgetHead?.id === editBudgetHeadId || request?.budgetHeadId === editBudgetHeadId ? request.budgetHead : null);
+  const bhType: BHType = selectedBH ? getBHType(selectedBH.name) : 'OTHER';
+
+  // Auto-build description from conditional sub-fields
+  const autoDescription = useMemo(() => {
+    switch (bhType) {
+      case 'VEHICLES': {
+        const v = vehicles.find(x => x.plate === vehiclePlate);
+        const plateStr = v ? `${v.model} (${v.plate})` : (vehiclePlate || '');
+        const descStr = vehicleDescription.trim();
+        if (plateStr && descStr) return `${plateStr} — ${descStr}`;
+        return plateStr || descStr;
+      }
+      case 'GENERATORS':
+        return generatorSite.trim() ? `Site: ${generatorSite.trim()}` : '';
+      case 'TRANSPORTATIONS': {
+        const item = whatTransported.trim();
+        const from = transportFrom.trim();
+        const to = transportTo.trim();
+        if (item && from && to) return `Transport: ${item} (${from} to ${to})`;
+        if (from && to) return `Transport: ${from} to ${to}`;
+        if (item) return `Transport: ${item}`;
+        return '';
+      }
+      case 'BUILDINGS':
+        return buildingLocation.trim() ? `Location: ${buildingLocation.trim()}` : '';
+      default:
+        return freeDescription.trim();
+    }
+  }, [bhType, vehiclePlate, vehicleDescription, vehicles, generatorSite, whatTransported, transportFrom, transportTo, buildingLocation, freeDescription]);
+
+  // Auto-build short purpose (used as request title in lists)
+  const autoPurpose = useMemo(() => {
+    const bhName = selectedBH?.name || request?.budgetHead?.name || 'Petty Cash Request';
+    switch (bhType) {
+      case 'VEHICLES': {
+        const v = vehicles.find(x => x.plate === vehiclePlate);
+        const plateStr = v ? `${v.model} (${v.plate})` : (vehiclePlate || '');
+        const descStr = vehicleDescription.trim();
+        if (plateStr && descStr) return `${bhName} — ${plateStr} — ${descStr}`;
+        if (plateStr) return `${bhName} — ${plateStr}`;
+        return bhName;
+      }
+      case 'GENERATORS':     return generatorSite.trim() ? `${bhName} — ${generatorSite.trim()}` : bhName;
+      case 'TRANSPORTATIONS': {
+        const item = whatTransported.trim();
+        const from = transportFrom.trim();
+        const to = transportTo.trim();
+        if (item && from && to) return `${bhName} — ${item} (${from} to ${to})`;
+        if (from && to) return `${bhName} — ${from} to ${to}`;
+        if (item) return `${bhName} — ${item}`;
+        return bhName;
+      }
+      case 'BUILDINGS':      return buildingLocation.trim() ? `${bhName} — ${buildingLocation.trim()}` : bhName;
+      default:               return freeDescription.trim() ? `${bhName} — ${freeDescription.trim()}` : bhName;
+    }
+  }, [bhType, selectedBH, request, vehiclePlate, vehicleDescription, vehicles, generatorSite, whatTransported, transportFrom, transportTo, buildingLocation, freeDescription]);
+
+  // Load vehicles when vehicle budget head is selected in the modal
+  useEffect(() => {
+    if (isEditModalOpen && bhType === 'VEHICLES') {
+      const cName = request?.company?.name || '';
+      const rName = request?.region?.name || '';
+      if (cName) {
+        setVehiclesLoading(true);
+        const params = new URLSearchParams();
+        params.append('companyName', cName);
+        if (rName) params.append('regionName', rName);
+        api.get(`/companies/vehicles?${params.toString()}`)
+          .then(res => setVehicles(res.data || []))
+          .catch(() => setVehicles([]))
+          .finally(() => setVehiclesLoading(false));
+      }
+    }
+  }, [isEditModalOpen, bhType, request]);
+
+  const handleBudgetHeadChange = (newBhId: string) => {
+    setEditBudgetHeadId(newBhId);
+    setVehiclePlate('');
+    setVehicleDescription('');
+    setGeneratorSite('');
+    setWhatTransported('');
+    setTransportFrom('');
+    setTransportTo('');
+    setBuildingLocation('');
+    setFreeDescription('');
+  };
 
   const openAttachment = async (event: React.MouseEvent<HTMLAnchorElement>, attachment: any) => {
     event.preventDefault();
@@ -234,11 +353,22 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
     if (!request) return;
     setEditReceiverName(request.receiverName || '');
     setEditReceiverPhone(request.receiverPhone || '');
-    setEditBudgetHeadId(request.budgetHeadId || request.budgetHead?.id || '');
-    setEditPurpose(request.purpose || '');
-    setEditDescription(request.description || '');
     setEditInvoiceNumber(request.invoiceNumber || '');
     setEditError(null);
+
+    const currentBhId = request.budgetHeadId || request.budgetHead?.id || '';
+    setEditBudgetHeadId(currentBhId);
+
+    // Initial pre-fill
+    setFreeDescription(request.description || request.purpose || '');
+    setVehiclePlate('');
+    setVehicleDescription('');
+    setGeneratorSite('');
+    setWhatTransported('');
+    setTransportFrom('');
+    setTransportTo('');
+    setBuildingLocation('');
+
     setIsEditModalOpen(true);
 
     const compId = request.companyId || request.company?.id;
@@ -258,10 +388,38 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
       setEditError('Recipient full name and phone number are required.');
       return;
     }
-    if (!editPurpose.trim()) {
-      setEditError('Purpose is required.');
+    if (!editBudgetHeadId) {
+      setEditError('Budget Head is required.');
       return;
     }
+
+    if (bhType === 'VEHICLES' && !vehiclePlate) {
+      setEditError('Please choose a vehicle plate.');
+      return;
+    }
+    if (bhType === 'VEHICLES' && !vehicleDescription.trim()) {
+      setEditError('Please enter description of work for the vehicle (max 50 chars).');
+      return;
+    }
+    if (bhType === 'GENERATORS' && !generatorSite.trim()) {
+      setEditError('Please enter generator site name (max 50 chars).');
+      return;
+    }
+    if (bhType === 'TRANSPORTATIONS') {
+      if (!whatTransported.trim()) { setEditError('Please enter what was transported.'); return; }
+      if (!transportFrom.trim() || !transportTo.trim()) { setEditError('Please enter origin (From) and destination (To).'); return; }
+    }
+    if (bhType === 'BUILDINGS' && !buildingLocation.trim()) {
+      setEditError('Please enter building or location (max 50 chars).');
+      return;
+    }
+    if (bhType === 'OTHER' && !freeDescription.trim()) {
+      setEditError('Please enter description.');
+      return;
+    }
+
+    const finalPurpose = autoPurpose.trim() || request.purpose;
+    const finalDescription = autoDescription.trim() || request.description || undefined;
 
     setSavingEdit(true);
     setEditError(null);
@@ -269,9 +427,9 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
       await api.put(`/requests/${request.requestNumber || request.id}`, {
         receiverName: editReceiverName.trim(),
         receiverPhone: editReceiverPhone.trim(),
-        budgetHeadId: editBudgetHeadId || undefined,
-        purpose: editPurpose.trim(),
-        description: editDescription.trim() || undefined,
+        budgetHeadId: editBudgetHeadId,
+        purpose: finalPurpose,
+        description: finalDescription,
         invoiceNumber: editInvoiceNumber.trim() || undefined,
       });
 
@@ -1250,10 +1408,10 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
 
             {/* Budget Head Category */}
             <div className="space-y-1.5">
-              <Label>Budget Head (Category)</Label>
+              <Label required>Budget Head (Category)</Label>
               <Select
                 value={editBudgetHeadId}
-                onChange={(e) => setEditBudgetHeadId(e.target.value)}
+                onChange={(e) => handleBudgetHeadChange(e.target.value)}
               >
                 <option value="">Select Budget Head...</option>
                 {companyBudgetHeads.map((bh) => (
@@ -1264,30 +1422,170 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
               </Select>
             </div>
 
-            {/* Purpose */}
-            <div className="space-y-1.5">
-              <Label required>Purpose</Label>
-              <Input
-                type="text"
-                placeholder="Purpose of request"
-                value={editPurpose}
-                onChange={(e) => setEditPurpose(e.target.value)}
-                required
-              />
-            </div>
+            {/* Dynamic Conditional Details Section */}
+            {editBudgetHeadId && (
+              <div className="p-3.5 bg-muted/40 border border-border rounded-xl space-y-3.5">
+                <div className="space-y-0.5">
+                  <Label required className="text-xs font-semibold">Category Details</Label>
+                  <p className="text-[11px] text-muted-foreground">{DETAILS_HINT[bhType]}</p>
+                </div>
 
-            {/* Detailed Description */}
-            <div className="space-y-1.5">
-              <Label>Description / Notes</Label>
-              <Textarea
-                rows={3}
-                placeholder="Detailed notes or description..."
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-              />
-            </div>
+                {/* ──── REPAIR OF VEHICLES ──── */}
+                {bhType === 'VEHICLES' && (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label required className="text-xs font-semibold">Vehicle plate & model</Label>
+                      <Select
+                        value={vehiclePlate}
+                        onChange={(e) => setVehiclePlate(e.target.value)}
+                        className="text-xs"
+                      >
+                        <option value="">{vehiclesLoading ? 'Loading vehicles...' : 'Choose the vehicle'}</option>
+                        {vehicles.map((v) => (
+                          <option key={v.plate} value={v.plate}>
+                            {v.model} ({v.plate})
+                          </option>
+                        ))}
+                      </Select>
+                      {vehicles.length === 0 && !vehiclesLoading && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                          No vehicles registered for this company/region.
+                        </p>
+                      )}
+                    </div>
 
-            {/* Invoice Number */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label required className="text-xs font-semibold">Description of work</Label>
+                        <span className="text-[10px] text-muted-foreground font-mono">{vehicleDescription.length}/50</span>
+                      </div>
+                      <Input
+                        placeholder="e.g. Oil change, front tire repair"
+                        maxLength={50}
+                        value={vehicleDescription}
+                        onChange={(e) => setVehicleDescription(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* ──── REPAIR OF GENERATORS ──── */}
+                {bhType === 'GENERATORS' && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label required className="text-xs font-semibold">Generator site</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{generatorSite.length}/50</span>
+                    </div>
+                    <Input
+                      placeholder="e.g. Carmo site"
+                      maxLength={50}
+                      value={generatorSite}
+                      onChange={(e) => setGeneratorSite(e.target.value)}
+                      className="text-xs"
+                    />
+                  </div>
+                )}
+
+                {/* ──── TRANSPORTATIONS ──── */}
+                {bhType === 'TRANSPORTATIONS' && (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label required className="text-xs font-semibold">What was transported?</Label>
+                        <span className="text-[10px] text-muted-foreground font-mono">{whatTransported.length}/50</span>
+                      </div>
+                      <Input
+                        placeholder="e.g. Simcards, Fiber cables"
+                        maxLength={50}
+                        value={whatTransported}
+                        onChange={(e) => setWhatTransported(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label required className="text-xs font-semibold">From</Label>
+                          <span className="text-[10px] text-muted-foreground font-mono">{transportFrom.length}/50</span>
+                        </div>
+                        <Input
+                          placeholder="e.g. Garowe"
+                          maxLength={50}
+                          value={transportFrom}
+                          onChange={(e) => setTransportFrom(e.target.value)}
+                          className="text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label required className="text-xs font-semibold">To</Label>
+                          <span className="text-[10px] text-muted-foreground font-mono">{transportTo.length}/50</span>
+                        </div>
+                        <Input
+                          placeholder="e.g. Qardho"
+                          maxLength={50}
+                          value={transportTo}
+                          onChange={(e) => setTransportTo(e.target.value)}
+                          className="text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ──── BUILDINGS ──── */}
+                {bhType === 'BUILDINGS' && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label required className="text-xs font-semibold">Building / Location</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{buildingLocation.length}/50</span>
+                    </div>
+                    <Input
+                      placeholder="e.g. HQ 3rd Floor or Branch Office"
+                      maxLength={50}
+                      value={buildingLocation}
+                      onChange={(e) => setBuildingLocation(e.target.value)}
+                      className="text-xs"
+                    />
+                  </div>
+                )}
+
+                {/* ──── OTHER ──── */}
+                {bhType === 'OTHER' && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label required className="text-xs font-semibold">Description</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{freeDescription.length}/50</span>
+                    </div>
+                    <Input
+                      placeholder="e.g. Office stationery, cleaning supplies"
+                      maxLength={50}
+                      value={freeDescription}
+                      onChange={(e) => setFreeDescription(e.target.value)}
+                      className="text-xs"
+                    />
+                  </div>
+                )}
+
+                {/* Live Auto-Generated Summary Preview Box */}
+                <div className="p-3 bg-card border border-primary/20 rounded-lg space-y-1.5 text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-primary text-[11px] uppercase tracking-wider">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Auto-Generated Summary</span>
+                  </div>
+                  <div className="space-y-1 text-slate-800 dark:text-slate-200">
+                    <p><strong className="text-muted-foreground">Purpose:</strong> {autoPurpose || '—'}</p>
+                    {autoDescription && (
+                      <p><strong className="text-muted-foreground">Description:</strong> {autoDescription}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Optional Invoice Number */}
             <div className="space-y-1.5">
               <Label>Invoice Number</Label>
               <Input
