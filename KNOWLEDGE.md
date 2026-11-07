@@ -1,7 +1,7 @@
 # 📚 PETTY CASH MANAGEMENT SYSTEM — MASTER KNOWLEDGE DOCUMENT
 **Project:** Somtel / Bluekom Petty Cash App  
 **GitHub:** https://github.com/shaaficiune/PettyCash.git  
-**Last Updated:** 2026-11-05
+**Last Updated:** 2026-11-07
 **Purpose:** Full context restoration for any future AI assistant — read this file before starting any work.
 
 ---
@@ -1980,6 +1980,31 @@ Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu samee
   - `frontend/src/components/PaymentVoucherModal.tsx`: Muujinta nambarka nadiifka ah ee `No. 202611001` (xariiq iyo prefix la'aan).
   - `frontend/src/pages/PaymentsPage.tsx`: Waxaa miiska payments-ka lagu daray column-ka **`Voucher #`** si toos looga arko loona koobiyeysto.
 * **Git Commit:** `2db0ebb`
+
+---
+
+### 12. ✍️ Accountant Metadata Editing with Strict Amount Immutability (Option 1)
+* **Ujeeddada & Shuruudaha:**
+  - Marka shaqaale codsi soo diro (`PENDING_APPROVAL`), waxaa dhici karta inuu qalad yar galo: tusaale, lambarka taleefanka oo hal god ka maqan yahay, magaca oo qaldan, ama Budget Head-ka oo category qaldan loo doortay.
+  - Accountant-ku waa inuu awoodo inuu si toos ah u saxo faahfaahintaas yar isagoo aan codsiga diidayn (reject) ama dib ugu celinayn shaqaalaha (request correction).
+  - **Shuruud Adag (Strict Amount Protection):** Lacagta codsiga (`requestedAmount`) waa inaysan marnaba Accountant-ka u furnaan inuu wax ka beddelo; lacagtu waa **Immutable / Locked**.
+* **Xalka la Hirgeliyay:**
+  - **Backend (`requests.controller.ts` & `requests.service.ts`):**
+    - `requests.service.update` waxaa loo oggolaaday `ACCOUNTANT` iyo `SUPER_ADMIN` inay beddeli karaan codsiyada ku jira `PENDING_APPROVAL`, `ACCOUNTANT_REVIEW`, `DRAFT`, ama `CORRECTION_REQUIRED`.
+    - Haddii qofka wax beddelaya uu yahay Accountant (oo codsigu uusan isagu leeyahay), backend-ku si toos ah ayuu u baabi'iyaa/isaga indhatiraa `dto.requestedAmount` — lacagta codsigu waxay ahaanaysaa tii shaqaaluhu dalbaday oo aan waxba laga beddeli karin.
+    - Faahfaahinta la oggol yahay: `receiverName`, `receiverPhone`, `budgetHeadId`, `purpose`, `description`, `invoiceNumber`, `regionId`.
+  - **Frontend (`RequestDetailPage.tsx`):**
+    - Bogga codsiga waxaa lagu daray badhanka **"Edit Details"** oo u muuqda Accountant/Super Admin meelaha ugu muhiimsan:
+      1. Top Action Bar-ka.
+      2. Kaarka "Request Information" madaxiisa.
+      3. Kaarka "Recipient Details" madaxiisa.
+      4. Gudaha sanduuqa ansixinta (Approval Drawer) si uu u arko inta uusan Approve dhihin.
+    - Waxaa la dhisay **Edit Details Modal (`Dialog`)**:
+      - Wuxuu soo bandhigayaa **Requested Amount oo Locked ah** (`🔒 Locked — Original Employee Amount`).
+      - Wuxuu u oggolaanayaa inuu saxo: Recipient Full Name, Recipient Phone, Budget Head dropdown (category), Purpose, Description, iyo Invoice Number.
+      - Marka la keydiyo (`Save Changes`), boggu si toos ah ayuu xogta cusub u soo qaadanayaa isagoo aan meelna uga bixin bogga.
+* **Git Commit:** `9ee5ada`
+
 
 
 
