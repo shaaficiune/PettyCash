@@ -17,7 +17,6 @@ import {
   HardDrive,
   Database,
   Clock,
-  CheckCircle2,
   AlertTriangle,
 } from 'lucide-react';
 import { formatDate } from '../utils/format';
