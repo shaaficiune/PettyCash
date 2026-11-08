@@ -2025,6 +2025,27 @@ Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu samee
   - **Frontend Header (`DashboardLayout.tsx`):**
     - Company Context Switcher-ka (All Companies / Somtel / Bluekom) waxaa loo oggolaaday `APPROVAL_TWO` (Desktop & Mobile) si uu si fudud ugu kala beddelan karo Somtel iyo Bluekom.
 
+---
+
+### 14. 🖥️ Live Server Health & Hardware Telemetry (Super Admin Only)
+* **Ujeeddada:**
+  - Maadaama uu nidaamku ku shaqeynayo Ubuntu Linux Server (VirtualBox NAT gadaashiis oo Cloudflare Tunnel iyo Tailscale VPN ku xidhan), waxaa loo baahday in Super Admin-ku uu si toos ah gudaha Settings-ka ugala socon karo xaaladda server-ka (Server Health, RAM, Disk, CPU, Database & Uptime).
+* **Xalka la Hirgeliyay:**
+  - **Backend Endpoint (`GET /reports/system-health`):**
+    - Waxaa lagu daray `reports.controller.ts` iyadoo lagu xiray `@Roles(RoleName.SUPER_ADMIN)` iyo `@UseGuards(RolesGuard)`.
+    - `reports.service.ts` wuxuu adeegsanayaa Node.js native `os` iyo `fs.statfsSync` (zero dependencies):
+      - **RAM / Memory:** Total GB, Used GB, Free GB, Used %, Heap Used MB, RSS MB.
+      - **Hard Disk / Storage:** Total GB, Used GB, Free GB, Used %, Mount path (`/`).
+      - **CPU & System Load:** CPU model, Cores count, Load Averages (1m, 5m, 15m).
+      - **Uptime:** System uptime iyo PM2 process uptime.
+      - **Database:** Prisma live query ping latency (`SELECT 1`) iyo health status.
+  - **Frontend UI (`SettingsPage.tsx`):**
+    - Waxaa lagu daray Tab 4-aad oo la yiraahdo **"Server Health"** (oo kaliya u muuqata `SUPER_ADMIN`).
+    - Waxay leedahay 4 Kaar oo waaweyn (RAM, Disk, CPU, Uptime) oo wata Progress Bars midabaysan (Cagaar, Huruud, Cas) iyo 2 loox oo faahfaahsan (Host Infrastructure & Services Allocation).
+    - Waxaa ku jira badhanka **"Refresh"** oo isla markiiba xogta cusub soo jiidaya.
+* **Git Commit:** `b3387c6`
+
+
 
 
 
