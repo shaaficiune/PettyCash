@@ -716,7 +716,7 @@ export const RequestFormPage: React.FC = () => {
                 </div>
               )}
 
-              {/* ──── OTHER (Refreshments / Misc / Tasliix / General) ─────── */}
+              {/* ──── OTHER (Refreshments / Misc / Maintenance / General) ─────── */}
               {bhType === 'OTHER' && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">

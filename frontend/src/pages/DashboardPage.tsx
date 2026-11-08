@@ -798,7 +798,7 @@ const EmployeeDashboard: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <SummaryCard
-            label="My Total Requests (Bishan)"
+            label="My Total Requests (This Month)"
             value={stats?.counts?.total ?? 0}
             sub={`${stats?.counts?.pending ?? 0} currently in review`}
             hero
@@ -814,7 +814,7 @@ const EmployeeDashboard: React.FC = () => {
           <SummaryCard
             label="Pending Settlement"
             value={stats?.counts?.paid ?? 0}
-            sub="Rasiidhada weli ku dhiman"
+            sub="Pending receipts to settle"
             hero
             to="/requests?status=PAID"
           />

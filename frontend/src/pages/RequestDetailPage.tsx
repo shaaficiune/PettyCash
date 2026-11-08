@@ -18,7 +18,6 @@ import {
   CardContent,
   Button,
   Input,
-  Textarea,
   Select,
   Label,
   Badge,
@@ -39,19 +38,19 @@ type BHType = 'VEHICLES' | 'GENERATORS' | 'TRANSPORTATIONS' | 'BUILDINGS' | 'OTH
 
 function getBHType(name: string): BHType {
   const n = (name || '').toLowerCase();
-  if (n.includes('vehicle'))    return 'VEHICLES';
-  if (n.includes('generator'))  return 'GENERATORS';
-  if (n.includes('transport'))  return 'TRANSPORTATIONS';
-  if (n.includes('building'))   return 'BUILDINGS';
+  if (n.includes('vehicle')) return 'VEHICLES';
+  if (n.includes('generator')) return 'GENERATORS';
+  if (n.includes('transport')) return 'TRANSPORTATIONS';
+  if (n.includes('building')) return 'BUILDINGS';
   return 'OTHER';
 }
 
 const DETAILS_HINT: Record<BHType, string> = {
-  VEHICLES:       'Choose the vehicle registered for company & region, then describe the work needed.',
-  GENERATORS:     'Enter generator site name (max 50 characters).',
-  TRANSPORTATIONS:'Specify what was transported, From, and To (max 50 chars each).',
-  BUILDINGS:      'Enter building or location (max 50 characters).',
-  OTHER:          'Enter concise description (max 50 characters).',
+  VEHICLES: 'Choose the vehicle registered for company & region, then describe the work needed.',
+  GENERATORS: 'Enter generator site name (max 50 characters).',
+  TRANSPORTATIONS: 'Specify what was transported, From, and To (max 50 chars each).',
+  BUILDINGS: 'Enter building or location (max 50 characters).',
+  OTHER: 'Enter concise description (max 50 characters).',
 };
 
 function parseCategoryDetails(bhType: BHType, description: string, purpose: string) {
@@ -350,7 +349,7 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
         if (plateStr) return `${bhName} — ${plateStr}`;
         return bhName;
       }
-      case 'GENERATORS':     return generatorSite.trim() ? `${bhName} — ${generatorSite.trim()}` : bhName;
+      case 'GENERATORS': return generatorSite.trim() ? `${bhName} — ${generatorSite.trim()}` : bhName;
       case 'TRANSPORTATIONS': {
         const item = whatTransported.trim();
         const from = transportFrom.trim();
@@ -360,8 +359,8 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
         if (item) return `${bhName} — ${item}`;
         return bhName;
       }
-      case 'BUILDINGS':      return buildingLocation.trim() ? `${bhName} — ${buildingLocation.trim()}` : bhName;
-      default:               return freeDescription.trim() ? `${bhName} — ${freeDescription.trim()}` : bhName;
+      case 'BUILDINGS': return buildingLocation.trim() ? `${bhName} — ${buildingLocation.trim()}` : bhName;
+      default: return freeDescription.trim() ? `${bhName} — ${freeDescription.trim()}` : bhName;
     }
   }, [bhType, selectedBH, request, vehiclePlate, vehicleDescription, vehicles, generatorSite, whatTransported, transportFrom, transportTo, buildingLocation, freeDescription]);
 
@@ -745,8 +744,8 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
                       request.priority === 'URGENT' || request.priority === 'HIGH'
                         ? 'destructive'
                         : request.priority === 'MEDIUM'
-                        ? 'warning'
-                        : 'secondary'
+                          ? 'warning'
+                          : 'secondary'
                     }
                     size="default"
                     className="font-bold uppercase tracking-wider text-[11px] px-2.5 py-0.5"
@@ -955,128 +954,128 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
         (request.status === 'PENDING_APPROVAL' && isAccountant) ||
         (request.status === 'ACCOUNTANT_REVIEW' && (isSuperAdmin || isApprovalTwo))
       ) && (
-        <Card className="overflow-hidden border border-border/80">
-          <CardHeader className="border-b border-border flex flex-row items-center justify-between bg-muted/30">
-            <div>
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                {request.status === 'PENDING_APPROVAL'
-                  ? 'Stage 1: Approval One Review'
-                  : 'Stage 2: Approval Two (Head of Accounting / Finance)'}
-              </CardTitle>
-              <CardDescription className="text-xs mt-0.5">
-                {request.status === 'PENDING_APPROVAL'
-                  ? 'Review request details and forward to Stage 2 for final authorization'
-                  : 'Issue final approval to authorize fund release and payment disbursement'}
-              </CardDescription>
-            </div>
-            <Badge variant={request.status === 'PENDING_APPROVAL' ? 'warning' : 'info'} size="default">
-              {request.status === 'PENDING_APPROVAL' ? 'Awaiting Approval One' : 'Awaiting Approval Two'}
-            </Badge>
-          </CardHeader>
+          <Card className="overflow-hidden border border-border/80">
+            <CardHeader className="border-b border-border flex flex-row items-center justify-between bg-muted/30">
+              <div>
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  {request.status === 'PENDING_APPROVAL'
+                    ? 'Stage 1: Approval One Review'
+                    : 'Stage 2: Approval Two (Head of Accounting / Finance)'}
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  {request.status === 'PENDING_APPROVAL'
+                    ? 'Review request details and forward to Stage 2 for final authorization'
+                    : 'Issue final approval to authorize fund release and payment disbursement'}
+                </CardDescription>
+              </div>
+              <Badge variant={request.status === 'PENDING_APPROVAL' ? 'warning' : 'info'} size="default">
+                {request.status === 'PENDING_APPROVAL' ? 'Awaiting Approval One' : 'Awaiting Approval Two'}
+              </Badge>
+            </CardHeader>
 
-          <CardContent className="p-6 space-y-4">
-            {canAccountantEdit && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs">
-                <div className="flex items-center gap-2 text-primary font-medium">
-                  <Edit3 className="h-4 w-4 shrink-0" />
-                  <span>Need to correct recipient name, phone, or budget category before approving?</span>
+            <CardContent className="p-6 space-y-4">
+              {canAccountantEdit && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs">
+                  <div className="flex items-center gap-2 text-primary font-medium">
+                    <Edit3 className="h-4 w-4 shrink-0" />
+                    <span>Need to correct recipient name, phone, or budget category before approving?</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    onClick={openEditModal}
+                    className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/10 shrink-0 gap-1 font-semibold"
+                  >
+                    <Edit3 className="h-3 w-3" />
+                    Edit Details
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={openEditModal}
-                  className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/10 shrink-0 gap-1 font-semibold"
-                >
-                  <Edit3 className="h-3 w-3" />
-                  Edit Details
-                </Button>
-              </div>
-            )}
+              )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <Label>Approved Amount</Label>
-                  <Badge variant="warning" size="sm">Max: $50.00</Badge>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label>Approved Amount</Label>
+                    <Badge variant="warning" size="sm">Max: $50.00</Badge>
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max="50"
+                    value={approvedAmountOverride}
+                    error={parseFloat(approvedAmountOverride) > 50}
+                    onChange={(e) => setApprovedAmountOverride(e.target.value)}
+                  />
+                  {parseFloat(approvedAmountOverride) > 50 && (
+                    <p className="text-[11px] text-destructive mt-1 font-medium">Amount cannot exceed the $50.00 limit.</p>
+                  )}
                 </div>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max="50"
-                  value={approvedAmountOverride}
-                  error={parseFloat(approvedAmountOverride) > 50}
-                  onChange={(e) => setApprovedAmountOverride(e.target.value)}
-                />
-                {parseFloat(approvedAmountOverride) > 50 && (
-                  <p className="text-[11px] text-destructive mt-1 font-medium">Amount cannot exceed the $50.00 limit.</p>
-                )}
+
+                <div className="space-y-1.5">
+                  <Label>Review Comments</Label>
+                  <Input
+                    type="text"
+                    placeholder="Notes or justification..."
+                    value={actionComments}
+                    onChange={(e) => setActionComments(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Review Comments</Label>
-                <Input
-                  type="text"
-                  placeholder="Notes or justification..."
-                  value={actionComments}
-                  onChange={(e) => setActionComments(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 justify-end pt-3 border-t border-border">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleReview('CORRECTION_REQUIRED')}
-                disabled={actionLoading}
-                className="gap-1.5"
-              >
-                <RefreshCw className="h-3.5 w-3.5" /> Request Correction
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => handleReview('REJECTED')}
-                disabled={actionLoading}
-                className="gap-1.5"
-              >
-                <XCircle className="h-3.5 w-3.5" /> Reject
-              </Button>
-
-              {/* Super Admin reviewing Stage 1 can optionally forward or directly finalize */}
-              {isSuperAdmin && request.status === 'PENDING_APPROVAL' && (
+              <div className="flex flex-col sm:flex-row gap-2 justify-end pt-3 border-t border-border">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleReview('ACCOUNTANT_REVIEW')}
+                  onClick={() => handleReview('CORRECTION_REQUIRED')}
                   disabled={actionLoading}
                   className="gap-1.5"
                 >
-                  Forward to Stage 2
+                  <RefreshCw className="h-3.5 w-3.5" /> Request Correction
                 </Button>
-              )}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleReview('REJECTED')}
+                  disabled={actionLoading}
+                  className="gap-1.5"
+                >
+                  <XCircle className="h-3.5 w-3.5" /> Reject
+                </Button>
 
-              {/* Main Approve Button */}
-              <Button
-                variant="gold"
-                size="sm"
-                onClick={() => handleReview(request.status === 'ACCOUNTANT_REVIEW' || isSuperAdmin ? 'APPROVED' : 'ACCOUNTANT_REVIEW')}
-                disabled={actionLoading}
-                isLoading={actionLoading}
-                className="gap-1.5 shadow-sm font-bold"
-              >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                {request.status === 'ACCOUNTANT_REVIEW' || isSuperAdmin
-                  ? 'Final Approve (Authorize Payment)'
-                  : 'Approve → Forward to Stage 2'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                {/* Super Admin reviewing Stage 1 can optionally forward or directly finalize */}
+                {isSuperAdmin && request.status === 'PENDING_APPROVAL' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleReview('ACCOUNTANT_REVIEW')}
+                    disabled={actionLoading}
+                    className="gap-1.5"
+                  >
+                    Forward to Stage 2
+                  </Button>
+                )}
+
+                {/* Main Approve Button */}
+                <Button
+                  variant="gold"
+                  size="sm"
+                  onClick={() => handleReview(request.status === 'ACCOUNTANT_REVIEW' || isSuperAdmin ? 'APPROVED' : 'ACCOUNTANT_REVIEW')}
+                  disabled={actionLoading}
+                  isLoading={actionLoading}
+                  className="gap-1.5 shadow-sm font-bold"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  {request.status === 'ACCOUNTANT_REVIEW' || isSuperAdmin
+                    ? 'Final Approve (Authorize Payment)'
+                    : 'Approve → Forward to Stage 2'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       {/* Notice for Accountant viewing a Stage 2 request (pending Approval Two authorization) */}
       {!isOwnRequest && isAccountantRole && !isSuperAdmin && !isApprovalTwo && request.status === 'ACCOUNTANT_REVIEW' && (
