@@ -204,6 +204,14 @@ export const DashboardLayout: React.FC = () => {
     }
   }, [user]);
 
+  // Reset company filter to ALL on every fresh login (layout mount)
+  useEffect(() => {
+    if (user && (user.role === 'ACCOUNTANT' || user.role === 'SUPER_ADMIN' || user.role === 'APPROVAL_TWO')) {
+      sessionStorage.setItem('companyFilter', 'ALL');
+      setCompanyContext('ALL');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Fetch companies & check low-balance float for Accountant/Admin/ApprovalTwo
   useEffect(() => {
     if (user && (user.role === 'ACCOUNTANT' || user.role === 'SUPER_ADMIN' || user.role === 'APPROVAL_TWO')) {
