@@ -94,6 +94,13 @@ export const PaymentsPage: React.FC = () => {
     return () => window.removeEventListener('companyFilterChanged', onCompanyChange);
   }, []);
 
+  // Auto-filter immediately whenever both From and To dates are selected
+  useEffect(() => {
+    if (fromDate && toDate) {
+      loadPayments(fromDate, toDate);
+    }
+  }, [fromDate, toDate]);
+
   const exportCsv = () => {
     const headers = ['Request #', 'Company', 'Amount', 'Method', 'Paid By', 'Date', 'Ref / Txn'];
     const rows = payments.map((p) => [

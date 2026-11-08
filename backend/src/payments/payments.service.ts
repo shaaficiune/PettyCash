@@ -184,12 +184,7 @@ export class PaymentsService {
           dateCond.lte = toDate;
         }
       }
-      andConditions.push({
-        OR: [
-          { paymentDate: dateCond },
-          { AND: [{ paymentDate: null }, { createdAt: dateCond }] },
-        ],
-      });
+      andConditions.push({ paymentDate: dateCond });
     }
 
     const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
