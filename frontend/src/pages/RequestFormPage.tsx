@@ -167,7 +167,8 @@ export const RequestFormPage: React.FC = () => {
           }
           setAmount(req.requestedAmount?.toString() || '');
           setCurrency(req.currency || 'USD');
-          setRequiredDate(req.requiredDate ? req.requiredDate.substring(0, 10) : new Date().toISOString().substring(0, 10));
+          // Request date is always locked to today's date
+          setRequiredDate(new Date().toISOString().substring(0, 10));
           setBudgetHeadId(req.budgetHeadId || '');
           setReceiverName(req.receiverName || '');
           setReceiverPhone(req.receiverPhone || '');
@@ -435,9 +436,11 @@ export const RequestFormPage: React.FC = () => {
             <Input
               type="date"
               value={requiredDate}
-              onChange={e => setRequiredDate(e.target.value)}
-              className="text-xs"
+              readOnly
+              disabled
+              className="text-xs bg-muted/60 text-muted-foreground cursor-not-allowed select-none font-medium"
             />
+            <p className="text-[10px] text-muted-foreground">Automatically locked to today's date</p>
           </div>
 
           {/* ── AMOUNT ────────────────────────────────────────────────────── */}

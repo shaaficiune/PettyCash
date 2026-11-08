@@ -191,7 +191,8 @@ export class RequestsService {
         currency: dto.currency || 'USD',
         priority: dto.priority || Priority.NORMAL,
         status: initialStatus,
-        requiredDate: new Date(dto.requiredDate),
+        requiredDate: new Date(),
+        requestDate: new Date(),
         attachments: dto.attachments
           ? {
               create: dto.attachments.map(att => ({
@@ -558,6 +559,12 @@ export class RequestsService {
 
         data.status = isAccountantRequester ? RequestStatus.ACCOUNTANT_REVIEW : RequestStatus.PENDING_APPROVAL;
         wasResubmitted = true;
+
+        // Reset all dates to today on resubmission so request appears in today's queue and filters
+        data.requestDate = now;
+        data.requiredDate = now;
+        data.createdAt = now;
+
         if (request.status === RequestStatus.CORRECTION_REQUIRED) {
           data.correctionNotes = null;
         }
