@@ -72,6 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(profile));
+    sessionStorage.setItem('companyFilter', 'ALL');
     setUser(profile);
     // Any thrown error propagates naturally to the caller (LoginPage)
   };
@@ -89,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('companyFilter');
     setUser(null);
     // ProtectedRoute will detect isAuthenticated=false and redirect to /login
     // via React Router — no hard page reload needed.
