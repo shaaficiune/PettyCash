@@ -50,6 +50,14 @@ export class ReportsController {
     return this.reportsService.getAuditLogs(take);
   }
 
+  @Get('system-health')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Retrieve live server health metrics (RAM, Disk, CPU, Uptime)' })
+  async getSystemHealth() {
+    return this.reportsService.getServerHealth();
+  }
+
   @Get('budget-heads')
   @UseGuards(RolesGuard)
   @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)

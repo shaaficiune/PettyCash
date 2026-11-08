@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestStatus, RoleName } from '@prisma/client';
+import * as os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const escapeHtml = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g, (char) => ({
   '&': '&amp;',
@@ -1268,4 +1271,104 @@ export class ReportsService {
     return { days };
   }
 
+  async getServerHealth() {
+    // 1. RAM / Memory
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = Math.max(0, totalMem - freeMem);
+    const memUsagePercent = totalMem > 0 ? Number(((usedMem / totalMem) * 100).toFixed(1)) : 0;
+    const processMem = process.memoryUsage();
+
+    // 2. Storage / Disk Space (root mount or drive)
+    let diskInfo: any = null;
+    try {
+      const rootPath = os.platform() === 'win32' ? (process.cwd().split(path.sep)[0] + path.sep) : '/';
+      if (typeof (fs as any).statfsSync === 'function') {
+        const stat = (fs as any).statfsSync(rootPath);
+        const bsize = Number(stat.bsize || 4096);
+        const totalBlocks = Number(stat.blocks || 0);
+        const freeBlocks = Number(stat.bfree || 0);
+        const availBlocks = Number(stat.bavail || 0);
+        const totalDisk = totalBlocks * bsize;
+        const freeDisk = availBlocks * bsize;
+        const usedDisk = Math.max(0, totalDisk - (freeBlocks * bsize));
+        const diskUsagePercent = totalDisk > 0 ? Number(((usedDisk / totalDisk) * 100).toFixed(1)) : 0;
+        diskInfo = {
+          path: rootPath,
+          totalBytes: totalDisk,
+          freeBytes: freeDisk,
+          usedBytes: usedDisk,
+          totalGB: Number((totalDisk / (1024 ** 3)).toFixed(2)),
+          freeGB: Number((freeDisk / (1024 ** 3)).toFixed(2)),
+          usedGB: Number((usedDisk / (1024 ** 3)).toFixed(2)),
+          usedPercentage: diskUsagePercent,
+        };
+      }
+    } catch {
+      diskInfo = null;
+    }
+
+    // 3. CPU & Load
+    const cpus = os.cpus() || [];
+    const cpuModel = cpus[0]?.model || 'Generic Processor';
+    const cpuCores = cpus.length;
+    const loadAvg = os.loadavg(); // [1m, 5m, 15m]
+
+    // 4. Uptime
+    const sysUptimeSec = os.uptime();
+    const procUptimeSec = process.uptime();
+
+    // 5. Database Connectivity & Latency
+    let dbStatus = 'healthy';
+    let dbLatencyMs = 0;
+    try {
+      const start = Date.now();
+      await this.prisma.$queryRaw`SELECT 1`;
+      dbLatencyMs = Date.now() - start;
+    } catch {
+      dbStatus = 'degraded';
+    }
+
+    return {
+      timestamp: new Date().toISOString(),
+      platform: {
+        osType: os.type(),
+        osPlatform: os.platform(),
+        osRelease: os.release(),
+        arch: os.arch(),
+        hostname: os.hostname(),
+        nodeVersion: process.version,
+      },
+      memory: {
+        totalBytes: totalMem,
+        freeBytes: freeMem,
+        usedBytes: usedMem,
+        totalGB: Number((totalMem / (1024 ** 3)).toFixed(2)),
+        freeGB: Number((freeMem / (1024 ** 3)).toFixed(2)),
+        usedGB: Number((usedMem / (1024 ** 3)).toFixed(2)),
+        usedPercentage: memUsagePercent,
+        processHeapUsedMB: Number((processMem.heapUsed / (1024 ** 2)).toFixed(1)),
+        processRssMB: Number((processMem.rss / (1024 ** 2)).toFixed(1)),
+      },
+      disk: diskInfo,
+      cpu: {
+        model: cpuModel,
+        cores: cpuCores,
+        loadAvg: {
+          oneMin: Number(loadAvg[0]?.toFixed(2) || 0),
+          fiveMin: Number(loadAvg[1]?.toFixed(2) || 0),
+          fifteenMin: Number(loadAvg[2]?.toFixed(2) || 0),
+        },
+      },
+      uptime: {
+        systemSeconds: Math.floor(sysUptimeSec),
+        processSeconds: Math.floor(procUptimeSec),
+      },
+      database: {
+        status: dbStatus,
+        latencyMs: dbLatencyMs,
+        provider: 'PostgreSQL',
+      },
+    };
+  }
 }
