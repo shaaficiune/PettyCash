@@ -1062,18 +1062,18 @@ export const SettingsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ════════════════ TAB 4: SERVER HEALTH (SUPER ADMIN) ════════════════ */}
+      {/* ════════════════ TAB 4: SERVER HEALTH (FIT TO SCREEN) ════════════════ */}
       {activeTab === 'health' && user?.role === 'SUPER_ADMIN' && (
-        <div className="space-y-4 max-w-5xl">
+        <div className="space-y-3">
           {healthLoading && !serverHealth && (
-            <div className="py-16 text-center text-muted-foreground">
-              <RefreshCw className="h-6 w-6 animate-spin mx-auto text-primary mb-2 opacity-70" />
+            <div className="py-12 text-center text-muted-foreground">
+              <RefreshCw className="h-5 w-5 animate-spin mx-auto text-primary mb-2 opacity-70" />
               <p className="text-xs">Checking server status...</p>
             </div>
           )}
 
           {healthError && (
-            <div className="p-4 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 text-xs flex items-center justify-between">
+            <div className="p-3 rounded-lg border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 text-xs flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
                 <span>{healthError}</span>
@@ -1086,56 +1086,53 @@ export const SettingsPage: React.FC = () => {
 
           {serverHealth && (
             <>
-              {/* STATUS HEADER BAR */}
-              <div className="p-4 rounded-xl border border-border bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <Server className="h-5 w-5" />
+              {/* COMPACT STATUS BAR */}
+              <div className="px-3.5 py-2.5 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-2 shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-7 w-7 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Server className="h-4 w-4" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-sm text-foreground">
-                        All Systems Operational
-                      </h3>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Active
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {serverHealth.platform.hostname} · {serverHealth.platform.osType} ({serverHealth.platform.arch})
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs text-foreground">
+                      {serverHealth.platform.hostname}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      All Systems Operational
+                    </span>
                   </div>
+                  <span className="hidden sm:inline text-xs text-muted-foreground">
+                    · {serverHealth.platform.osType} ({serverHealth.platform.arch})
+                  </span>
                 </div>
 
-                <div className="text-xs text-muted-foreground font-mono self-start sm:self-auto flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-muted-foreground/70" />
-                  Checked at {new Date(serverHealth.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5">
+                  <Clock className="h-3 w-3 text-muted-foreground/70" />
+                  Checked {new Date(serverHealth.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </div>
               </div>
 
-              {/* 3 CORE METRIC CARDS */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 3 COMPACT CORE CARDS */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* 1. RAM / MEMORY */}
-                <div className="p-4 rounded-xl border border-border bg-card shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                          <Activity className="h-4 w-4" />
-                        </div>
-                        <span className="font-semibold text-xs text-foreground">Memory (RAM)</span>
+                <div className="p-3.5 rounded-lg border border-border bg-card shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <Activity className="h-3.5 w-3.5" />
                       </div>
-                      <span className="font-mono font-bold text-xs text-foreground bg-muted/60 px-2 py-0.5 rounded">
-                        {serverHealth.memory.usedPercentage}%
-                      </span>
+                      <span className="font-semibold text-xs text-foreground">Memory (RAM)</span>
                     </div>
-                    <div className="text-xl font-bold font-mono tracking-tight text-foreground font-financial tabular-nums">
-                      {serverHealth.memory.usedGB} <span className="text-xs font-normal text-muted-foreground">/ {serverHealth.memory.totalGB} GB</span>
-                    </div>
+                    <span className="font-mono font-bold text-xs text-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                      {serverHealth.memory.usedPercentage}%
+                    </span>
                   </div>
 
-                  <div className="mt-3">
+                  <div className="text-lg font-bold font-mono tracking-tight text-foreground font-financial tabular-nums">
+                    {serverHealth.memory.usedGB} <span className="text-xs font-normal text-muted-foreground">/ {serverHealth.memory.totalGB} GB</span>
+                  </div>
+
+                  <div className="mt-2.5">
                     <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
@@ -1144,38 +1141,38 @@ export const SettingsPage: React.FC = () => {
                         style={{ width: `${Math.min(serverHealth.memory.usedPercentage, 100)}%` }}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {serverHealth.memory.freeGB} GB available
-                    </p>
+                    <div className="flex justify-between items-center text-[11px] text-muted-foreground mt-1.5">
+                      <span>{serverHealth.memory.freeGB} GB available</span>
+                      <span>Heap: {serverHealth.memory.processHeapUsedMB} MB</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* 2. DISK STORAGE */}
-                <div className="p-4 rounded-xl border border-border bg-card shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                          <HardDrive className="h-4 w-4" />
-                        </div>
-                        <span className="font-semibold text-xs text-foreground">Storage (Disk)</span>
+                <div className="p-3.5 rounded-lg border border-border bg-card shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <HardDrive className="h-3.5 w-3.5" />
                       </div>
-                      <span className="font-mono font-bold text-xs text-foreground bg-muted/60 px-2 py-0.5 rounded">
-                        {serverHealth.disk ? `${serverHealth.disk.usedPercentage}%` : '—'}
-                      </span>
+                      <span className="font-semibold text-xs text-foreground">Storage (Disk)</span>
                     </div>
-                    <div className="text-xl font-bold font-mono tracking-tight text-foreground font-financial tabular-nums">
-                      {serverHealth.disk ? (
-                        <>
-                          {serverHealth.disk.usedGB} <span className="text-xs font-normal text-muted-foreground">/ {serverHealth.disk.totalGB} GB</span>
-                        </>
-                      ) : (
-                        'N/A'
-                      )}
-                    </div>
+                    <span className="font-mono font-bold text-xs text-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                      {serverHealth.disk ? `${serverHealth.disk.usedPercentage}%` : '—'}
+                    </span>
                   </div>
 
-                  <div className="mt-3">
+                  <div className="text-lg font-bold font-mono tracking-tight text-foreground font-financial tabular-nums">
+                    {serverHealth.disk ? (
+                      <>
+                        {serverHealth.disk.usedGB} <span className="text-xs font-normal text-muted-foreground">/ {serverHealth.disk.totalGB} GB</span>
+                      </>
+                    ) : (
+                      'N/A'
+                    )}
+                  </div>
+
+                  <div className="mt-2.5">
                     <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
@@ -1184,99 +1181,100 @@ export const SettingsPage: React.FC = () => {
                         style={{ width: `${Math.min(serverHealth.disk?.usedPercentage || 0, 100)}%` }}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {serverHealth.disk ? `${serverHealth.disk.freeGB} GB free` : 'Root mount unavailable'}
-                    </p>
+                    <div className="flex justify-between items-center text-[11px] text-muted-foreground mt-1.5">
+                      <span>{serverHealth.disk ? `${serverHealth.disk.freeGB} GB free` : 'Unavailable'}</span>
+                      <span>Root (/)</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* 3. CPU & LOAD */}
-                <div className="p-4 rounded-xl border border-border bg-card shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                          <Cpu className="h-4 w-4" />
-                        </div>
-                        <span className="font-semibold text-xs text-foreground">Processor</span>
+                <div className="p-3.5 rounded-lg border border-border bg-card shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                        <Cpu className="h-3.5 w-3.5" />
                       </div>
-                      <span className="font-mono font-bold text-xs text-foreground bg-muted/60 px-2 py-0.5 rounded">
-                        {serverHealth.cpu.cores} Cores
-                      </span>
+                      <span className="font-semibold text-xs text-foreground">Processor</span>
                     </div>
-                    <div className="text-xl font-bold font-mono tracking-tight text-foreground font-financial tabular-nums">
-                      {serverHealth.cpu.loadAvg.oneMin} <span className="text-xs font-normal text-muted-foreground">load (1m)</span>
-                    </div>
+                    <span className="font-mono font-bold text-xs text-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                      {serverHealth.cpu.cores} Cores
+                    </span>
                   </div>
 
-                  <div className="mt-3">
-                    <p className="text-xs text-muted-foreground font-mono">
-                      5m: {serverHealth.cpu.loadAvg.fiveMin} · 15m: {serverHealth.cpu.loadAvg.fifteenMin}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground/80 truncate mt-1.5" title={serverHealth.cpu.model}>
+                  <div className="text-lg font-bold font-mono tracking-tight text-foreground font-financial tabular-nums">
+                    {serverHealth.cpu.loadAvg.oneMin} <span className="text-xs font-normal text-muted-foreground">load (1m)</span>
+                  </div>
+
+                  <div className="mt-2.5">
+                    <div className="flex justify-between items-center text-[11px] text-muted-foreground font-mono">
+                      <span>5m: {serverHealth.cpu.loadAvg.fiveMin}</span>
+                      <span>15m: {serverHealth.cpu.loadAvg.fifteenMin}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/80 truncate mt-1" title={serverHealth.cpu.model}>
                       {serverHealth.cpu.model}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* CLEAN SYSTEM OVERVIEW */}
-              <div className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
-                <div className="px-4 py-3 border-b border-border/60 bg-muted/20">
-                  <h4 className="text-xs font-semibold text-foreground">Server Details</h4>
+              {/* COMPACT DETAILS TABLE / STRIP */}
+              <div className="rounded-lg border border-border bg-card shadow-xs overflow-hidden">
+                <div className="px-3.5 py-2 border-b border-border/60 bg-muted/20 flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-foreground">Environment &amp; Services</h4>
+                  <span className="text-[10px] text-muted-foreground font-mono">Ubuntu Linux</span>
                 </div>
-                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-3.5 gap-x-6 text-xs">
-                  <div>
-                    <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-amber-500" /> Server Uptime
+                <div className="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 text-xs">
+                  <div className="p-2 rounded-md bg-muted/30">
+                    <span className="text-muted-foreground text-[10px] flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-amber-500" /> Uptime
                     </span>
-                    <span className="font-semibold text-foreground mt-1 block">
+                    <span className="font-semibold text-foreground text-[11px] mt-0.5 block truncate">
                       {formatUptime(serverHealth.uptime.systemSeconds)}
                     </span>
                   </div>
 
-                  <div>
-                    <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
-                      <Activity className="h-3.5 w-3.5 text-cyan-500" /> App Process
+                  <div className="p-2 rounded-md bg-muted/30">
+                    <span className="text-muted-foreground text-[10px] flex items-center gap-1">
+                      <Activity className="h-3 w-3 text-cyan-500" /> Process
                     </span>
-                    <span className="font-semibold text-foreground mt-1 block">
+                    <span className="font-semibold text-foreground text-[11px] mt-0.5 block truncate">
                       {formatUptime(serverHealth.uptime.processSeconds)} (PM2)
                     </span>
                   </div>
 
-                  <div>
-                    <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
-                      <Database className="h-3.5 w-3.5 text-emerald-500" /> Database (PostgreSQL)
+                  <div className="p-2 rounded-md bg-muted/30">
+                    <span className="text-muted-foreground text-[10px] flex items-center gap-1">
+                      <Database className="h-3 w-3 text-emerald-500" /> PostgreSQL
                     </span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                      Connected ({serverHealth.database.latencyMs}ms)
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
-                      <Server className="h-3.5 w-3.5 text-purple-500" /> Operating System
-                    </span>
-                    <span className="font-semibold text-foreground mt-1 block">
-                      {serverHealth.platform.osType} {serverHealth.platform.osRelease}
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-[11px] mt-0.5 block truncate">
+                      Online ({serverHealth.database.latencyMs}ms)
                     </span>
                   </div>
 
-                  <div>
-                    <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
-                      <Cpu className="h-3.5 w-3.5 text-indigo-500" /> Node.js Runtime
+                  <div className="p-2 rounded-md bg-muted/30">
+                    <span className="text-muted-foreground text-[10px] flex items-center gap-1">
+                      <Server className="h-3 w-3 text-purple-500" /> OS Kernel
                     </span>
-                    <span className="font-mono text-foreground mt-1 block">
+                    <span className="font-semibold text-foreground text-[11px] mt-0.5 block truncate" title={`${serverHealth.platform.osType} ${serverHealth.platform.osRelease}`}>
+                      {serverHealth.platform.osRelease}
+                    </span>
+                  </div>
+
+                  <div className="p-2 rounded-md bg-muted/30">
+                    <span className="text-muted-foreground text-[10px] flex items-center gap-1">
+                      <Cpu className="h-3 w-3 text-indigo-500" /> Node.js
+                    </span>
+                    <span className="font-mono text-foreground text-[11px] mt-0.5 block truncate">
                       {serverHealth.platform.nodeVersion}
                     </span>
                   </div>
 
-                  <div>
-                    <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
-                      <Activity className="h-3.5 w-3.5 text-blue-500" /> Process Memory (RSS)
+                  <div className="p-2 rounded-md bg-muted/30">
+                    <span className="text-muted-foreground text-[10px] flex items-center gap-1">
+                      <Activity className="h-3 w-3 text-blue-500" /> Node RSS
                     </span>
-                    <span className="font-mono text-foreground mt-1 block">
+                    <span className="font-mono text-foreground text-[11px] mt-0.5 block truncate">
                       {serverHealth.memory.processRssMB} MB
                     </span>
                   </div>
