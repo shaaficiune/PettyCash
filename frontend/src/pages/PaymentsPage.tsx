@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
 import { ColumnDef } from '@tanstack/react-table';
@@ -16,15 +16,33 @@ import {
   Label,
 } from '../components/ui';
 
+const formatYMD = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const getThisMonthRange = () => {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  return {
+    from: formatYMD(first),
+    to: formatYMD(now),
+  };
+};
+
 export const PaymentsPage: React.FC = () => {
+  const initialRange = useMemo(() => getThisMonthRange(), []);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setToDate] = useState<string>('');
+  const [fromDate, setFromDate] = useState<string>(initialRange.from);
+  const [toDate, setToDate] = useState<string>(initialRange.to);
   const [paidBy, setPaidBy] = useState<string>('');
-  const [datePreset, setDatePreset] = useState<'ALL' | 'TODAY' | 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM'>('ALL');
+  const [datePreset, setDatePreset] = useState<'ALL' | 'TODAY' | 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM'>('THIS_MONTH');
   const [selectedPaymentForVoucher, setSelectedPaymentForVoucher] = useState<any>(null);
   const [isVoucherOpen, setIsVoucherOpen] = useState(false);
+  const isFirstMount = useRef(true);
 
   const loadPayments = async (customFrom?: string, customTo?: string, customPaidBy?: string) => {
     setLoading(true);
@@ -49,12 +67,6 @@ export const PaymentsPage: React.FC = () => {
   const applyPreset = (preset: 'ALL' | 'TODAY' | 'THIS_MONTH' | 'LAST_MONTH') => {
     setDatePreset(preset);
     const now = new Date();
-    const formatYMD = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    };
 
     let f = '';
     let t = '';
@@ -80,15 +92,16 @@ export const PaymentsPage: React.FC = () => {
   };
 
   const handleReset = () => {
-    setDatePreset('ALL');
-    setFromDate('');
-    setToDate('');
+    const range = getThisMonthRange();
+    setDatePreset('THIS_MONTH');
+    setFromDate(range.from);
+    setToDate(range.to);
     setPaidBy('');
-    loadPayments('', '', '');
+    loadPayments(range.from, range.to, '');
   };
 
   useEffect(() => {
-    loadPayments();
+    loadPayments(initialRange.from, initialRange.to);
     const onCompanyChange = () => loadPayments();
     window.addEventListener('companyFilterChanged', onCompanyChange);
     return () => window.removeEventListener('companyFilterChanged', onCompanyChange);
@@ -96,6 +109,10 @@ export const PaymentsPage: React.FC = () => {
 
   // Auto-filter immediately whenever both From and To dates are selected
   useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
     if (fromDate && toDate) {
       loadPayments(fromDate, toDate);
     }
@@ -407,7 +424,7 @@ export const PaymentsPage: React.FC = () => {
               >
                 Apply
               </Button>
-              {(fromDate || toDate || paidBy || datePreset !== 'ALL') && (
+              {(fromDate !== initialRange.from || toDate !== initialRange.to || paidBy || datePreset !== 'THIS_MONTH') && (
                 <Button
                   variant="outline"
                   size="sm"

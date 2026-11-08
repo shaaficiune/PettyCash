@@ -206,7 +206,7 @@ export class PaymentsService {
             } 
           } 
         },
-        orderBy: { paymentDate: 'desc' },
+        orderBy: [{ paymentDate: 'asc' }, { createdAt: 'asc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
