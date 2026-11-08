@@ -26,20 +26,102 @@ type BHType = 'VEHICLES' | 'GENERATORS' | 'TRANSPORTATIONS' | 'BUILDINGS' | 'OTH
 
 function getBHType(name: string): BHType {
   const n = (name || '').toLowerCase();
-  if (n.includes('vehicle'))    return 'VEHICLES';
-  if (n.includes('generator'))  return 'GENERATORS';
-  if (n.includes('transport'))  return 'TRANSPORTATIONS';
-  if (n.includes('building'))   return 'BUILDINGS';
+  if (n.includes('vehicle')) return 'VEHICLES';
+  if (n.includes('generator')) return 'GENERATORS';
+  if (n.includes('transport')) return 'TRANSPORTATIONS';
+  if (n.includes('building')) return 'BUILDINGS';
   return 'OTHER';
 }
 
 const DETAILS_HINT: Record<BHType, string> = {
-  VEHICLES:       'Choose the vehicle registered for your company & region, then describe the work needed.',
-  GENERATORS:     'Enter generator site name (max 50 characters).',
-  TRANSPORTATIONS:'Specify what was transported, From, and To (max 50 chars each).',
-  BUILDINGS:      'Enter building or location (max 50 characters).',
-  OTHER:          'Enter concise description (max 50 characters).',
+  VEHICLES: 'Choose the vehicle registered for your company & region, then describe the work needed.',
+  GENERATORS: 'Enter generator site name (max 50 characters).',
+  TRANSPORTATIONS: 'Specify what was transported, From, and To (max 50 chars each).',
+  BUILDINGS: 'Enter building or location (max 50 characters).',
+  OTHER: 'Enter concise description (max 50 characters).',
 };
+
+function parseCategoryDetails(bhType: BHType, description: string, purpose: string) {
+  const desc = (description || '').trim();
+  const purp = (purpose || '').trim();
+  const text = desc || purp;
+
+  const result = {
+    vehiclePlate: '',
+    vehicleDescription: '',
+    generatorSite: '',
+    whatTransported: '',
+    transportFrom: '',
+    transportTo: '',
+    buildingLocation: '',
+    freeDescription: desc || purp,
+  };
+
+  if (!text) return result;
+
+  if (bhType === 'TRANSPORTATIONS') {
+    // 1. "Transport: Simcards (Garowe to Bosaso)" or "Transportation — Simcards (Garowe to Bosaso)"
+    const m1 = text.match(/(?:Transport:\s*|Transportation\s*—\s*)(.*?)\s*\((.*?)\s+to\s+(.*?)\)/i)
+      || text.match(/^(.*?)\s*\((.*?)\s+to\s+(.*?)\)$/i);
+    if (m1) {
+      result.whatTransported = m1[1].replace(/^Transport:\s*/i, '').trim();
+      result.transportFrom = m1[2].trim();
+      result.transportTo = m1[3].trim();
+      return result;
+    }
+
+    // 2. "Transport: Garowe to Bosaso" or "Transportation — Garowe to Bosaso"
+    const m2 = text.match(/(?:Transport:\s*|Transportation\s*—\s*)(.*?)\s+to\s+(.*)/i)
+      || text.match(/^(.*?)\s+to\s+(.*)/i);
+    if (m2) {
+      result.transportFrom = m2[1].replace(/^Transport:\s*/i, '').trim();
+      result.transportTo = m2[2].trim();
+      return result;
+    }
+
+    // 3. "Transport: Simcards"
+    const m3 = text.match(/Transport:\s*(.*)/i);
+    if (m3) {
+      result.whatTransported = m3[1].trim();
+      return result;
+    }
+  } else if (bhType === 'GENERATORS') {
+    const m = text.match(/(?:Site:\s*|Generators?\s*—\s*)(.*)/i);
+    if (m) {
+      result.generatorSite = m[1].trim();
+      return result;
+    }
+    result.generatorSite = text;
+    return result;
+  } else if (bhType === 'BUILDINGS') {
+    const m = text.match(/(?:Location:\s*|Buildings?\s*—\s*)(.*)/i);
+    if (m) {
+      result.buildingLocation = m[1].trim();
+      return result;
+    }
+    result.buildingLocation = text;
+    return result;
+  } else if (bhType === 'VEHICLES') {
+    const parts = text.split('—').map(s => s.trim());
+    if (parts.length >= 2) {
+      const plateSection = parts[parts.length - 2];
+      const descSection = parts[parts.length - 1];
+      const plateInParens = plateSection.match(/\(([^)]+)\)/);
+      result.vehiclePlate = plateInParens ? plateInParens[1].trim() : plateSection;
+      result.vehicleDescription = descSection;
+      return result;
+    }
+    const plateMatch = text.match(/\(([^)]+)\)/);
+    if (plateMatch) {
+      result.vehiclePlate = plateMatch[1].trim();
+    } else {
+      result.vehicleDescription = text;
+    }
+    return result;
+  }
+
+  return result;
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export const RequestFormPage: React.FC = () => {
@@ -49,40 +131,40 @@ export const RequestFormPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Core fields
-  const [amount, setAmount]             = useState('');
-  const [currency, setCurrency]         = useState('USD');
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('USD');
   const [requiredDate, setRequiredDate] = useState(() => new Date().toISOString().substring(0, 10));
   const [budgetHeadId, setBudgetHeadId] = useState('');
   const [receiverName, setReceiverName] = useState('');
   const [receiverPhone, setReceiverPhone] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [hasReceipt, setHasReceipt]     = useState(true);
+  const [hasReceipt, setHasReceipt] = useState(true);
 
   // Conditional sub-fields (max 50 chars)
-  const [vehiclePlate, setVehiclePlate]             = useState('');
+  const [vehiclePlate, setVehiclePlate] = useState('');
   const [vehicleDescription, setVehicleDescription] = useState('');
-  const [generatorSite, setGeneratorSite]           = useState('');
-  const [whatTransported, setWhatTransported]       = useState('');
-  const [transportFrom, setTransportFrom]           = useState('');
-  const [transportTo, setTransportTo]               = useState('');
-  const [buildingLocation, setBuildingLocation]     = useState('');
-  const [freeDescription, setFreeDescription]       = useState('');
+  const [generatorSite, setGeneratorSite] = useState('');
+  const [whatTransported, setWhatTransported] = useState('');
+  const [transportFrom, setTransportFrom] = useState('');
+  const [transportTo, setTransportTo] = useState('');
+  const [buildingLocation, setBuildingLocation] = useState('');
+  const [freeDescription, setFreeDescription] = useState('');
 
   // UI state
-  const [attachments, setAttachments]   = useState<any[]>([]);
-  const [uploading, setUploading]       = useState(false);
-  const [submitting, setSubmitting]     = useState(false);
-  const [budgetHeads, setBudgetHeads]   = useState<any[]>([]);
-  const [vehicles, setVehicles]         = useState<{ plate: string; model: string }[]>([]);
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [budgetHeads, setBudgetHeads] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<{ plate: string; model: string }[]>([]);
   const [vehiclesLoading, setVehiclesLoading] = useState(false);
-  const [error, setError]               = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [fundAvailability, setFundAvailability] = useState<{ available: boolean; message: string } | null>(null);
 
   // Derived user context
   const companyName = (user as any)?.company?.name || '';
-  const regionName  = (user as any)?.region?.name  || '';
-  const companyId   = (user as any)?.companyId     || (user as any)?.company?.id || '';
-  const isSomtel    = companyName.toLowerCase().includes('somtel');
+  const regionName = (user as any)?.region?.name || '';
+  const companyId = (user as any)?.companyId || (user as any)?.company?.id || '';
+  const isSomtel = companyName.toLowerCase().includes('somtel');
 
   // Resolve selected BH
   const selectedBH = budgetHeads.find(b => b.id === budgetHeadId);
@@ -130,7 +212,7 @@ export const RequestFormPage: React.FC = () => {
         if (plateStr) return `${bhName} — ${plateStr}`;
         return bhName;
       }
-      case 'GENERATORS':     return generatorSite.trim()   ? `${bhName} — ${generatorSite.trim()}`     : bhName;
+      case 'GENERATORS': return generatorSite.trim() ? `${bhName} — ${generatorSite.trim()}` : bhName;
       case 'TRANSPORTATIONS': {
         const item = whatTransported.trim();
         const from = transportFrom.trim();
@@ -140,8 +222,8 @@ export const RequestFormPage: React.FC = () => {
         if (item) return `${bhName} — ${item}`;
         return bhName;
       }
-      case 'BUILDINGS':      return buildingLocation.trim()? `${bhName} — ${buildingLocation.trim()}`  : bhName;
-      default:               return freeDescription.trim() ? `${bhName} — ${freeDescription.trim()}`   : bhName;
+      case 'BUILDINGS': return buildingLocation.trim() ? `${bhName} — ${buildingLocation.trim()}` : bhName;
+      default: return freeDescription.trim() ? `${bhName} — ${freeDescription.trim()}` : bhName;
     }
   }, [bhType, selectedBH, vehiclePlate, vehicleDescription, vehicles, generatorSite, whatTransported, transportFrom, transportTo, buildingLocation, freeDescription]);
 
@@ -150,11 +232,11 @@ export const RequestFormPage: React.FC = () => {
     if (companyId) {
       api.get(`/companies/budget-heads?companyId=${companyId}`)
         .then(res => setBudgetHeads(res.data || []))
-        .catch(() => {});
+        .catch(() => { });
 
       api.get('/funds/availability')
         .then(res => setFundAvailability(res.data))
-        .catch(() => {});
+        .catch(() => { });
     }
 
     if (id) {
@@ -174,8 +256,19 @@ export const RequestFormPage: React.FC = () => {
           setReceiverPhone(req.receiverPhone || '');
           setInvoiceNumber(req.invoiceNumber || '');
           setAttachments(req.attachments || []);
-          // Restore description as free text (conditional fields won't restore perfectly — that's OK for drafts)
-          setFreeDescription(req.description || req.purpose || '');
+
+          // Parse and populate category details accurately from saved description/purpose
+          const bhName = req.budgetHead?.name || '';
+          const type = getBHType(bhName);
+          const parsed = parseCategoryDetails(type, req.description || '', req.purpose || '');
+          setVehiclePlate(parsed.vehiclePlate);
+          setVehicleDescription(parsed.vehicleDescription);
+          setGeneratorSite(parsed.generatorSite);
+          setWhatTransported(parsed.whatTransported);
+          setTransportFrom(parsed.transportFrom);
+          setTransportTo(parsed.transportTo);
+          setBuildingLocation(parsed.buildingLocation);
+          setFreeDescription(parsed.freeDescription);
         })
         .catch(() => navigate('/requests'));
     }
@@ -196,12 +289,22 @@ export const RequestFormPage: React.FC = () => {
     }
   }, [bhType, companyName, regionName]);
 
-  // Reset conditional sub-fields when budget head changes
-  useEffect(() => {
-    setVehiclePlate(''); setVehicleDescription(''); setGeneratorSite(''); setWhatTransported('');
-    setTransportFrom(''); setTransportTo('');
-    setBuildingLocation(''); setFreeDescription('');
-  }, [budgetHeadId]);
+  const handleBudgetHeadSelect = (newBhId: string) => {
+    setError(null);
+    if (newBhId === budgetHeadId) return;
+    setBudgetHeadId(newBhId);
+
+    // If user changes category (e.g. Transportation -> Vehicles), clear category-specific subfields
+    // but PRESERVE amount, currency, receiverName, receiverPhone, invoiceNumber, requiredDate, attachments
+    setVehiclePlate('');
+    setVehicleDescription('');
+    setGeneratorSite('');
+    setWhatTransported('');
+    setTransportFrom('');
+    setTransportTo('');
+    setBuildingLocation('');
+    setFreeDescription('');
+  };
 
   // ─── Actions ────────────────────────────────────────────────────────────────
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,8 +366,8 @@ export const RequestFormPage: React.FC = () => {
 
   const handleSubmit = async (submitStatus: 'DRAFT' | 'PENDING_APPROVAL') => {
     if (!budgetHeadId) { setError('Please select a Budget Head first'); return; }
-    if (!amount)        { setError('Amount is required'); return; }
-    if (!requiredDate)  { setError('Request date is required'); return; }
+    if (!amount) { setError('Amount is required'); return; }
+    if (!requiredDate) { setError('Request date is required'); return; }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) { setError('Amount must be greater than zero'); return; }
@@ -294,24 +397,24 @@ export const RequestFormPage: React.FC = () => {
     const userRegionId = (user as any)?.region?.id || (user as any)?.regionId || undefined;
 
     const payload = {
-      regionId:        userRegionId,
+      regionId: userRegionId,
       budgetHeadId,
-      receiverName:    receiverName.trim()    || undefined,
-      receiverPhone:   receiverPhone.trim()   || undefined,
-      invoiceNumber:   invoiceNumber.trim()   || undefined,
-      purpose:         autoPurpose,
-      description:     autoDescription        || undefined,
+      receiverName: receiverName.trim() || undefined,
+      receiverPhone: receiverPhone.trim() || undefined,
+      invoiceNumber: invoiceNumber.trim() || undefined,
+      purpose: autoPurpose,
+      description: autoDescription || undefined,
       requestedAmount: numAmount,
       currency,
-      priority:        'NORMAL',
+      priority: 'NORMAL',
       requiredDate,
       attachments,
-      status:          submitStatus,
+      status: submitStatus,
     };
 
     try {
       if (id) { await api.put(`/requests/${id}`, payload); }
-      else    { await api.post('/requests', payload); }
+      else { await api.post('/requests', payload); }
       navigate('/requests');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to submit request');
@@ -392,12 +495,11 @@ export const RequestFormPage: React.FC = () => {
                 <button
                   key={bh.id}
                   type="button"
-                  onClick={() => { setBudgetHeadId(bh.id); setError(null); }}
-                  className={`px-3.5 py-2 rounded-full text-xs font-semibold border transition-all duration-150 cursor-pointer select-none ${
-                    budgetHeadId === bh.id
+                  onClick={() => handleBudgetHeadSelect(bh.id)}
+                  className={`px-3.5 py-2 rounded-full text-xs font-semibold border transition-all duration-150 cursor-pointer select-none ${budgetHeadId === bh.id
                       ? 'bg-[#F5B700] border-[#F5B700] text-black shadow-sm'
                       : 'bg-transparent border-border text-foreground hover:border-[#F5B700]/70 hover:text-[#F5B700]'
-                  }`}
+                    }`}
                 >
                   {bh.name}
                 </button>
@@ -410,11 +512,10 @@ export const RequestFormPage: React.FC = () => {
             <Label required className="text-xs font-semibold">Company</Label>
             <div>
               <span
-                className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold ${
-                  isSomtel
+                className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold ${isSomtel
                     ? 'bg-[#C2571A] text-white'
                     : 'bg-[#F5B700] text-black'
-                }`}
+                  }`}
               >
                 {companyName || 'N/A'}
               </span>
@@ -440,7 +541,7 @@ export const RequestFormPage: React.FC = () => {
               disabled
               className="text-xs bg-muted/60 text-muted-foreground cursor-not-allowed select-none font-medium"
             />
-            <p className="text-[10px] text-muted-foreground">Automatically locked to today's date</p>
+            <p className="text-[10px] text-muted-foreground">Today</p>
           </div>
 
           {/* ── AMOUNT ────────────────────────────────────────────────────── */}
@@ -634,18 +735,16 @@ export const RequestFormPage: React.FC = () => {
 
               {/* ──── DESCRIPTION PREVIEW BOX ─────────────────────────────── */}
               <div
-                className={`rounded-lg border p-3.5 transition-all duration-200 ${
-                  autoDescription
+                className={`rounded-lg border p-3.5 transition-all duration-200 ${autoDescription
                     ? 'border-[#F5B700]/40 bg-[#F5B700]/10 dark:bg-[#F5B700]/8'
                     : 'border-border/50 bg-muted/30'
-                }`}
+                  }`}
               >
                 <p
-                  className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${
-                    autoDescription
+                  className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${autoDescription
                       ? 'text-[#B8860B] dark:text-[#F5B700]/80'
                       : 'text-muted-foreground'
-                  }`}
+                    }`}
                 >
                   Description that will be saved
                 </p>
@@ -689,22 +788,20 @@ export const RequestFormPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setHasReceipt(true)}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all duration-150 cursor-pointer ${
-                  hasReceipt
+                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all duration-150 cursor-pointer ${hasReceipt
                     ? 'bg-[#F5B700] border-[#F5B700] text-black shadow-sm'
                     : 'bg-transparent border-border text-foreground hover:border-[#F5B700]/60'
-                }`}
+                  }`}
               >
                 Receipt
               </button>
               <button
                 type="button"
                 onClick={() => setHasReceipt(false)}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all duration-150 cursor-pointer ${
-                  !hasReceipt
+                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all duration-150 cursor-pointer ${!hasReceipt
                     ? 'bg-[#F5B700] border-[#F5B700] text-black shadow-sm'
                     : 'bg-transparent border-border text-foreground hover:border-[#F5B700]/60'
-                }`}
+                  }`}
               >
                 No receipt
               </button>

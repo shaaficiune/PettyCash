@@ -54,6 +54,83 @@ const DETAILS_HINT: Record<BHType, string> = {
   OTHER:          'Enter concise description (max 50 characters).',
 };
 
+function parseCategoryDetails(bhType: BHType, description: string, purpose: string) {
+  const desc = (description || '').trim();
+  const purp = (purpose || '').trim();
+  const text = desc || purp;
+
+  const result = {
+    vehiclePlate: '',
+    vehicleDescription: '',
+    generatorSite: '',
+    whatTransported: '',
+    transportFrom: '',
+    transportTo: '',
+    buildingLocation: '',
+    freeDescription: desc || purp,
+  };
+
+  if (!text) return result;
+
+  if (bhType === 'TRANSPORTATIONS') {
+    const m1 = text.match(/(?:Transport:\s*|Transportation\s*—\s*)(.*?)\s*\((.*?)\s+to\s+(.*?)\)/i)
+      || text.match(/^(.*?)\s*\((.*?)\s+to\s+(.*?)\)$/i);
+    if (m1) {
+      result.whatTransported = m1[1].replace(/^Transport:\s*/i, '').trim();
+      result.transportFrom = m1[2].trim();
+      result.transportTo = m1[3].trim();
+      return result;
+    }
+    const m2 = text.match(/(?:Transport:\s*|Transportation\s*—\s*)(.*?)\s+to\s+(.*)/i)
+      || text.match(/^(.*?)\s+to\s+(.*)/i);
+    if (m2) {
+      result.transportFrom = m2[1].replace(/^Transport:\s*/i, '').trim();
+      result.transportTo = m2[2].trim();
+      return result;
+    }
+    const m3 = text.match(/Transport:\s*(.*)/i);
+    if (m3) {
+      result.whatTransported = m3[1].trim();
+      return result;
+    }
+  } else if (bhType === 'GENERATORS') {
+    const m = text.match(/(?:Site:\s*|Generators?\s*—\s*)(.*)/i);
+    if (m) {
+      result.generatorSite = m[1].trim();
+      return result;
+    }
+    result.generatorSite = text;
+    return result;
+  } else if (bhType === 'BUILDINGS') {
+    const m = text.match(/(?:Location:\s*|Buildings?\s*—\s*)(.*)/i);
+    if (m) {
+      result.buildingLocation = m[1].trim();
+      return result;
+    }
+    result.buildingLocation = text;
+    return result;
+  } else if (bhType === 'VEHICLES') {
+    const parts = text.split('—').map(s => s.trim());
+    if (parts.length >= 2) {
+      const plateSection = parts[parts.length - 2];
+      const descSection = parts[parts.length - 1];
+      const plateInParens = plateSection.match(/\(([^)]+)\)/);
+      result.vehiclePlate = plateInParens ? plateInParens[1].trim() : plateSection;
+      result.vehicleDescription = descSection;
+      return result;
+    }
+    const plateMatch = text.match(/\(([^)]+)\)/);
+    if (plateMatch) {
+      result.vehiclePlate = plateMatch[1].trim();
+    } else {
+      result.vehicleDescription = text;
+    }
+    return result;
+  }
+
+  return result;
+}
+
 const TIMELINE_STEPS = [
   { key: 'DRAFT', label: 'Draft', icon: Edit3 },
   { key: 'PENDING_APPROVAL', label: 'Submitted (Stage 1)', icon: Send },
@@ -307,7 +384,10 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
   }, [isEditModalOpen, bhType, request]);
 
   const handleBudgetHeadChange = (newBhId: string) => {
+    if (newBhId === editBudgetHeadId) return;
     setEditBudgetHeadId(newBhId);
+    // User manually changed category — clear category-specific subfields only
+    // Amount, receiverName, receiverPhone, invoiceNumber are preserved
     setVehiclePlate('');
     setVehicleDescription('');
     setGeneratorSite('');
@@ -359,15 +439,18 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
     const currentBhId = request.budgetHeadId || request.budgetHead?.id || '';
     setEditBudgetHeadId(currentBhId);
 
-    // Initial pre-fill
-    setFreeDescription(request.description || request.purpose || '');
-    setVehiclePlate('');
-    setVehicleDescription('');
-    setGeneratorSite('');
-    setWhatTransported('');
-    setTransportFrom('');
-    setTransportTo('');
-    setBuildingLocation('');
+    // Parse and restore category details from saved description/purpose
+    const bhName = request.budgetHead?.name || '';
+    const type = getBHType(bhName);
+    const parsed = parseCategoryDetails(type, request.description || '', request.purpose || '');
+    setVehiclePlate(parsed.vehiclePlate);
+    setVehicleDescription(parsed.vehicleDescription);
+    setGeneratorSite(parsed.generatorSite);
+    setWhatTransported(parsed.whatTransported);
+    setTransportFrom(parsed.transportFrom);
+    setTransportTo(parsed.transportTo);
+    setBuildingLocation(parsed.buildingLocation);
+    setFreeDescription(parsed.freeDescription);
 
     setIsEditModalOpen(true);
 
