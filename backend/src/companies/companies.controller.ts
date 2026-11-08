@@ -19,9 +19,9 @@ export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all companies (Admin/Accountant only)' })
+  @ApiOperation({ summary: 'Get all companies (Admin/Accountant/Approval Two)' })
   @UseGuards(RolesGuard)
-  @Roles(RoleName.SUPER_ADMIN, RoleName.ACCOUNTANT)
+  @Roles(RoleName.SUPER_ADMIN, RoleName.ACCOUNTANT, RoleName.APPROVAL_TWO)
   async getCompanies() {
     return this.companiesService.findAllCompanies();
   }

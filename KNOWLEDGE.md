@@ -2006,6 +2006,26 @@ Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu samee
       - Marka la keydiyo (`Save Changes`), boggu si toos ah ayuu xogta cusub u soo qaadanayaa isagoo aan meelna uga bixin bogga.
 * **Git Commit:** `9ee5ada`, `c321beb`
 
+---
+
+### 13. 🧾 Multi-Company Payment Vouchers Access for Approval 1 (Accountant) & Approval 2 (Head of Finance)
+* **Ujeeddada & Shuruudaha:**
+  - Nidaamka waxaa laga rabay in **User Approval 1** (`ACCOUNTANT`) iyo **User Approval 2** (`APPROVAL_TWO` / Head of Finance) ay awoodaan inay arkaan oo daabacdaan **Payment Vouchers-ka labada shirkadoodba** (Somtel & Bluekom), iyagoo aan lagu xannibin kaliya hal shirkad.
+  - In la dhowro amniga iyo **Separation of Duties**: Approval Two ma bixin karo lacag (`POST /payments` waa mamnuuc), laakiin wuxuu arki karaa oo daabacan karaa vouchers-ka (`GET /payments` iyo `GET /payments/request/:requestId`).
+* **Xalka la Hirgeliyay:**
+  - **Backend Controller (`payments.controller.ts`):**
+    - `@Get()` (list payments) iyo `@Get('request/:requestId')` waxaa loo oggolaaday: `ACCOUNTANT`, `SUPER_ADMIN`, iyo `APPROVAL_TWO`.
+    - `@Post()` (record payment disbursement) waxay ku egtahay `ACCOUNTANT` iyo `SUPER_ADMIN` si loo ilaaliyo kala-sooca xilalka (Separation of Duties).
+  - **Backend Controller (`companies.controller.ts`):**
+    - `GET /companies` waxaa loo oggolaaday `APPROVAL_TWO` si uu ugu soo baxo liiska shirkadaha ee Dropdown-ka sare.
+  - **Backend Service (`payments.service.ts`):**
+    - Waxaa laga saaray xannibaaddii `companyId = actor.companyId` ee qasabka ahayd. Hadda `ACCOUNTANT` iyo `APPROVAL_TWO` waxay arki karaan vouchers-ka labada shirkadood marka la doorto "All Companies", ama waxay ku shaandhayn karaan (filter) shirkadda ay doortaan (`where.companyId = filters.companyId`).
+    - Waxaa lagu daray shaandhaynta taariikhaha (`from` iyo `to` date filtering).
+    - `pageSize` xadka sare waxaa laga dhigay 500 (hore 100) si 300 records oo PaymentsPage doonayo uusan u goyn.
+  - **Frontend Header (`DashboardLayout.tsx`):**
+    - Company Context Switcher-ka (All Companies / Somtel / Bluekom) waxaa loo oggolaaday `APPROVAL_TWO` (Desktop & Mobile) si uu si fudud ugu kala beddelan karo Somtel iyo Bluekom.
+
+
 
 
 

@@ -10,24 +10,26 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 @ApiTags('Payment Processing')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Post()
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN)
   @ApiOperation({ summary: 'Record disbursement payment' })
   async recordPayment(@Request() req, @Body() dto: RecordPaymentDto) {
     return this.paymentsService.recordPayment(req.user.userId, dto);
   }
 
   @Get()
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
   @ApiOperation({ summary: 'List payments (paginated) for company or filters' })
   async listPayments(@Query() query: any, @Request() req: any) {
     return this.paymentsService.listPayments(query, req.user);
   }
 
   @Get('request/:requestId')
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
   @ApiOperation({ summary: 'Get list of payment records for specific request' })
   async findPayments(@Param('requestId') requestId: string) {
     return this.paymentsService.findPaymentsForRequest(requestId);

@@ -124,20 +124,38 @@ export class PaymentsService {
     companyId?: string;
     requestId?: string;
     paidById?: string;
+    from?: string;
+    to?: string;
   }, actor: any) {
     const page = Math.max(1, Number(filters.page || 1));
-    const pageSize = Math.min(100, Math.max(5, Number(filters.pageSize || 20)));
+    const pageSize = Math.min(500, Math.max(5, Number(filters.pageSize || 20)));
 
     const where: any = {};
     if (filters.requestId) where.requestId = filters.requestId;
     if (filters.paidById) where.paidById = filters.paidById;
-    if (filters.companyId) {
-      where.request = { companyId: filters.companyId };
+
+    if (filters.from || filters.to) {
+      where.paymentDate = {};
+      if (filters.from) {
+        const fromDate = new Date(filters.from);
+        fromDate.setHours(0, 0, 0, 0);
+        where.paymentDate.gte = fromDate;
+      }
+      if (filters.to) {
+        const toDate = new Date(filters.to);
+        toDate.setHours(23, 59, 59, 999);
+        where.paymentDate.lte = toDate;
+      }
     }
 
-    // Non-super admins may only view payments within their company
-    if (actor?.role !== 'SUPER_ADMIN') {
-      where.request = { ...(where.request || {}), companyId: actor.companyId };
+    // Multi-company access:
+    // SUPER_ADMIN, ACCOUNTANT (Approval 1), and APPROVAL_TWO (Approval 2) can view vouchers across both companies
+    // or filter by a specific company when chosen.
+    if (filters.companyId && filters.companyId !== 'ALL') {
+      where.companyId = filters.companyId;
+    } else if (actor?.role === 'EMPLOYEE') {
+      // General employees are strictly isolated to their own company
+      where.companyId = actor.companyId;
     }
 
     const [items, total] = await Promise.all([

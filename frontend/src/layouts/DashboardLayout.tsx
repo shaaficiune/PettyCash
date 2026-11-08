@@ -491,8 +491,8 @@ export const DashboardLayout: React.FC = () => {
               {getPageTitle(location.pathname)}
             </h1>
 
-            {/* Accountant / Admin Company Context Switcher */}
-            {(user.role === 'ACCOUNTANT' || user.role === 'SUPER_ADMIN') && (
+            {/* Multi-Company Context Switcher (Accountant, Approval Two, Super Admin) */}
+            {(user.role === 'ACCOUNTANT' || user.role === 'SUPER_ADMIN' || user.role === 'APPROVAL_TWO') && (
               <div className="hidden sm:flex items-center gap-2 ml-4">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" style={{
                   backgroundColor: companyContext === 'ALL' ? '#F5B700' : (companies.find(c => c.id === companyContext)?.name?.toLowerCase().includes('somtel') ? '#F5B700' : '#3B82F6')
@@ -514,7 +514,7 @@ export const DashboardLayout: React.FC = () => {
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Mobile Company Switcher */}
-            {(user.role === 'ACCOUNTANT' || user.role === 'SUPER_ADMIN') && (
+            {(user.role === 'ACCOUNTANT' || user.role === 'SUPER_ADMIN' || user.role === 'APPROVAL_TWO') && (
               <div className="sm:hidden flex items-center">
                 <select
                   value={companyContext}
