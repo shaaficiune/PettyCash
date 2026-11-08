@@ -22,17 +22,22 @@ export const PaymentsPage: React.FC = () => {
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [paidBy, setPaidBy] = useState<string>('');
+  const [datePreset, setDatePreset] = useState<'ALL' | 'TODAY' | 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM'>('ALL');
   const [selectedPaymentForVoucher, setSelectedPaymentForVoucher] = useState<any>(null);
   const [isVoucherOpen, setIsVoucherOpen] = useState(false);
 
-  const loadPayments = async () => {
+  const loadPayments = async (customFrom?: string, customTo?: string, customPaidBy?: string) => {
     setLoading(true);
     try {
       const companyFilter = sessionStorage.getItem('companyFilter') || 'ALL';
       const companyQuery = companyFilter !== 'ALL' ? `&companyId=${companyFilter}` : '';
-      const dateQuery = (fromDate ? `&from=${fromDate}` : '') + (toDate ? `&to=${toDate}` : '');
-      const paidByQuery = paidBy ? `&paidById=${paidBy}` : '';
-      const res = await api.get(`/payments?page=1&pageSize=300${companyQuery}${dateQuery}${paidByQuery}`);
+      const fDate = customFrom !== undefined ? customFrom : fromDate;
+      const tDate = customTo !== undefined ? customTo : toDate;
+      const pBy = customPaidBy !== undefined ? customPaidBy : paidBy;
+
+      const dateQuery = (fDate ? `&from=${fDate}&startDate=${fDate}` : '') + (tDate ? `&to=${tDate}&endDate=${tDate}` : '');
+      const paidByQuery = pBy ? `&paidById=${encodeURIComponent(pBy)}` : '';
+      const res = await api.get(`/payments?page=1&pageSize=500${companyQuery}${dateQuery}${paidByQuery}`);
       setPayments(res.data.items || res.data || []);
     } catch (e) {
       console.error('Failed to load payments', e);
@@ -41,10 +46,52 @@ export const PaymentsPage: React.FC = () => {
     }
   };
 
+  const applyPreset = (preset: 'ALL' | 'TODAY' | 'THIS_MONTH' | 'LAST_MONTH') => {
+    setDatePreset(preset);
+    const now = new Date();
+    const formatYMD = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    let f = '';
+    let t = '';
+    if (preset === 'TODAY') {
+      f = formatYMD(now);
+      t = formatYMD(now);
+    } else if (preset === 'THIS_MONTH') {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      f = formatYMD(first);
+      t = formatYMD(now);
+    } else if (preset === 'LAST_MONTH') {
+      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const last = new Date(now.getFullYear(), now.getMonth(), 0);
+      f = formatYMD(first);
+      t = formatYMD(last);
+    } else if (preset === 'ALL') {
+      f = '';
+      t = '';
+    }
+    setFromDate(f);
+    setToDate(t);
+    loadPayments(f, t);
+  };
+
+  const handleReset = () => {
+    setDatePreset('ALL');
+    setFromDate('');
+    setToDate('');
+    setPaidBy('');
+    loadPayments('', '', '');
+  };
+
   useEffect(() => {
     loadPayments();
-    window.addEventListener('companyFilterChanged', loadPayments);
-    return () => window.removeEventListener('companyFilterChanged', loadPayments);
+    const onCompanyChange = () => loadPayments();
+    window.addEventListener('companyFilterChanged', onCompanyChange);
+    return () => window.removeEventListener('companyFilterChanged', onCompanyChange);
   }, []);
 
   const exportCsv = () => {
@@ -279,60 +326,91 @@ export const PaymentsPage: React.FC = () => {
         </Button>
       </div>
 
-      {/* FILTER BAR */}
+      {/* FILTER BAR WITH PRESETS & CUSTOM DATES */}
       <Card className="shadow-xs">
-        <CardContent className="p-3 flex flex-wrap gap-2.5 items-end">
-          <div className="flex-1 min-w-[130px] space-y-1">
-            <Label className="text-[11px]">From</Label>
-            <Input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="h-8 text-xs"
-            />
+        <CardContent className="p-3 space-y-3">
+          {/* Quick Date Presets */}
+          <div className="flex flex-wrap items-center gap-1.5 pb-1 border-b border-border/50">
+            <span className="text-[11px] font-semibold text-muted-foreground mr-1">Period:</span>
+            {(['ALL', 'TODAY', 'THIS_MONTH', 'LAST_MONTH'] as const).map((preset) => {
+              const labels = {
+                ALL: 'All Time',
+                TODAY: 'Today',
+                THIS_MONTH: 'This Month',
+                LAST_MONTH: 'Last Month',
+              };
+              const active = datePreset === preset;
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  className={`text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  {labels[preset]}
+                </button>
+              );
+            })}
           </div>
-          <div className="flex-1 min-w-[130px] space-y-1">
-            <Label className="text-[11px]">To</Label>
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="h-8 text-xs"
-            />
-          </div>
-          <div className="flex-1 min-w-[120px] space-y-1">
-            <Label className="text-[11px]">Paid By (User ID)</Label>
-            <Input
-              placeholder="User ID"
-              value={paidBy}
-              onChange={(e) => setPaidBy(e.target.value)}
-              className="h-8 text-xs"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => loadPayments()}
-              className="h-8"
-            >
-              Apply
-            </Button>
-            {(fromDate || toDate || paidBy) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFromDate('');
-                  setToDate('');
-                  setPaidBy('');
-                  setTimeout(() => loadPayments(), 0);
+
+          <div className="flex flex-wrap gap-2.5 items-end">
+            <div className="flex-1 min-w-[130px] space-y-1">
+              <Label className="text-[11px]">From</Label>
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setDatePreset('CUSTOM');
                 }}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="flex-1 min-w-[130px] space-y-1">
+              <Label className="text-[11px]">To</Label>
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setDatePreset('CUSTOM');
+                }}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="flex-1 min-w-[140px] space-y-1">
+              <Label className="text-[11px]">Paid By (Name or ID)</Label>
+              <Input
+                placeholder="Name or ID"
+                value={paidBy}
+                onChange={(e) => setPaidBy(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => loadPayments()}
                 className="h-8"
               >
-                Reset
+                Apply
               </Button>
-            )}
+              {(fromDate || toDate || paidBy || datePreset !== 'ALL') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReset}
+                  className="h-8"
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

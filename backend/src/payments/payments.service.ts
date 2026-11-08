@@ -132,19 +132,33 @@ export class PaymentsService {
 
     const where: any = {};
     if (filters.requestId) where.requestId = filters.requestId;
-    if (filters.paidById) where.paidById = filters.paidById;
+    if (filters.paidById && filters.paidById.trim()) {
+      const pQuery = filters.paidById.trim();
+      where.OR = [
+        { paidById: pQuery },
+        { paidBy: { fullName: { contains: pQuery, mode: 'insensitive' } } },
+        { paidBy: { username: { contains: pQuery, mode: 'insensitive' } } },
+      ];
+    }
 
-    if (filters.from || filters.to) {
+    const fromStr = filters.from || (filters as any).startDate;
+    const toStr = filters.to || (filters as any).endDate;
+
+    if (fromStr || toStr) {
       where.paymentDate = {};
-      if (filters.from) {
-        const fromDate = new Date(filters.from);
-        fromDate.setHours(0, 0, 0, 0);
-        where.paymentDate.gte = fromDate;
+      if (fromStr) {
+        const fromDate = new Date(fromStr);
+        if (!isNaN(fromDate.getTime())) {
+          fromDate.setHours(0, 0, 0, 0);
+          where.paymentDate.gte = fromDate;
+        }
       }
-      if (filters.to) {
-        const toDate = new Date(filters.to);
-        toDate.setHours(23, 59, 59, 999);
-        where.paymentDate.lte = toDate;
+      if (toStr) {
+        const toDate = new Date(toStr);
+        if (!isNaN(toDate.getTime())) {
+          toDate.setHours(23, 59, 59, 999);
+          where.paymentDate.lte = toDate;
+        }
       }
     }
 
