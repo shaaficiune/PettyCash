@@ -130,47 +130,69 @@ export class PaymentsService {
     const page = Math.max(1, Number(filters.page || 1));
     const pageSize = Math.min(500, Math.max(5, Number(filters.pageSize || 20)));
 
-    const where: any = {};
-    if (filters.requestId) where.requestId = filters.requestId;
+    const andConditions: any[] = [];
+
+    if (filters.requestId) {
+      andConditions.push({ requestId: filters.requestId });
+    }
+
     if (filters.paidById && filters.paidById.trim()) {
       const pQuery = filters.paidById.trim();
-      where.OR = [
-        { paidById: pQuery },
-        { paidBy: { fullName: { contains: pQuery, mode: 'insensitive' } } },
-        { paidBy: { username: { contains: pQuery, mode: 'insensitive' } } },
-      ];
+      andConditions.push({
+        OR: [
+          { paidById: pQuery },
+          { paidBy: { fullName: { contains: pQuery, mode: 'insensitive' } } },
+          { paidBy: { username: { contains: pQuery, mode: 'insensitive' } } },
+        ],
+      });
+    }
+
+    // Multi-company access:
+    // If a company is chosen, match by either payment.companyId or request.companyId
+    if (filters.companyId && filters.companyId !== 'ALL') {
+      andConditions.push({
+        OR: [
+          { companyId: filters.companyId },
+          { request: { companyId: filters.companyId } },
+        ],
+      });
+    } else if (actor?.role === 'EMPLOYEE') {
+      andConditions.push({
+        OR: [
+          { companyId: actor.companyId },
+          { request: { companyId: actor.companyId } },
+        ],
+      });
     }
 
     const fromStr = filters.from || (filters as any).startDate;
     const toStr = filters.to || (filters as any).endDate;
 
     if (fromStr || toStr) {
-      where.paymentDate = {};
+      const dateCond: any = {};
       if (fromStr) {
-        const fromDate = new Date(fromStr);
+        const parts = fromStr.split('-').map(Number);
+        const fromDate = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0) : new Date(fromStr);
         if (!isNaN(fromDate.getTime())) {
-          fromDate.setHours(0, 0, 0, 0);
-          where.paymentDate.gte = fromDate;
+          dateCond.gte = fromDate;
         }
       }
       if (toStr) {
-        const toDate = new Date(toStr);
+        const parts = toStr.split('-').map(Number);
+        const toDate = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999) : new Date(toStr);
         if (!isNaN(toDate.getTime())) {
-          toDate.setHours(23, 59, 59, 999);
-          where.paymentDate.lte = toDate;
+          dateCond.lte = toDate;
         }
       }
+      andConditions.push({
+        OR: [
+          { paymentDate: dateCond },
+          { AND: [{ paymentDate: null }, { createdAt: dateCond }] },
+        ],
+      });
     }
 
-    // Multi-company access:
-    // SUPER_ADMIN, ACCOUNTANT (Approval 1), and APPROVAL_TWO (Approval 2) can view vouchers across both companies
-    // or filter by a specific company when chosen.
-    if (filters.companyId && filters.companyId !== 'ALL') {
-      where.companyId = filters.companyId;
-    } else if (actor?.role === 'EMPLOYEE') {
-      // General employees are strictly isolated to their own company
-      where.companyId = actor.companyId;
-    }
+    const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
     const [items, total] = await Promise.all([
       this.prisma.payment.findMany({
