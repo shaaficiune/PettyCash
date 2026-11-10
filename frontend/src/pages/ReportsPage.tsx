@@ -267,7 +267,7 @@ export const ReportsPage: React.FC = () => {
   const [endDate, setEndDate] = useState(initialEnd);
   const [companyId, setCompanyId] = useState('');
   const [regionId, setRegionId] = useState('');
-  const [statusScope, setStatusScope] = useState('PAID_ONLY');
+  const [statusScope, setStatusScope] = useState<'PAID' | 'APPROVED'>('PAID');
   const [empSearch, setEmpSearch] = useState('');
 
   // Dropdown options
@@ -602,18 +602,32 @@ export const ReportsPage: React.FC = () => {
               </Select>
             </div>
 
-            {/* Status Scope Filter — Default: Paid Only (Actual Outflow) */}
-            <div className="flex items-center gap-1.5 min-w-[170px] shrink-0">
-              <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <Select
-                value={statusScope}
-                onChange={(e) => setStatusScope(e.target.value)}
-                className="text-xs h-8.5 font-semibold text-emerald-700 dark:text-emerald-400"
+            {/* Status Scope Toggle: Paid vs Approved (Only 2 Clean Choices) */}
+            <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/40 shrink-0">
+              <button
+                type="button"
+                onClick={() => setStatusScope('PAID')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  statusScope === 'PAID'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="Lacagta dhabta ah ee khasnadda ka baxday kaliya (Paid)"
               >
-                <option value="PAID_ONLY">Paid Only (Actual Cash Out)</option>
-                <option value="APPROVED_AND_PAID">Approved &amp; Paid</option>
-                <option value="ALL">All Statuses</option>
-              </Select>
+                Paid (Actual)
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusScope('APPROVED')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  statusScope === 'APPROVED'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="Wixii maamulku ansixiyay oo dhan (Approved + Paid)"
+              >
+                Approved (Total)
+              </button>
             </div>
           </div>
         </CardContent>
@@ -686,7 +700,7 @@ export const ReportsPage: React.FC = () => {
             variant="blue"
           />
           <MetricCard
-            title="Total Paid Out (Actual)"
+            title={statusScope === 'PAID' ? 'Total Paid Out (Actual)' : 'Total Approved & Paid'}
             value={`$${fmt(totalRegionSpent)}`}
             subtitle={
               companyId

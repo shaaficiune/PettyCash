@@ -1025,7 +1025,7 @@ export class ReportsService {
     }
     if (regionId) reqWhere.regionId = regionId;
 
-    if (statusScope === 'APPROVED_AND_PAID') {
+    if (statusScope === 'APPROVED' || statusScope === 'APPROVED_AND_PAID') {
       reqWhere.status = {
         in: [RequestStatus.APPROVED, RequestStatus.PAYMENT_PROCESSING, RequestStatus.PAID, RequestStatus.COMPLETED],
       };
@@ -1391,7 +1391,7 @@ export class ReportsService {
     if (regionId) reqWhere.regionId = regionId;
     if (departmentId) reqWhere.departmentId = departmentId;
 
-    if (statusScope === 'PAID_ONLY') {
+    if (statusScope === 'PAID' || statusScope === 'PAID_ONLY') {
       reqWhere.status = { in: [RequestStatus.PAID, RequestStatus.COMPLETED] };
     } else if (statusScope === 'ALL') {
       reqWhere.status = {
