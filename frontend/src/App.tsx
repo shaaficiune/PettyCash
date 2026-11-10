@@ -11,6 +11,7 @@ import { RequestDetailPage } from './pages/RequestDetailPage';
 import { SettlementsPendingPage } from './pages/SettlementsPendingPage';
 import { UserManagementPage } from './pages/UserManagementPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { ReportsPage } from './pages/ReportsPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { FundManagementPage } from './pages/FundManagementPage';
@@ -137,7 +138,11 @@ const App: React.FC = () => {
               />
               <Route 
                 path="reports" 
-                element={<Navigate to="/transactions" replace />} 
+                element={
+                  <ApprovalTwoRoute>
+                    <ReportsPage />
+                  </ApprovalTwoRoute>
+                } 
               />
               <Route 
                 path="payments" 

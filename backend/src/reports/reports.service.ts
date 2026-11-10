@@ -1371,4 +1371,358 @@ export class ReportsService {
       },
     };
   }
+
+  async getEmployeeSpendingReport(
+    user: any,
+    companyId?: string,
+    regionId?: string,
+    departmentId?: string,
+    startDate?: string,
+    endDate?: string,
+    statusScope: string = 'APPROVED_AND_PAID',
+    search?: string,
+  ) {
+    const reqWhere: any = {};
+    if (user.role === RoleName.EMPLOYEE) {
+      reqWhere.companyId = user.companyId;
+    } else if (companyId) {
+      reqWhere.companyId = companyId;
+    }
+    if (regionId) reqWhere.regionId = regionId;
+    if (departmentId) reqWhere.departmentId = departmentId;
+
+    if (statusScope === 'PAID_ONLY') {
+      reqWhere.status = { in: [RequestStatus.PAID, RequestStatus.COMPLETED] };
+    } else if (statusScope === 'ALL') {
+      reqWhere.status = {
+        in: [
+          RequestStatus.PENDING_APPROVAL,
+          RequestStatus.ACCOUNTANT_REVIEW,
+          RequestStatus.APPROVED,
+          RequestStatus.PAYMENT_PROCESSING,
+          RequestStatus.PAID,
+          RequestStatus.COMPLETED,
+        ],
+      };
+    } else {
+      reqWhere.status = {
+        in: [
+          RequestStatus.APPROVED,
+          RequestStatus.PAYMENT_PROCESSING,
+          RequestStatus.PAID,
+          RequestStatus.COMPLETED,
+        ],
+      };
+    }
+
+    if (startDate || endDate) {
+      reqWhere.requestDate = {};
+      if (startDate) {
+        const s = new Date(startDate);
+        s.setHours(0, 0, 0, 0);
+        reqWhere.requestDate.gte = s;
+      }
+      if (endDate) {
+        const e = new Date(endDate);
+        e.setHours(23, 59, 59, 999);
+        reqWhere.requestDate.lte = e;
+      }
+    }
+
+    const requests = await this.prisma.pettyCashRequest.findMany({
+      where: reqWhere,
+      select: {
+        id: true,
+        requestNumber: true,
+        purpose: true,
+        description: true,
+        requestedAmount: true,
+        approvedAmount: true,
+        currency: true,
+        status: true,
+        requestDate: true,
+        createdAt: true,
+        receiverName: true,
+        company: { select: { id: true, name: true } },
+        region: { select: { id: true, name: true } },
+        department: { select: { id: true, name: true } },
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            username: true,
+            phone: true,
+            role: { select: { name: true } },
+          },
+        },
+        settlements: {
+          select: {
+            id: true,
+            actualExpenseAmount: true,
+            remainingBalance: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { requestDate: 'desc' },
+    });
+
+    type EmpSummary = {
+      userId: string;
+      fullName: string;
+      username: string;
+      phone: string;
+      companyName: string;
+      regionName: string;
+      departmentName: string;
+      totalRequests: number;
+      totalRequested: number;
+      totalApproved: number;
+      totalPaid: number;
+      totalSettled: number;
+      pendingSettlementCount: number;
+      pendingSettlementAmount: number;
+      requests: any[];
+    };
+
+    const map = new Map<string, EmpSummary>();
+
+    for (const req of requests) {
+      const u = req.user;
+      if (!u) continue;
+      let emp = map.get(u.id);
+      if (!emp) {
+        emp = {
+          userId: u.id,
+          fullName: u.fullName,
+          username: u.username,
+          phone: u.phone || '—',
+          companyName: req.company?.name || '—',
+          regionName: req.region?.name || 'Unassigned',
+          departmentName: req.department?.name || '—',
+          totalRequests: 0,
+          totalRequested: 0,
+          totalApproved: 0,
+          totalPaid: 0,
+          totalSettled: 0,
+          pendingSettlementCount: 0,
+          pendingSettlementAmount: 0,
+          requests: [],
+        };
+        map.set(u.id, emp);
+      }
+
+      const reqAmt = Number(req.requestedAmount || 0);
+      const appAmt = Number(req.approvedAmount || req.requestedAmount || 0);
+      const isPaid = req.status === RequestStatus.PAID || req.status === RequestStatus.COMPLETED;
+
+      emp.totalRequests += 1;
+      emp.totalRequested += reqAmt;
+      emp.totalApproved += appAmt;
+
+      if (isPaid) {
+        emp.totalPaid += appAmt;
+        const approvedSettlement = req.settlements?.find((s) => s.status === 'APPROVED');
+        if (approvedSettlement) {
+          emp.totalSettled += Number(approvedSettlement.actualExpenseAmount || 0);
+        } else {
+          emp.pendingSettlementCount += 1;
+          emp.pendingSettlementAmount += appAmt;
+        }
+      }
+
+      emp.requests.push({
+        id: req.id,
+        requestNumber: req.requestNumber,
+        purpose: req.purpose,
+        requestedAmount: reqAmt,
+        approvedAmount: appAmt,
+        status: req.status,
+        date: req.requestDate || req.createdAt,
+        receiverName: req.receiverName,
+      });
+    }
+
+    let employees = Array.from(map.values()).map((emp) => ({
+      ...emp,
+      totalRequested: Number(emp.totalRequested.toFixed(2)),
+      totalApproved: Number(emp.totalApproved.toFixed(2)),
+      totalPaid: Number(emp.totalPaid.toFixed(2)),
+      totalSettled: Number(emp.totalSettled.toFixed(2)),
+      pendingSettlementAmount: Number(emp.pendingSettlementAmount.toFixed(2)),
+    }));
+
+    if (search && search.trim()) {
+      const q = search.toLowerCase().trim();
+      employees = employees.filter(
+        (e) =>
+          e.fullName.toLowerCase().includes(q) ||
+          e.username.toLowerCase().includes(q) ||
+          e.phone.toLowerCase().includes(q) ||
+          e.regionName.toLowerCase().includes(q)
+      );
+    }
+
+    employees.sort((a, b) => b.totalApproved - a.totalApproved);
+
+    const summary = {
+      totalEmployees: employees.length,
+      totalRequests: employees.reduce((acc, e) => acc + e.totalRequests, 0),
+      totalRequested: Number(employees.reduce((acc, e) => acc + e.totalRequested, 0).toFixed(2)),
+      totalApproved: Number(employees.reduce((acc, e) => acc + e.totalApproved, 0).toFixed(2)),
+      totalPaid: Number(employees.reduce((acc, e) => acc + e.totalPaid, 0).toFixed(2)),
+      totalPendingSettlementAmount: Number(
+        employees.reduce((acc, e) => acc + e.pendingSettlementAmount, 0).toFixed(2)
+      ),
+      totalPendingSettlementCount: employees.reduce((acc, e) => acc + e.pendingSettlementCount, 0),
+    };
+
+    return {
+      period: { startDate: startDate || null, endDate: endDate || null, statusScope },
+      summary,
+      employees,
+    };
+  }
+
+  async exportEmployeeSpendingExcel(
+    user: any,
+    companyId?: string,
+    regionId?: string,
+    departmentId?: string,
+    startDate?: string,
+    endDate?: string,
+    statusScope: string = 'APPROVED_AND_PAID',
+  ): Promise<string> {
+    const data = await this.getEmployeeSpendingReport(
+      user,
+      companyId,
+      regionId,
+      departmentId,
+      startDate,
+      endDate,
+      statusScope
+    );
+
+    const rows = data.employees
+      .map(
+        (e) => `
+      <tr>
+        <td style="font-weight:bold; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(e.fullName)}</td>
+        <td style="border:1px solid #cbd5e1; padding:8px;">${escapeHtml(e.username)}</td>
+        <td style="border:1px solid #cbd5e1; padding:8px;">${escapeHtml(e.phone)}</td>
+        <td style="border:1px solid #cbd5e1; padding:8px;">${escapeHtml(e.companyName)}</td>
+        <td style="border:1px solid #cbd5e1; padding:8px;">${escapeHtml(e.regionName)}</td>
+        <td style="border:1px solid #cbd5e1; padding:8px;">${escapeHtml(e.departmentName)}</td>
+        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(String(e.totalRequests))}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px;">$${escapeHtml(e.totalRequested.toFixed(2))}</td>
+        <td style="text-align:right; font-weight:bold; border:1px solid #cbd5e1; padding:8px; color:#1d4ed8;">$${escapeHtml(e.totalApproved.toFixed(2))}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#059669;">$${escapeHtml(e.totalPaid.toFixed(2))}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#d97706;">$${escapeHtml(e.pendingSettlementAmount.toFixed(2))}</td>
+      </tr>`
+      )
+      .join('');
+
+    return `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Calibri, sans-serif; font-size: 11pt; }
+    th { background-color: #0B3333; color: #ffffff; padding: 10px; font-weight: bold; }
+    .header { font-size: 16pt; font-weight: bold; color: #0B3333; }
+    .subheader { font-size: 10pt; color: #64748b; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">Petty Cash Employee Spending Summary Report</div>
+  <div class="subheader">Generated: ${new Date().toLocaleString()} | Total Active Employees: ${data.summary.totalEmployees} | Total Approved: $${data.summary.totalApproved.toFixed(2)}</div>
+  <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%;">
+    <thead>
+      <tr>
+        <th>Employee Name</th>
+        <th>Username</th>
+        <th>Phone</th>
+        <th>Company</th>
+        <th>Region</th>
+        <th>Department</th>
+        <th>Requests Count</th>
+        <th>Total Requested (USD)</th>
+        <th>Total Approved (USD)</th>
+        <th>Total Paid (USD)</th>
+        <th>Pending Settlement (USD)</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
+</body>
+</html>`;
+  }
+
+  async exportRegionBudgetExcel(
+    user: any,
+    companyId?: string,
+    regionId?: string,
+    startDate?: string,
+    endDate?: string,
+    statusScope: string = 'PAID_ONLY',
+  ): Promise<string> {
+    const data = await this.getRegionBudgetHeadReport(
+      user,
+      companyId,
+      regionId,
+      startDate,
+      endDate,
+      statusScope
+    );
+
+    const rows = data.rows
+      .map(
+        (r) => `
+      <tr>
+        <td style="font-weight:bold; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(r.regionName)}</td>
+        <td style="border:1px solid #cbd5e1; padding:8px;">${escapeHtml(r.companyName)}</td>
+        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px;">$${escapeHtml(r.regionBudget.toFixed(2))}</td>
+        <td style="text-align:right; font-weight:bold; border:1px solid #cbd5e1; padding:8px; color:#1d4ed8;">$${escapeHtml(r.totalSpent.toFixed(2))}</td>
+        <td style="text-align:right; font-weight:bold; border:1px solid #cbd5e1; padding:8px; color:#059669;">$${escapeHtml(r.remainingBudget.toFixed(2))}</td>
+        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(String(r.percentageUsed))}%</td>
+        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(r.status)}</td>
+      </tr>`
+      )
+      .join('');
+
+    return `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Calibri, sans-serif; font-size: 11pt; }
+    th { background-color: #0B3333; color: #ffffff; padding: 10px; font-weight: bold; }
+    .header { font-size: 16pt; font-weight: bold; color: #0B3333; }
+    .subheader { font-size: 10pt; color: #64748b; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">Petty Cash Regional Budget &amp; Remaining Balance Report</div>
+  <div class="subheader">Generated: ${new Date().toLocaleString()} | Total Spent: $${data.summary.totalSpent.toFixed(2)}</div>
+  <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%;">
+    <thead>
+      <tr>
+        <th>Region Name</th>
+        <th>Company</th>
+        <th>Monthly Budget (USD)</th>
+        <th>Total Spent (USD)</th>
+        <th>Remaining Balance (USD)</th>
+        <th>Utilization %</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
+</body>
+</html>`;
+  }
 }

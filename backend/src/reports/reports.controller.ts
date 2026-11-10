@@ -150,6 +150,89 @@ export class ReportsController {
     );
   }
 
+  @Get('export-region-budget-excel')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
+  @ApiOperation({ summary: 'Export regional budget and remaining balance report as Excel' })
+  async exportRegionBudgetExcel(
+    @Request() req,
+    @Response() res,
+    @Query('companyId') companyId?: string,
+    @Query('regionId') regionId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('statusScope') statusScope?: string
+  ) {
+    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
+    const excelXml = await this.reportsService.exportRegionBudgetExcel(
+      req.user,
+      targetCompanyId,
+      regionId,
+      startDate,
+      endDate,
+      statusScope
+    );
+    res.setHeader('Content-Type', 'application/vnd.ms-excel');
+    res.setHeader('Content-Disposition', 'attachment; filename="region_budget_report.xls"');
+    return res.status(200).send(excelXml);
+  }
+
+  @Get('employee-spending')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
+  @ApiOperation({ summary: 'Get per-employee spending aggregate and request drill-down' })
+  async getEmployeeSpendingReport(
+    @Request() req,
+    @Query('companyId') companyId?: string,
+    @Query('regionId') regionId?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('statusScope') statusScope?: string,
+    @Query('search') search?: string
+  ) {
+    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
+    return this.reportsService.getEmployeeSpendingReport(
+      req.user,
+      targetCompanyId,
+      regionId,
+      departmentId,
+      startDate,
+      endDate,
+      statusScope,
+      search
+    );
+  }
+
+  @Get('export-employee-spending-excel')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ACCOUNTANT, RoleName.SUPER_ADMIN, RoleName.APPROVAL_TWO)
+  @ApiOperation({ summary: 'Export per-employee spending summary report as Excel' })
+  async exportEmployeeSpendingExcel(
+    @Request() req,
+    @Response() res,
+    @Query('companyId') companyId?: string,
+    @Query('regionId') regionId?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('statusScope') statusScope?: string
+  ) {
+    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
+    const excelXml = await this.reportsService.exportEmployeeSpendingExcel(
+      req.user,
+      targetCompanyId,
+      regionId,
+      departmentId,
+      startDate,
+      endDate,
+      statusScope
+    );
+    res.setHeader('Content-Type', 'application/vnd.ms-excel');
+    res.setHeader('Content-Disposition', 'attachment; filename="employee_spending_report.xls"');
+    return res.status(200).send(excelXml);
+  }
+
   @Get('table')
   @ApiOperation({ summary: 'Get paginated tabular requests report with dashboard KPIs' })
   async getTableReport(

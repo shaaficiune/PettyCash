@@ -23,7 +23,7 @@ import {
   Button,
 } from '../components/ui';
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const fmtMoney = (n: number) =>
   `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -69,17 +69,15 @@ const SummaryCard: React.FC<CardProps> = ({
   }
 
   const cardContent = (
-    <Card className={`relative overflow-hidden transition-all duration-200 hover:shadow-md border border-border/80 bg-card ${
-      to ? 'hover:border-[#F5B700]/70 cursor-pointer group' : ''
-    }`}>
+    <Card className={`relative overflow-hidden transition-all duration-200 hover:shadow-md border border-border/80 bg-card ${to ? 'hover:border-[#F5B700]/70 cursor-pointer group' : ''
+      }`}>
       {topBarClass && (
         <div className={`h-[3px] w-full ${topBarClass}`} />
       )}
       <div className="p-4 sm:p-5 flex items-center gap-3.5">
         {Icon && (
-          <div className={`flex-shrink-0 h-10 w-10 sm:h-11 sm:w-11 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-105 shadow-xs ${
-            bgClass || 'bg-muted/60 dark:bg-muted/40 border-border/50'
-          }`}>
+          <div className={`flex-shrink-0 h-10 w-10 sm:h-11 sm:w-11 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-105 shadow-xs ${bgClass || 'bg-muted/60 dark:bg-muted/40 border-border/50'
+            }`}>
             <Icon className={`h-5 w-5 ${iconClass || 'text-muted-foreground group-hover:text-foreground'}`} />
           </div>
         )}
