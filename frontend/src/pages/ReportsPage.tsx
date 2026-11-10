@@ -26,24 +26,24 @@ import {
 interface RegionRow {
   regionId: string;
   regionName: string;
+  companyId: string;
   companyName: string;
   regionBudget: number;
   totalSpent: number;
   remainingBudget: number;
   percentageUsed: number;
   status: 'SAFE' | 'WARNING' | 'EXCEEDED';
-  byCategory?: Array<{ categoryName: string; total: number }>;
+  byCategory?: Record<string, { spent: number; count: number; requests?: any[] }>;
 }
 
-interface RegionSummary {
-  totalBudget: number;
+interface RegionApiSummary {
   totalSpent: number;
-  totalRemaining: number;
-  regionCount: number;
+  somtelSpent: number;
+  bluekomSpent: number;
 }
 
 interface RegionData {
-  summary: RegionSummary;
+  summary: RegionApiSummary;
   rows: RegionRow[];
 }
 
@@ -96,13 +96,20 @@ interface EmployeeData {
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
+function formatDateLocal(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function getThisMonthRange() {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   return {
-    startDate: start.toISOString().slice(0, 10),
-    endDate: end.toISOString().slice(0, 10),
+    startDate: formatDateLocal(start),
+    endDate: formatDateLocal(end),
   };
 }
 
@@ -212,7 +219,13 @@ function RegionBudgetTab({
 
   if (!data) return null;
 
-  const { summary, rows } = data;
+  const { rows } = data;
+
+  // Compute summary from rows (backend summary doesn't include totalBudget/count)
+  const totalBudget = rows.reduce((acc, r) => acc + r.regionBudget, 0);
+  const totalSpent = rows.reduce((acc, r) => acc + r.totalSpent, 0);
+  const totalRemaining = rows.reduce((acc, r) => acc + r.remainingBudget, 0);
+  const regionCount = rows.length;
 
   return (
     <div className="space-y-5">
@@ -220,25 +233,25 @@ function RegionBudgetTab({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard
           label="Total Monthly Budget"
-          value={`$${fmt(summary.totalBudget)}`}
+          value={`$${fmt(totalBudget)}`}
           color="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
           icon={DollarSign}
         />
         <StatCard
           label="Total Spent"
-          value={`$${fmt(summary.totalSpent)}`}
+          value={`$${fmt(totalSpent)}`}
           color="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400"
           icon={TrendingUp}
         />
         <StatCard
           label="Remaining Balance"
-          value={`$${fmt(summary.totalRemaining)}`}
+          value={`$${fmt(totalRemaining)}`}
           color="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
           icon={TrendingDown}
         />
         <StatCard
           label="Regions"
-          value={String(summary.regionCount)}
+          value={String(regionCount)}
           color="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
           icon={BarChart3}
         />
@@ -280,7 +293,12 @@ function RegionBudgetTab({
                   const StatusIcon = cfg.icon;
                   const isOpen = expanded.has(row.regionId);
                   const pct = Math.min(row.percentageUsed, 100);
-                  const hasCategories = row.byCategory && row.byCategory.length > 0;
+                  const categoriesList = row.byCategory
+                    ? Object.entries(row.byCategory)
+                        .filter(([_, cat]) => cat.spent > 0 || cat.count > 0)
+                        .map(([name, cat]) => ({ categoryName: name, total: cat.spent, count: cat.count }))
+                    : [];
+                  const hasCategories = categoriesList.length > 0;
 
                   return (
                     <React.Fragment key={row.regionId}>
@@ -339,10 +357,10 @@ function RegionBudgetTab({
                               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
                                 Expense Category Breakdown
                               </p>
-                              {row.byCategory!.map((cat) => (
+                              {categoriesList.map((cat) => (
                                 <div key={cat.categoryName} className="flex items-center justify-between">
                                   <span className="text-sm text-slate-600 dark:text-slate-300">
-                                    {cat.categoryName}
+                                    {cat.categoryName} {cat.count > 0 && <span className="text-xs text-slate-400">({cat.count} requests)</span>}
                                   </span>
                                   <span className="text-sm font-semibold font-mono text-slate-800 dark:text-slate-100">
                                     ${fmt(cat.total)}
@@ -723,8 +741,8 @@ export const ReportsPage: React.FC = () => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const end = new Date(now.getFullYear(), now.getMonth(), 0);
-    setStartDate(start.toISOString().slice(0, 10));
-    setEndDate(end.toISOString().slice(0, 10));
+    setStartDate(formatDateLocal(start));
+    setEndDate(formatDateLocal(end));
   };
 
   // Filter employee data locally by search (for fast UI response)
