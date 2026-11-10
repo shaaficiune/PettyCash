@@ -1,7 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import {
+  Card,
+  CardContent,
+  Button,
+  Select,
+  Badge,
+} from '../components/ui';
 import {
   BarChart3,
   Users,
@@ -12,13 +19,18 @@ import {
   ChevronUp,
   TrendingUp,
   TrendingDown,
-  Minus,
   Eye,
   X,
   DollarSign,
   AlertTriangle,
   CheckCircle,
   Clock,
+  Calendar,
+  Building2,
+  MapPin,
+  Filter,
+  ArrowRight,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -113,26 +125,33 @@ function getThisMonthRange() {
   };
 }
 
+function getLastMonthRange() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const end = new Date(now.getFullYear(), now.getMonth(), 0);
+  return {
+    startDate: formatDateLocal(start),
+    endDate: formatDateLocal(end),
+  };
+}
+
 const STATUS_CONFIG = {
   SAFE: {
     label: 'Safe',
-    bg: 'bg-emerald-100 dark:bg-emerald-900/30',
-    text: 'text-emerald-700 dark:text-emerald-400',
+    bg: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
     bar: 'bg-emerald-500',
     icon: CheckCircle,
   },
   WARNING: {
-    label: 'Warning',
-    bg: 'bg-amber-100 dark:bg-amber-900/30',
-    text: 'text-amber-700 dark:text-amber-400',
+    label: 'Warning (80%+)',
+    bg: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800',
     bar: 'bg-amber-500',
     icon: AlertTriangle,
   },
   EXCEEDED: {
-    label: 'Exceeded',
-    bg: 'bg-red-100 dark:bg-red-900/30',
-    text: 'text-red-700 dark:text-red-400',
-    bar: 'bg-red-500',
+    label: 'Exceeded (100%+)',
+    bg: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+    bar: 'bg-rose-500',
     icon: TrendingUp,
   },
 };
@@ -148,489 +167,83 @@ const REQ_STATUS_LABELS: Record<string, string> = {
 };
 
 const REQ_STATUS_COLORS: Record<string, string> = {
-  PENDING_APPROVAL: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-  ACCOUNTANT_REVIEW: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  APPROVED: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-  PAYMENT_PROCESSING: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-  PAID: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400',
-  COMPLETED: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400',
-  REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
+  ACCOUNTANT_REVIEW: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800',
+  APPROVED: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
+  PAYMENT_PROCESSING: 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
+  PAID: 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
+  COMPLETED: 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
+  REJECTED: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800',
 };
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── KPI Metric Card ──────────────────────────────────────────────────────────
 
-function StatCard({
-  label,
+function MetricCard({
+  title,
   value,
-  sub,
-  color,
+  subtitle,
   icon: Icon,
+  variant = 'default',
 }: {
-  label: string;
+  title: string;
   value: string;
-  sub?: string;
-  color: string;
+  subtitle?: string;
   icon: React.ElementType;
+  variant?: 'blue' | 'amber' | 'emerald' | 'purple' | 'default';
 }) {
+  const styles = {
+    blue: {
+      bg: 'bg-blue-50 dark:bg-blue-950/30',
+      text: 'text-blue-600 dark:text-blue-400',
+      border: 'border-blue-100 dark:border-blue-900/40',
+    },
+    amber: {
+      bg: 'bg-amber-50 dark:bg-amber-950/30',
+      text: 'text-amber-600 dark:text-amber-400',
+      border: 'border-amber-100 dark:border-amber-900/40',
+    },
+    emerald: {
+      bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+      text: 'text-emerald-600 dark:text-emerald-400',
+      border: 'border-emerald-100 dark:border-emerald-900/40',
+    },
+    purple: {
+      bg: 'bg-purple-50 dark:bg-purple-950/30',
+      text: 'text-purple-600 dark:text-purple-400',
+      border: 'border-purple-100 dark:border-purple-900/40',
+    },
+    default: {
+      bg: 'bg-slate-100 dark:bg-slate-800',
+      text: 'text-slate-600 dark:text-slate-400',
+      border: 'border-slate-200 dark:border-slate-700',
+    },
+  }[variant];
+
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 flex items-start gap-3 shadow-sm">
-      <div className={`p-2.5 rounded-lg ${color}`}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{label}</p>
-        <p className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-0.5">{value}</p>
-        {sub && <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
-      </div>
-    </div>
+    <Card className="shadow-xs hover:shadow-sm transition-shadow">
+      <CardContent className="p-4 flex items-center gap-3.5">
+        <div className={`p-3 rounded-xl border ${styles.bg} ${styles.border} ${styles.text} shrink-0`}>
+          <Icon className="w-5 h-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+            {title}
+          </p>
+          <p className="text-xl font-bold font-mono tracking-tight text-foreground mt-0.5">
+            {value}
+          </p>
+          {subtitle && (
+            <p className="text-[11px] text-muted-foreground font-medium mt-0.5 truncate">
+              {subtitle}
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-// ─── Region Budget Tab ────────────────────────────────────────────────────────
-
-function RegionBudgetTab({
-  data,
-  loading,
-  onExport,
-}: {
-  data: RegionData | null;
-  loading: boolean;
-  onExport: () => void;
-}) {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
-  const toggle = (id: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <RefreshCw className="w-6 h-6 animate-spin text-slate-400" />
-        <span className="ml-2 text-slate-500">Loading regional data…</span>
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
-  const { rows } = data;
-
-  // Compute summary from rows (backend summary doesn't include totalBudget/count)
-  const totalBudget = rows.reduce((acc, r) => acc + r.regionBudget, 0);
-  const totalSpent = rows.reduce((acc, r) => acc + r.totalSpent, 0);
-  const totalRemaining = rows.reduce((acc, r) => acc + r.remainingBudget, 0);
-  const regionCount = rows.length;
-
-  return (
-    <div className="space-y-5">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard
-          label="Total Monthly Budget"
-          value={`$${fmt(totalBudget)}`}
-          color="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-          icon={DollarSign}
-        />
-        <StatCard
-          label="Total Spent"
-          value={`$${fmt(totalSpent)}`}
-          color="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400"
-          icon={TrendingUp}
-        />
-        <StatCard
-          label="Remaining Balance"
-          value={`$${fmt(totalRemaining)}`}
-          color="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
-          icon={TrendingDown}
-        />
-        <StatCard
-          label="Regions"
-          value={String(regionCount)}
-          color="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
-          icon={BarChart3}
-        />
-      </div>
-
-      {/* Export button */}
-      <div className="flex justify-end">
-        <button
-          onClick={onExport}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
-        >
-          <Download className="w-4 h-4" />
-          Export Excel
-        </button>
-      </div>
-
-      {/* Table */}
-      {rows.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">No regional data for this period.</div>
-      ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Region</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Company</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Budget</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Spent</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Remaining</th>
-                  <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 min-w-[160px]">Utilization</th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Status</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                {rows.map((row) => {
-                  const cfg = STATUS_CONFIG[row.status] || STATUS_CONFIG.SAFE;
-                  const StatusIcon = cfg.icon;
-                  const isOpen = expanded.has(row.regionId);
-                  const pct = Math.min(row.percentageUsed, 100);
-                  const categoriesList = row.byCategory
-                    ? Object.entries(row.byCategory)
-                        .filter(([_, cat]) => cat.spent > 0 || cat.count > 0)
-                        .map(([name, cat]) => ({ categoryName: name, total: cat.spent, count: cat.count }))
-                    : [];
-                  const hasCategories = categoriesList.length > 0;
-
-                  return (
-                    <React.Fragment key={row.regionId}>
-                      <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">
-                          {row.regionName}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{row.companyName}</td>
-                        <td className="px-4 py-3 text-right font-mono text-slate-700 dark:text-slate-200">
-                          ${fmt(row.regionBudget)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono font-semibold text-orange-600 dark:text-orange-400">
-                          ${fmt(row.totalSpent)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          ${fmt(row.remainingBudget)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${cfg.bar}`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 w-10 text-right">
-                              {row.percentageUsed}%
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}
-                          >
-                            <StatusIcon className="w-3 h-3" />
-                            {cfg.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {hasCategories && (
-                            <button
-                              onClick={() => toggle(row.regionId)}
-                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                              title="View category breakdown"
-                            >
-                              {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                      {/* Category breakdown row */}
-                      {isOpen && hasCategories && (
-                        <tr>
-                          <td colSpan={8} className="px-6 pb-3 bg-slate-50 dark:bg-slate-900/50">
-                            <div className="mt-2 ml-4 space-y-1.5">
-                              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                                Expense Category Breakdown
-                              </p>
-                              {categoriesList.map((cat) => (
-                                <div key={cat.categoryName} className="flex items-center justify-between">
-                                  <span className="text-sm text-slate-600 dark:text-slate-300">
-                                    {cat.categoryName} {cat.count > 0 && <span className="text-xs text-slate-400">({cat.count} requests)</span>}
-                                  </span>
-                                  <span className="text-sm font-semibold font-mono text-slate-800 dark:text-slate-100">
-                                    ${fmt(cat.total)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Employee Spending Tab ────────────────────────────────────────────────────
-
-function EmployeeSpendingTab({
-  data,
-  loading,
-  search,
-  onSearchChange,
-  onExport,
-}: {
-  data: EmployeeData | null;
-  loading: boolean;
-  search: string;
-  onSearchChange: (v: string) => void;
-  onExport: () => void;
-}) {
-  const [drillEmployee, setDrillEmployee] = useState<EmployeeRow | null>(null);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <RefreshCw className="w-6 h-6 animate-spin text-slate-400" />
-        <span className="ml-2 text-slate-500">Loading employee data…</span>
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
-  const { summary, employees } = data;
-
-  return (
-    <div className="space-y-5">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard
-          label="Total Employees"
-          value={String(summary.totalEmployees)}
-          color="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-          icon={Users}
-        />
-        <StatCard
-          label="Total Approved"
-          value={`$${fmt(summary.totalApproved)}`}
-          color="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
-          icon={CheckCircle}
-        />
-        <StatCard
-          label="Total Paid"
-          value={`$${fmt(summary.totalPaid)}`}
-          color="bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"
-          icon={DollarSign}
-        />
-        <StatCard
-          label="Pending Settlement"
-          value={`$${fmt(summary.totalPendingSettlementAmount)}`}
-          sub={`${summary.totalPendingSettlementCount} items`}
-          color="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
-          icon={Clock}
-        />
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-between">
-        <div className="relative max-w-sm w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search by name, username or region…"
-            className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-          />
-        </div>
-        <button
-          onClick={onExport}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors whitespace-nowrap"
-        >
-          <Download className="w-4 h-4" />
-          Export Excel
-        </button>
-      </div>
-
-      {/* Table */}
-      {employees.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">No employee data for this period.</div>
-      ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Employee</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Region</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Department</th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Requests</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Requested</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Approved</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Paid</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Pending Settle</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                {employees.map((emp) => (
-                  <tr key={emp.userId} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-900 dark:text-slate-100">{emp.fullName}</div>
-                      <div className="text-xs text-slate-400">{emp.username} · {emp.phone}</div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{emp.regionName}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300 text-xs">{emp.departmentName}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold text-xs">
-                        {emp.totalRequests}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-slate-700 dark:text-slate-200">
-                      ${fmt(emp.totalRequested)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-blue-700 dark:text-blue-400">
-                      ${fmt(emp.totalApproved)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                      ${fmt(emp.totalPaid)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {emp.pendingSettlementCount > 0 ? (
-                        <div>
-                          <div className="font-mono text-amber-600 dark:text-amber-400 font-semibold">
-                            ${fmt(emp.pendingSettlementAmount)}
-                          </div>
-                          <div className="text-xs text-slate-400">{emp.pendingSettlementCount} item(s)</div>
-                        </div>
-                      ) : (
-                        <span className="text-slate-300 dark:text-slate-600">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => setDrillEmployee(emp)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-400 text-xs font-medium transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Drill-down Modal */}
-      {drillEmployee && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-        >
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {drillEmployee.fullName}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {drillEmployee.username} · {drillEmployee.regionName} · {drillEmployee.departmentName}
-                </p>
-              </div>
-              <button
-                onClick={() => setDrillEmployee(null)}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Summary strip */}
-            <div className="grid grid-cols-3 gap-px bg-slate-200 dark:bg-slate-700">
-              {[
-                { label: 'Total Requested', value: `$${fmt(drillEmployee.totalRequested)}` },
-                { label: 'Total Approved', value: `$${fmt(drillEmployee.totalApproved)}` },
-                { label: 'Pending Settlement', value: `$${fmt(drillEmployee.pendingSettlementAmount)}` },
-              ].map((s) => (
-                <div key={s.label} className="bg-slate-50 dark:bg-slate-900 px-4 py-3 text-center">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{s.label}</p>
-                  <p className="text-base font-bold text-slate-900 dark:text-slate-100 mt-0.5">{s.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Requests list */}
-            <div className="overflow-y-auto flex-1 p-4">
-              {drillEmployee.requests.length === 0 ? (
-                <p className="text-center text-slate-400 py-10">No requests found.</p>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-900 rounded-lg">
-                      <th className="text-left px-3 py-2 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase">Ref #</th>
-                      <th className="text-left px-3 py-2 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase">Purpose</th>
-                      <th className="text-right px-3 py-2 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase">Requested</th>
-                      <th className="text-right px-3 py-2 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase">Approved</th>
-                      <th className="text-center px-3 py-2 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase">Status</th>
-                      <th className="text-right px-3 py-2 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                    {drillEmployee.requests.map((r) => (
-                      <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                        <td className="px-3 py-2.5 font-mono text-xs text-slate-500">{r.requestNumber}</td>
-                        <td className="px-3 py-2.5 text-slate-700 dark:text-slate-200 max-w-[200px] truncate">
-                          {r.purpose}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-slate-700 dark:text-slate-200">
-                          ${fmt(r.requestedAmount)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono font-semibold text-blue-700 dark:text-blue-400">
-                          ${fmt(r.approvedAmount)}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          <span
-                            className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
-                              REQ_STATUS_COLORS[r.status] || 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {REQ_STATUS_LABELS[r.status] || r.status}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 text-right text-xs text-slate-400">
-                          {r.date ? new Date(r.date).toLocaleDateString() : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Reports Page ────────────────────────────────────────────────────────
 
 export const ReportsPage: React.FC = () => {
   const { user } = useAuth();
@@ -648,28 +261,41 @@ export const ReportsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'region' | 'employee'>('region');
 
   // Filters
-  const { startDate: defaultStart, endDate: defaultEnd } = getThisMonthRange();
-  const [startDate, setStartDate] = useState(defaultStart);
-  const [endDate, setEndDate] = useState(defaultEnd);
+  const { startDate: initialStart, endDate: initialEnd } = getThisMonthRange();
+  const [periodPreset, setPeriodPreset] = useState<'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM'>('THIS_MONTH');
+  const [startDate, setStartDate] = useState(initialStart);
+  const [endDate, setEndDate] = useState(initialEnd);
   const [companyId, setCompanyId] = useState('');
   const [regionId, setRegionId] = useState('');
   const [statusScope, setStatusScope] = useState('APPROVED_AND_PAID');
   const [empSearch, setEmpSearch] = useState('');
 
-  // Data
+  // Dropdown options
+  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+  const [regions, setRegions] = useState<{ id: string; name: string; companyId?: string; company?: { id: string } }[]>([]);
+
+  // Data states
   const [regionData, setRegionData] = useState<RegionData | null>(null);
   const [regionLoading, setRegionLoading] = useState(false);
   const [empData, setEmpData] = useState<EmployeeData | null>(null);
   const [empLoading, setEmpLoading] = useState(false);
 
-  // Companies & Regions for filter dropdowns
-  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
-  const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
+  // Expanded region category breakdowns
+  const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
+
+  // Drill-down modal for employee
+  const [drillEmployee, setDrillEmployee] = useState<EmployeeRow | null>(null);
 
   useEffect(() => {
     api.get('/companies').then((r) => setCompanies(r.data)).catch(() => {});
     api.get('/regions').then((r) => setRegions(r.data)).catch(() => {});
   }, []);
+
+  // Filter visible regions based on selected company
+  const visibleRegions = useMemo(() => {
+    if (!companyId) return regions;
+    return regions.filter((r) => (r.companyId || r.company?.id) === companyId);
+  }, [regions, companyId]);
 
   const fetchRegionData = useCallback(async () => {
     setRegionLoading(true);
@@ -682,7 +308,7 @@ export const ReportsPage: React.FC = () => {
       const res = await api.get('/reports/region-budget-heads', { params });
       setRegionData(res.data);
     } catch (err) {
-      console.error('Region budget load error', err);
+      console.error('Failed to load regional budget report', err);
     } finally {
       setRegionLoading(false);
     }
@@ -699,220 +325,674 @@ export const ReportsPage: React.FC = () => {
       const res = await api.get('/reports/employee-spending', { params });
       setEmpData(res.data);
     } catch (err) {
-      console.error('Employee spending load error', err);
+      console.error('Failed to load employee spending report', err);
     } finally {
       setEmpLoading(false);
     }
   }, [startDate, endDate, companyId, regionId, statusScope]);
 
-  // Fetch both on first load and filter changes
+  // Refetch when filters change
   useEffect(() => {
     fetchRegionData();
     fetchEmpData();
   }, [fetchRegionData, fetchEmpData]);
 
-  const handleExportRegion = async () => {
+  const handlePresetChange = (preset: 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM') => {
+    setPeriodPreset(preset);
+    if (preset === 'THIS_MONTH') {
+      const { startDate: s, endDate: e } = getThisMonthRange();
+      setStartDate(s);
+      setEndDate(e);
+    } else if (preset === 'LAST_MONTH') {
+      const { startDate: s, endDate: e } = getLastMonthRange();
+      setStartDate(s);
+      setEndDate(e);
+    }
+  };
+
+  const handleExportCurrent = () => {
     const params = new URLSearchParams({ statusScope });
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
     if (companyId) params.append('companyId', companyId);
     if (regionId) params.append('regionId', regionId);
     const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '');
-    window.open(`${baseUrl}/reports/export-region-budget-excel?${params.toString()}`, '_blank');
+
+    if (activeTab === 'region') {
+      window.open(`${baseUrl}/reports/export-region-budget-excel?${params.toString()}`, '_blank');
+    } else {
+      window.open(`${baseUrl}/reports/export-employee-spending-excel?${params.toString()}`, '_blank');
+    }
   };
 
-  const handleExportEmployee = async () => {
-    const params = new URLSearchParams({ statusScope });
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-    if (companyId) params.append('companyId', companyId);
-    if (regionId) params.append('regionId', regionId);
-    const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '');
-    window.open(`${baseUrl}/reports/export-employee-spending-excel?${params.toString()}`, '_blank');
+  const toggleRegionExpand = (id: string) => {
+    setExpandedRegions((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
-  const setThisMonth = () => {
-    const { startDate: s, endDate: e } = getThisMonthRange();
-    setStartDate(s);
-    setEndDate(e);
-  };
+  // Compute live aggregates from region rows
+  const regionRows = regionData?.rows || [];
+  const totalRegionBudget = regionRows.reduce((acc, r) => acc + (Number(r.regionBudget) || 0), 0);
+  const totalRegionSpent = regionRows.reduce((acc, r) => acc + (Number(r.totalSpent) || 0), 0);
+  const totalRegionRemaining = regionRows.reduce((acc, r) => acc + (Number(r.remainingBudget) || 0), 0);
+  const totalRegionsCount = regionRows.length;
 
-  const setLastMonth = () => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const end = new Date(now.getFullYear(), now.getMonth(), 0);
-    setStartDate(formatDateLocal(start));
-    setEndDate(formatDateLocal(end));
-  };
+  // Filtered employees by search
+  const filteredEmployees = useMemo(() => {
+    if (!empData?.employees) return [];
+    if (!empSearch.trim()) return empData.employees;
+    const q = empSearch.toLowerCase().trim();
+    return empData.employees.filter(
+      (e) =>
+        e.fullName.toLowerCase().includes(q) ||
+        e.username.toLowerCase().includes(q) ||
+        e.regionName.toLowerCase().includes(q) ||
+        e.phone.toLowerCase().includes(q)
+    );
+  }, [empData, empSearch]);
 
-  // Filter employee data locally by search (for fast UI response)
-  const filteredEmpData: EmployeeData | null = empData
-    ? {
-        ...empData,
-        employees: empSearch.trim()
-          ? empData.employees.filter(
-              (e) =>
-                e.fullName.toLowerCase().includes(empSearch.toLowerCase()) ||
-                e.username.toLowerCase().includes(empSearch.toLowerCase()) ||
-                e.regionName.toLowerCase().includes(empSearch.toLowerCase()) ||
-                e.phone.toLowerCase().includes(empSearch.toLowerCase())
-            )
-          : empData.employees,
-      }
-    : null;
+  const empSummary = empData?.summary || {
+    totalEmployees: 0,
+    totalRequests: 0,
+    totalRequested: 0,
+    totalApproved: 0,
+    totalPaid: 0,
+    totalPendingSettlementAmount: 0,
+    totalPendingSettlementCount: 0,
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-6 space-y-5">
-      {/* Page Header */}
+    <div className="space-y-4 font-sans pb-10">
+      {/* ─── 1. HEADER SECTION ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2 font-display">
+            <BarChart3 className="h-5 w-5 text-[#F5B700]" />
             Budget &amp; User Reports
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Regional budget utilization and per-employee spending breakdown
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Regional budget remaining balances and per-employee cash advance &amp; spending summary
           </p>
         </div>
-        <button
-          onClick={() => { fetchRegionData(); fetchEmpData(); }}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { fetchRegionData(); fetchEmpData(); }}
+            disabled={regionLoading || empLoading}
+            className="gap-1.5 text-xs h-8.5 font-medium cursor-pointer"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${regionLoading || empLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleExportCurrent}
+            className="gap-1.5 text-xs h-8.5 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            <span>Export Excel</span>
+          </Button>
+        </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
-        <div className="flex flex-wrap gap-3 items-end">
-          {/* Period shortcuts */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Period</label>
-            <div className="flex gap-2">
+      {/* ─── 2. EXECUTIVE FILTER HUB ─── */}
+      <Card className="shadow-xs border-border/80">
+        <CardContent className="p-3.5 space-y-3">
+          {/* Row 1: Period presets & date picker */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Quick Segmented Period Controls */}
+            <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/40 shrink-0">
               <button
-                onClick={setThisMonth}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+                type="button"
+                onClick={() => handlePresetChange('THIS_MONTH')}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                  periodPreset === 'THIS_MONTH'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
                 This Month
               </button>
               <button
-                onClick={setLastMonth}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+                type="button"
+                onClick={() => handlePresetChange('LAST_MONTH')}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                  periodPreset === 'LAST_MONTH'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
                 Last Month
               </button>
+              <button
+                type="button"
+                onClick={() => setPeriodPreset('CUSTOM')}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                  periodPreset === 'CUSTOM'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Custom Range
+              </button>
+            </div>
+
+            {/* Unified Date Range Capsule */}
+            <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-1.5 text-xs shrink-0 shadow-2xs">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setPeriodPreset('CUSTOM');
+                }}
+                className="bg-transparent text-xs font-medium focus:outline-none text-foreground cursor-pointer"
+                title="Start Date"
+              />
+              <span className="text-muted-foreground text-xs font-bold px-0.5">→</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setPeriodPreset('CUSTOM');
+                }}
+                className="bg-transparent text-xs font-medium focus:outline-none text-foreground cursor-pointer"
+                title="End Date"
+              />
+            </div>
+
+            {/* Company Filter (Super Admin only) */}
+            {user?.role === 'SUPER_ADMIN' && (
+              <div className="flex items-center gap-1.5 min-w-[150px] flex-1">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Select
+                  value={companyId}
+                  onChange={(e) => {
+                    setCompanyId(e.target.value);
+                    setRegionId('');
+                  }}
+                  className="text-xs h-8.5 font-medium"
+                >
+                  <option value="">All Companies</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </Select>
+              </div>
+            )}
+
+            {/* Region Filter */}
+            <div className="flex items-center gap-1.5 min-w-[150px] flex-1">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Select
+                value={regionId}
+                onChange={(e) => setRegionId(e.target.value)}
+                className="text-xs h-8.5 font-medium"
+              >
+                <option value="">All Regions</option>
+                {visibleRegions.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Status Scope Filter */}
+            <div className="flex items-center gap-1.5 min-w-[160px] flex-1">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Select
+                value={statusScope}
+                onChange={(e) => setStatusScope(e.target.value)}
+                className="text-xs h-8.5 font-medium"
+              >
+                <option value="APPROVED_AND_PAID">Approved &amp; Paid</option>
+                <option value="PAID_ONLY">Paid Only</option>
+                <option value="ALL">All Statuses</option>
+              </Select>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Date range */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">From</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">To</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
-          </div>
+      {/* ─── 3. SEGMENTED REPORT TABS ─── */}
+      <div className="flex items-center justify-between border-b border-border pb-1">
+        <div className="inline-flex p-1 bg-muted/60 dark:bg-slate-900 rounded-xl border border-border gap-1">
+          <button
+            onClick={() => setActiveTab('region')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'region'
+                ? 'bg-background text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4 text-primary" />
+            <span>Regional Budget Limits</span>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4.5 bg-muted/50">
+              {totalRegionsCount}
+            </Badge>
+          </button>
 
-          {/* Company filter */}
-          {user?.role === 'SUPER_ADMIN' && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Company</label>
-              <select
-                value={companyId}
-                onChange={(e) => setCompanyId(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          <button
+            onClick={() => setActiveTab('employee')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'employee'
+                ? 'bg-background text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Users className="w-4 h-4 text-primary" />
+            <span>Employee Spending</span>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4.5 bg-muted/50">
+              {empSummary.totalEmployees}
+            </Badge>
+          </button>
+        </div>
+
+        {activeTab === 'employee' && (
+          <div className="relative w-64">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              value={empSearch}
+              onChange={(e) => setEmpSearch(e.target.value)}
+              placeholder="Search employee, phone..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            {empSearch && (
+              <button
+                onClick={() => setEmpSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                <option value="">All Companies</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ─── 4. KPI STAT CARDS ─── */}
+      {activeTab === 'region' ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <MetricCard
+            title="Total Monthly Budget"
+            value={`$${fmt(totalRegionBudget)}`}
+            subtitle="Combined regional caps"
+            icon={DollarSign}
+            variant="blue"
+          />
+          <MetricCard
+            title="Total Spent So Far"
+            value={`$${fmt(totalRegionSpent)}`}
+            subtitle="Expenses recorded"
+            icon={TrendingUp}
+            variant="amber"
+          />
+          <MetricCard
+            title="Remaining Balance"
+            value={`$${fmt(totalRegionRemaining)}`}
+            subtitle="Available uncommitted limit"
+            icon={TrendingDown}
+            variant="emerald"
+          />
+          <MetricCard
+            title="Active Regions"
+            value={String(totalRegionsCount)}
+            subtitle="Configured territories"
+            icon={MapPin}
+            variant="purple"
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <MetricCard
+            title="Active Employees"
+            value={String(empSummary.totalEmployees)}
+            subtitle={`${empSummary.totalRequests} total requests`}
+            icon={Users}
+            variant="blue"
+          />
+          <MetricCard
+            title="Total Approved"
+            value={`$${fmt(empSummary.totalApproved)}`}
+            subtitle={`Requested: $${fmt(empSummary.totalRequested)}`}
+            icon={CheckCircle}
+            variant="emerald"
+          />
+          <MetricCard
+            title="Total Paid"
+            value={`$${fmt(empSummary.totalPaid)}`}
+            subtitle="Disbursed petty cash"
+            icon={DollarSign}
+            variant="blue"
+          />
+          <MetricCard
+            title="Pending Settlement"
+            value={`$${fmt(empSummary.totalPendingSettlementAmount)}`}
+            subtitle={`${empSummary.totalPendingSettlementCount} advances unsettled`}
+            icon={Clock}
+            variant="amber"
+          />
+        </div>
+      )}
+
+      {/* ─── 5. TAB CONTENT: REGIONAL BUDGETS ─── */}
+      {activeTab === 'region' && (
+        <Card className="shadow-xs overflow-hidden">
+          {regionLoading ? (
+            <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Loading regional budget records...</span>
+            </div>
+          ) : regionRows.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground text-sm">
+              No regional budget records found for this period.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
+                    <th className="text-left px-4 py-3">Region</th>
+                    <th className="text-left px-4 py-3">Company</th>
+                    <th className="text-right px-4 py-3 font-mono">Monthly Budget</th>
+                    <th className="text-right px-4 py-3 font-mono">Total Spent</th>
+                    <th className="text-right px-4 py-3 font-mono">Remaining Balance</th>
+                    <th className="px-4 py-3 min-w-[160px]">Budget Utilization</th>
+                    <th className="text-center px-4 py-3">Status</th>
+                    <th className="px-3 py-3 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {regionRows.map((row) => {
+                    const cfg = STATUS_CONFIG[row.status] || STATUS_CONFIG.SAFE;
+                    const StatusIcon = cfg.icon;
+                    const isOpen = expandedRegions.has(row.regionId);
+                    const pct = Math.min(row.percentageUsed, 100);
+
+                    const categoriesList = row.byCategory
+                      ? Object.entries(row.byCategory)
+                          .filter(([_, cat]) => cat.spent > 0 || cat.count > 0)
+                          .map(([name, cat]) => ({ categoryName: name, total: cat.spent, count: cat.count }))
+                      : [];
+                    const hasCategories = categoriesList.length > 0;
+
+                    return (
+                      <React.Fragment key={row.regionId}>
+                        <tr className="hover:bg-muted/40 transition-colors">
+                          <td className="px-4 py-3 font-bold text-foreground">
+                            {row.regionName}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            <span className="font-medium text-foreground">{row.companyName}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-muted-foreground font-semibold">
+                            ${fmt(row.regionBudget)}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono font-bold text-amber-600 dark:text-amber-400">
+                            ${fmt(row.totalSpent)}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            ${fmt(row.remainingBudget)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden border border-border/40">
+                                <div
+                                  className={`h-full rounded-full transition-all ${cfg.bar}`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <span className="text-[11px] font-mono font-bold text-foreground w-10 text-right">
+                                {row.percentageUsed}%
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold border ${cfg.bg}`}
+                            >
+                              <StatusIcon className="w-3 h-3 shrink-0" />
+                              {cfg.label}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-right">
+                            {hasCategories && (
+                              <button
+                                onClick={() => toggleRegionExpand(row.regionId)}
+                                className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                                title="Expand category breakdown"
+                              >
+                                {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+
+                        {/* Collapsible Expense Category Details */}
+                        {isOpen && hasCategories && (
+                          <tr className="bg-muted/30">
+                            <td colSpan={8} className="px-6 py-3 border-t border-border/60">
+                              <div className="space-y-1.5 max-w-lg">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                  Expense Category Breakdown ({row.regionName})
+                                </p>
+                                <div className="divide-y divide-border/60 bg-background rounded-lg border border-border p-2">
+                                  {categoriesList.map((cat) => (
+                                    <div key={cat.categoryName} className="flex items-center justify-between py-1 px-1.5 text-xs">
+                                      <span className="text-muted-foreground font-medium">
+                                        {cat.categoryName}{' '}
+                                        {cat.count > 0 && (
+                                          <span className="text-[10px] text-muted-foreground/80">
+                                            ({cat.count} requests)
+                                          </span>
+                                        )}
+                                      </span>
+                                      <span className="font-mono font-bold text-foreground">
+                                        ${fmt(cat.total)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
+        </Card>
+      )}
 
-          {/* Region filter */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Region</label>
-            <select
-              value={regionId}
-              onChange={(e) => setRegionId(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            >
-              <option value="">All Regions</option>
-              {regions.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
-          </div>
+      {/* ─── 6. TAB CONTENT: EMPLOYEE SPENDING ─── */}
+      {activeTab === 'employee' && (
+        <Card className="shadow-xs overflow-hidden">
+          {empLoading ? (
+            <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Loading employee spending records...</span>
+            </div>
+          ) : filteredEmployees.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground text-sm">
+              No employee spending records matching your filters.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
+                    <th className="text-left px-4 py-3">Employee Details</th>
+                    <th className="text-left px-4 py-3">Region &amp; Dept</th>
+                    <th className="text-center px-4 py-3">Requests</th>
+                    <th className="text-right px-4 py-3 font-mono">Requested</th>
+                    <th className="text-right px-4 py-3 font-mono">Approved</th>
+                    <th className="text-right px-4 py-3 font-mono">Paid</th>
+                    <th className="text-right px-4 py-3 font-mono">Pending Settlement</th>
+                    <th className="text-center px-4 py-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredEmployees.map((emp) => (
+                    <tr key={emp.userId} className="hover:bg-muted/40 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-foreground text-xs">{emp.fullName}</div>
+                        <div className="text-[11px] text-muted-foreground font-mono">
+                          {emp.username} · {emp.phone}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-foreground text-xs">{emp.regionName}</div>
+                        <div className="text-[11px] text-muted-foreground">{emp.departmentName}</div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Badge variant="outline" className="font-mono text-xs font-bold px-2 py-0.5">
+                          {emp.totalRequests}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-muted-foreground">
+                        ${fmt(emp.totalRequested)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-blue-600 dark:text-blue-400">
+                        ${fmt(emp.totalApproved)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        ${fmt(emp.totalPaid)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {emp.pendingSettlementCount > 0 ? (
+                          <div>
+                            <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                              ${fmt(emp.pendingSettlementAmount)}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground block">
+                              {emp.pendingSettlementCount} advance(s)
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground font-mono">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => setDrillEmployee(emp)}
+                          className="gap-1 h-7 px-2.5 text-xs font-semibold cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-primary" />
+                          <span>View History</span>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
 
-          {/* Status scope */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Include</label>
-            <select
-              value={statusScope}
-              onChange={(e) => setStatusScope(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            >
-              <option value="APPROVED_AND_PAID">Approved &amp; Paid</option>
-              <option value="PAID_ONLY">Paid Only</option>
-              <option value="ALL">All Statuses</option>
-            </select>
+      {/* ─── 7. EMPLOYEE DRILL-DOWN HISTORY MODAL ─── */}
+      {drillEmployee && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0"
+          onClick={() => setDrillEmployee(null)}
+        >
+          <div
+            className="bg-card rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col border border-border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  {drillEmployee.fullName} — Request History
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {drillEmployee.companyName} · {drillEmployee.regionName} · {drillEmployee.departmentName}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setDrillEmployee(null)}
+                className="cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Quick Stat Summary Strip */}
+            <div className="grid grid-cols-3 divide-x divide-border bg-muted/20 border-b border-border">
+              <div className="p-3 text-center">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Total Requested</span>
+                <span className="font-mono font-bold text-foreground text-sm">${fmt(drillEmployee.totalRequested)}</span>
+              </div>
+              <div className="p-3 text-center">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Total Approved</span>
+                <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">${fmt(drillEmployee.totalApproved)}</span>
+              </div>
+              <div className="p-3 text-center">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Pending Settlement</span>
+                <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-sm">${fmt(drillEmployee.pendingSettlementAmount)}</span>
+              </div>
+            </div>
+
+            {/* Requests List */}
+            <div className="overflow-y-auto flex-1 p-3">
+              {drillEmployee.requests.length === 0 ? (
+                <p className="text-center text-muted-foreground py-10 text-xs">No specific requests on record.</p>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
+                      <th className="text-left px-3 py-2 font-mono">Ref #</th>
+                      <th className="text-left px-3 py-2">Purpose</th>
+                      <th className="text-right px-3 py-2 font-mono">Requested</th>
+                      <th className="text-right px-3 py-2 font-mono">Approved</th>
+                      <th className="text-center px-3 py-2">Status</th>
+                      <th className="text-right px-3 py-2">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {drillEmployee.requests.map((r) => (
+                      <tr key={r.id} className="hover:bg-muted/30">
+                        <td className="px-3 py-2 font-mono font-bold text-primary">{r.requestNumber}</td>
+                        <td className="px-3 py-2 text-foreground font-medium max-w-[220px] truncate">{r.purpose}</td>
+                        <td className="px-3 py-2 text-right font-mono text-muted-foreground">${fmt(r.requestedAmount)}</td>
+                        <td className="px-3 py-2 text-right font-mono font-bold text-blue-600 dark:text-blue-400">${fmt(r.approvedAmount)}</td>
+                        <td className="px-3 py-2 text-center">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              REQ_STATUS_COLORS[r.status] || 'bg-muted text-muted-foreground'
+                            }`}
+                          >
+                            {REQ_STATUS_LABELS[r.status] || r.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right text-muted-foreground">
+                          {r.date ? new Date(r.date).toLocaleDateString() : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm w-fit">
-        <button
-          onClick={() => setActiveTab('region')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'region'
-              ? 'bg-[#0D1C3D] text-white shadow'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-          }`}
-        >
-          <BarChart3 className="w-4 h-4" />
-          Regional Budgets
-        </button>
-        <button
-          onClick={() => setActiveTab('employee')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'employee'
-              ? 'bg-[#0D1C3D] text-white shadow'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          Employee Spending
-        </button>
-      </div>
-
-      {/* Tab content */}
-      {activeTab === 'region' ? (
-        <RegionBudgetTab
-          data={regionData}
-          loading={regionLoading}
-          onExport={handleExportRegion}
-        />
-      ) : (
-        <EmployeeSpendingTab
-          data={filteredEmpData}
-          loading={empLoading}
-          search={empSearch}
-          onSearchChange={setEmpSearch}
-          onExport={handleExportEmployee}
-        />
       )}
     </div>
   );
