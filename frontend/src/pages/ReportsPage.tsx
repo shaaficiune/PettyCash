@@ -267,7 +267,7 @@ export const ReportsPage: React.FC = () => {
   const [endDate, setEndDate] = useState(initialEnd);
   const [companyId, setCompanyId] = useState('');
   const [regionId, setRegionId] = useState('');
-  const [statusScope, setStatusScope] = useState('APPROVED_AND_PAID');
+  const [statusScope, setStatusScope] = useState('PAID_ONLY');
   const [empSearch, setEmpSearch] = useState('');
 
   // Dropdown options
@@ -375,7 +375,15 @@ export const ReportsPage: React.FC = () => {
   };
 
   // Compute live aggregates from region rows
-  const regionRows = regionData?.rows || [];
+  const rawRegionRows = regionData?.rows || [];
+  const regionRows = useMemo(() => {
+    return [...rawRegionRows].sort((a, b) => {
+      const cComp = a.companyName.localeCompare(b.companyName);
+      if (cComp !== 0) return cComp;
+      return a.regionName.localeCompare(b.regionName);
+    });
+  }, [rawRegionRows]);
+
   const totalRegionBudget = regionRows.reduce((acc, r) => acc + (Number(r.regionBudget) || 0), 0);
   const totalRegionSpent = regionRows.reduce((acc, r) => acc + (Number(r.totalSpent) || 0), 0);
   const totalRegionRemaining = regionRows.reduce((acc, r) => acc + (Number(r.remainingBudget) || 0), 0);
@@ -511,28 +519,58 @@ export const ReportsPage: React.FC = () => {
               />
             </div>
 
-            {/* Company Filter (Super Admin only) */}
-            {user?.role === 'SUPER_ADMIN' && (
-              <div className="flex items-center gap-1.5 min-w-[150px] flex-1">
-                <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <Select
-                  value={companyId}
-                  onChange={(e) => {
-                    setCompanyId(e.target.value);
-                    setRegionId('');
-                  }}
-                  className="text-xs h-8.5 font-medium"
-                >
-                  <option value="">All Companies</option>
+            {/* Company Filter & Quick Toggle (Super Admin, Accountant, Approval Two) */}
+            {(user?.role === 'SUPER_ADMIN' || user?.role === 'ACCOUNTANT' || user?.role === 'APPROVAL_TWO') && (
+              <>
+                <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/40 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => { setCompanyId(''); setRegionId(''); }}
+                    className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                      companyId === ''
+                        ? 'bg-primary text-primary-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Both Companies
+                  </button>
                   {companies.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { setCompanyId(c.id); setRegionId(''); }}
+                      className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                        companyId === c.id
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {c.name}
+                    </button>
                   ))}
-                </Select>
-              </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 min-w-[140px] flex-1">
+                  <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <Select
+                    value={companyId}
+                    onChange={(e) => {
+                      setCompanyId(e.target.value);
+                      setRegionId('');
+                    }}
+                    className="text-xs h-8.5 font-medium"
+                  >
+                    <option value="">All Companies</option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </Select>
+                </div>
+              </>
             )}
 
-            {/* Region Filter */}
-            <div className="flex items-center gap-1.5 min-w-[150px] flex-1">
+            {/* Region Filter — Grouped by Company when All Companies chosen */}
+            <div className="flex items-center gap-1.5 min-w-[160px] flex-1">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Select
                 value={regionId}
@@ -540,22 +578,40 @@ export const ReportsPage: React.FC = () => {
                 className="text-xs h-8.5 font-medium"
               >
                 <option value="">All Regions</option>
-                {visibleRegions.map((r) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
+                {(() => {
+                  if (companyId) {
+                    return visibleRegions.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ));
+                  }
+                  // Group by Company
+                  const groups: Record<string, typeof regions> = {};
+                  regions.forEach((r) => {
+                    const cName = companies.find((c) => c.id === (r.companyId || r.company?.id))?.name || 'Other';
+                    if (!groups[cName]) groups[cName] = [];
+                    groups[cName].push(r);
+                  });
+                  return Object.entries(groups).map(([cName, rList]) => (
+                    <optgroup key={cName} label={`── ${cName} ──`}>
+                      {rList.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </optgroup>
+                  ));
+                })()}
               </Select>
             </div>
 
-            {/* Status Scope Filter */}
-            <div className="flex items-center gap-1.5 min-w-[160px] flex-1">
+            {/* Status Scope Filter — Default: Paid Only (Actual Outflow) */}
+            <div className="flex items-center gap-1.5 min-w-[170px] shrink-0">
               <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Select
                 value={statusScope}
                 onChange={(e) => setStatusScope(e.target.value)}
-                className="text-xs h-8.5 font-medium"
+                className="text-xs h-8.5 font-semibold text-emerald-700 dark:text-emerald-400"
               >
+                <option value="PAID_ONLY">Paid Only (Actual Cash Out)</option>
                 <option value="APPROVED_AND_PAID">Approved &amp; Paid</option>
-                <option value="PAID_ONLY">Paid Only</option>
                 <option value="ALL">All Statuses</option>
               </Select>
             </div>
@@ -625,14 +681,18 @@ export const ReportsPage: React.FC = () => {
           <MetricCard
             title="Total Monthly Budget"
             value={`$${fmt(totalRegionBudget)}`}
-            subtitle="Combined regional caps"
+            subtitle={companyId ? `${companies.find((c) => c.id === companyId)?.name || 'Company'} limit` : 'Combined regional caps'}
             icon={DollarSign}
             variant="blue"
           />
           <MetricCard
-            title="Total Spent So Far"
+            title="Total Paid Out (Actual)"
             value={`$${fmt(totalRegionSpent)}`}
-            subtitle="Expenses recorded"
+            subtitle={
+              companyId
+                ? `${companies.find((c) => c.id === companyId)?.name || 'Company'} actual spend`
+                : `Somtel: $${fmt(regionData?.summary?.somtelSpent || 0)} · Bluekom: $${fmt(regionData?.summary?.bluekomSpent || 0)}`
+            }
             icon={TrendingUp}
             variant="amber"
           />
@@ -731,8 +791,16 @@ export const ReportsPage: React.FC = () => {
                           <td className="px-4 py-3 font-bold text-foreground">
                             {row.regionName}
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            <span className="font-medium text-foreground">{row.companyName}</span>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold ${
+                                row.companyName.toLowerCase().includes('somtel')
+                                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
+                                  : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
+                              }`}
+                            >
+                              {row.companyName}
+                            </span>
                           </td>
                           <td className="px-4 py-3 text-right font-mono text-muted-foreground font-semibold">
                             ${fmt(row.regionBudget)}

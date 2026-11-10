@@ -69,7 +69,7 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
   ) {
-    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
+    const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
     return this.reportsService.getBudgetHeadReport(
       req.user,
       targetCompanyId,
@@ -91,7 +91,7 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
   ) {
-    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
+    const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
     const excelXml = await this.reportsService.exportBudgetHeadsExcel(
       req.user,
       targetCompanyId,
@@ -116,7 +116,7 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
   ) {
-    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
+    const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
     return this.reportsService.getRegionBudgetHeadReport(
       req.user,
       targetCompanyId,
@@ -139,7 +139,7 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
   ) {
-    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
+    const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
     return this.reportsService.getRegionBudgetHeadDaily(
       req.user,
       targetCompanyId,
@@ -163,7 +163,7 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
   ) {
-    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
+    const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
     const excelXml = await this.reportsService.exportRegionBudgetExcel(
       req.user,
       targetCompanyId,
@@ -191,7 +191,7 @@ export class ReportsController {
     @Query('statusScope') statusScope?: string,
     @Query('search') search?: string
   ) {
-    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
+    const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
     return this.reportsService.getEmployeeSpendingReport(
       req.user,
       targetCompanyId,
@@ -218,7 +218,7 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
   ) {
-    const targetCompanyId = (req.user.role === RoleName.SUPER_ADMIN || req.user.role === RoleName.APPROVAL_TWO) ? companyId : req.user.companyId;
+    const targetCompanyId = req.user.role === RoleName.EMPLOYEE ? req.user.companyId : companyId;
     const excelXml = await this.reportsService.exportEmployeeSpendingExcel(
       req.user,
       targetCompanyId,
