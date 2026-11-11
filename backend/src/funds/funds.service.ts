@@ -374,6 +374,20 @@ export class FundsService {
     });
   }
 
+  async revertApprovalInTransaction(tx: any, fundId: string, approvedAmount: number) {
+    await tx.$executeRawUnsafe('SELECT id FROM "PettyCashFund" WHERE id = $1 FOR UPDATE', fundId);
+    let fund = await tx.pettyCashFund.findUnique({ where: { id: fundId } });
+    if (!fund) return;
+
+    const revertedApprovedAmount = Math.max(0, Number(fund.approvedAmount || 0) - Number(approvedAmount));
+    return tx.pettyCashFund.update({
+      where: { id: fund.id },
+      data: {
+        approvedAmount: revertedApprovedAmount,
+      },
+    });
+  }
+
   // Record an actual payment and create a ledger entry (atomic to prevent race conditions)
   async recordPayment(companyId: string, requestId: string, amountPaid: number, paidById: string, referenceNumber?: string | null, notes?: string) {
     const fund = await this.getOrCreateCurrentMonthFund(companyId);

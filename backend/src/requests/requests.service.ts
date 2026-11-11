@@ -265,9 +265,19 @@ export class RequestsService {
       if (companyId) {
         where.companyId = companyId;
       }
-      // APPROVAL_TWO only sees requests awaiting their Stage 2 authorization.
-      // They cannot see requests at Stage 1 (PENDING_APPROVAL) or DRAFT, and once approved, it exits this list.
-      where.status = RequestStatus.ACCOUNTANT_REVIEW;
+      // APPROVAL_TWO cannot view unreviewed Stage 1 requests (DRAFT, PENDING_APPROVAL).
+      // They can view all post-Approval 1 requests (ACCOUNTANT_REVIEW, APPROVED, PAYMENT_PROCESSING, PAID, COMPLETED, REJECTED).
+      if (status) {
+        if (status === RequestStatus.DRAFT || status === RequestStatus.PENDING_APPROVAL) {
+          where.status = '__DISALLOWED__' as any;
+        } else {
+          where.status = status;
+        }
+      } else {
+        where.status = {
+          notIn: [RequestStatus.DRAFT, RequestStatus.PENDING_APPROVAL],
+        };
+      }
     } else {
       // Super Admin and Accountant see company-specific or all
       if (companyId) {
@@ -702,10 +712,19 @@ export class RequestsService {
     const currentStatus = String(request.status);
     const newStatus = String(dto.status);
 
-    // Only PENDING_APPROVAL and ACCOUNTANT_REVIEW are reviewable
-    if (currentStatus !== 'PENDING_APPROVAL' && currentStatus !== 'ACCOUNTANT_REVIEW') {
+    const isPostApproval = ['APPROVED', 'PAYMENT_PROCESSING'].includes(currentStatus);
+    const isAccountantOrAdmin = reviewerRole === RoleName.ACCOUNTANT || reviewerRole === RoleName.SUPER_ADMIN;
+
+    // Reviewable states:
+    // - PENDING_APPROVAL & ACCOUNTANT_REVIEW (normal review stages)
+    // - APPROVED & PAYMENT_PROCESSING (Accountant or Super Admin can reject before payout)
+    const canReview =
+      ['PENDING_APPROVAL', 'ACCOUNTANT_REVIEW'].includes(currentStatus) ||
+      (isPostApproval && isAccountantOrAdmin && newStatus === 'REJECTED');
+
+    if (!canReview) {
       throw new BadRequestException(
-        `Request is not in a reviewable state. Current status: ${currentStatus}`
+        `Request cannot be reviewed in status '${currentStatus}'.`
       );
     }
 
@@ -718,8 +737,12 @@ export class RequestsService {
       data.correctionNotes = dto.comments || `Rejected by ${reviewerRole}`;
 
       notification = {
-        title: `Request Rejected: ${request.requestNumber}`,
-        message: `Your petty cash request ${request.requestNumber} has been rejected. Reason: ${dto.comments || 'No comment'}`,
+        title: isPostApproval
+          ? `Request Rejected Prior to Payment: ${request.requestNumber}`
+          : `Request Rejected: ${request.requestNumber}`,
+        message: isPostApproval
+          ? `Your approved petty cash request ${request.requestNumber} was rejected by ${reviewerRole} prior to payment disbursement. Reason: ${dto.comments || 'No comment'}`
+          : `Your petty cash request ${request.requestNumber} has been rejected. Reason: ${dto.comments || 'No comment'}`,
       };
 
     // -- CORRECTION_REQUIRED � allowed at any reviewable stage --------------
@@ -825,9 +848,24 @@ export class RequestsService {
     const updatedRequest = await this.prisma.$transaction(async (tx) => {
       await (tx as any).$executeRawUnsafe('SELECT id FROM "PettyCashRequest" WHERE id = $1 FOR UPDATE', targetId);
       const latestRequest = await (tx as any).pettyCashRequest.findUnique({ where: { id: targetId } });
-      if (!latestRequest || !['PENDING_APPROVAL', 'ACCOUNTANT_REVIEW'].includes(String(latestRequest.status))) {
+      const allowedReviewStates = ['PENDING_APPROVAL', 'ACCOUNTANT_REVIEW'];
+      if (isPostApproval && isAccountantOrAdmin && newStatus === 'REJECTED') {
+        allowedReviewStates.push('APPROVED', 'PAYMENT_PROCESSING');
+      }
+
+      if (!latestRequest || !allowedReviewStates.includes(String(latestRequest.status))) {
         throw new BadRequestException('Request is no longer in a reviewable state');
       }
+
+      // If rejecting an already approved request, revert the approved amount from fund limit
+      if (newStatus === 'REJECTED' && ['APPROVED', 'PAYMENT_PROCESSING'].includes(String(latestRequest.status))) {
+        const approvedAmount = Number(latestRequest.approvedAmount || latestRequest.requestedAmount || 0);
+        if (approvedAmount > 0 && latestRequest.companyId) {
+          const fund = await this.fundsService.getOrCreateCurrentMonthFund(latestRequest.companyId);
+          await this.fundsService.revertApprovalInTransaction(tx, fund.id, approvedAmount);
+        }
+      }
+
       if (newStatus === 'ACCOUNTANT_REVIEW' && latestRequest.status !== RequestStatus.PENDING_APPROVAL) {
         throw new BadRequestException('Request must be in Pending Approval to forward to Approval Two review.');
       }

@@ -110,9 +110,9 @@ export const RequestsListPage: React.FC = () => {
   const isApprovalTwo = user?.role === 'APPROVAL_TWO';
   // Default filter: Only APPROVAL_TWO defaults to Stage 2 approval; Super Admin and others see all requests
   const defaultStatusForRole = isApprovalTwo ? 'ACCOUNTANT_REVIEW' : '';
-  const initialStatus = isApprovalTwo
-    ? 'ACCOUNTANT_REVIEW'
-    : (urlStatus !== null ? urlStatus : (savedFilters?.statusFilter ?? defaultStatusForRole));
+  const initialStatus = urlStatus !== null
+    ? urlStatus
+    : (savedFilters?.statusFilter ?? defaultStatusForRole);
   const initialPriority = savedFilters?.priorityFilter ?? '';
   const initialRegion = savedFilters?.regionFilter ?? '';
   const initialPreset = isValidPreset(urlPreset)
@@ -197,17 +197,13 @@ export const RequestsListPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isApprovalTwo) {
-      setStatusFilter('ACCOUNTANT_REVIEW');
-      return;
-    }
     if (urlStatus !== null) {
       setStatusFilter(urlStatus);
     }
     if (isValidPreset(urlPreset)) {
       applyDatePreset(urlPreset);
     }
-  }, [urlStatus, urlPreset, isApprovalTwo]);
+  }, [urlStatus, urlPreset]);
 
   useEffect(() => {
     const compFilter = sessionStorage.getItem('companyFilter') || 'ALL';
@@ -815,9 +811,19 @@ export const RequestsListPage: React.FC = () => {
             {isApprovalTwo ? (
               <div className="flex items-center gap-1.5 min-w-[170px] flex-1 sm:flex-initial">
                 <Filter className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                <div className="text-xs h-8 px-2.5 flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold">
-                  Stage 2: Awaiting Approval Two
-                </div>
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="text-xs h-8 border-amber-500/30 bg-amber-500/5 font-semibold text-amber-900 dark:text-amber-200"
+                >
+                  <option value="ACCOUNTANT_REVIEW">Awaiting My Approval (Stage 2)</option>
+                  <option value="">All Accessible Statuses</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="PAID">Paid</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="CORRECTION_REQUIRED">Correction Required</option>
+                </Select>
               </div>
             ) : (
               <div className="flex items-center gap-1.5 min-w-[140px] flex-1 sm:flex-initial">

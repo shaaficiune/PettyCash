@@ -283,6 +283,30 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
   const [transactionId, setTransactionId] = useState('');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
+  const [isRejectPaymentModalOpen, setIsRejectPaymentModalOpen] = useState(false);
+  const [rejectPaymentReason, setRejectPaymentReason] = useState('');
+
+  const handleRejectApprovedPayment = async () => {
+    if (!rejectPaymentReason.trim()) {
+      setError('Please provide a reason for rejecting this approved request.');
+      return;
+    }
+    setActionLoading(true);
+    setError(null);
+    try {
+      await api.patch(`/requests/${request.id}/review`, {
+        status: 'REJECTED',
+        comments: rejectPaymentReason.trim(),
+      });
+      setIsRejectPaymentModalOpen(false);
+      setRejectPaymentReason('');
+      await loadRequest();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to reject request');
+    } finally {
+      setActionLoading(false);
+    }
+  };
   const [actualSpent, setActualSpent] = useState('');
   const [remainingBalance, setRemainingBalance] = useState('');
   const [settlementNotes, setSettlementNotes] = useState('');
@@ -1144,14 +1168,27 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
       {/* Notice for Approval Two viewing an approved request — awaiting Accountant disbursement */}
       {(isSuperAdmin || isApprovalTwo) && request.status === 'APPROVED' && (
         <Card className="overflow-hidden border border-border/80">
-          <CardContent className="p-5 flex items-start gap-3 bg-muted/20">
-            <ShieldCheck className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-bold text-foreground">Authorized & Awaiting Disbursement</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                You have authorized this request as Approval Two. It is now awaiting cash disbursement by the Cashier / Accountant.
-              </p>
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Authorized & Awaiting Disbursement</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You have authorized this request as Approval Two. It is now awaiting cash disbursement by the Cashier / Accountant.
+                </p>
+              </div>
             </div>
+            {isSuperAdmin && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="xs"
+                onClick={() => setIsRejectPaymentModalOpen(true)}
+                className="gap-1 shrink-0 self-start sm:self-center"
+              >
+                <XCircle className="h-3 w-3" /> Cancel Approval
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -1230,14 +1267,27 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
               />
             </div>
 
-            <div className="flex justify-end pt-3 border-t border-border">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-border">
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => setIsRejectPaymentModalOpen(true)}
+                disabled={actionLoading}
+                className="gap-1.5 order-2 sm:order-1"
+                title="Reject this approved request before paying"
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                Reject / Cancel Request
+              </Button>
+
               <Button
                 variant="success"
                 size="sm"
                 onClick={handleRecordPayment}
                 disabled={actionLoading}
                 isLoading={actionLoading}
-                className="gap-2 shadow-sm"
+                className="gap-2 shadow-sm font-bold order-1 sm:order-2"
               >
                 <Coins className="h-3.5 w-3.5" />
                 Record Payment
@@ -1742,6 +1792,58 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Reject Approved Request Before Payment Modal ── */}
+      <Dialog open={isRejectPaymentModalOpen} onOpenChange={setIsRejectPaymentModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <XCircle className="h-5 w-5" />
+              Reject Approved Request #{request.requestNumber}
+            </DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed">
+              Are you sure you want to reject this request before payment? The reserved petty cash amount (${Number(request.approvedAmount || request.requestedAmount).toFixed(2)}) will be released back to the company fund.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            <Label className="text-xs font-bold">Rejection Reason / Sababta loo diiday <span className="text-destructive">*</span></Label>
+            <textarea
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-1 focus:ring-ring min-h-[90px]"
+              placeholder="Geli sababta codsigan loo diiday inta aan lacagta la bixin..."
+              value={rejectPaymentReason}
+              onChange={(e) => setRejectPaymentReason(e.target.value)}
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsRejectPaymentModalOpen(false);
+                setRejectPaymentReason('');
+              }}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={handleRejectApprovedPayment}
+              disabled={actionLoading || !rejectPaymentReason.trim()}
+              isLoading={actionLoading}
+              className="gap-1.5 font-bold"
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              Confirm Rejection
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
