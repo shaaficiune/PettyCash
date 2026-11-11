@@ -7,7 +7,7 @@ import {
   RefreshCw, User, Building2, MapPin, Tag, Calendar, FileText,
   Paperclip, CheckCircle2, AlertCircle, CircleDollarSign,
   Banknote, Edit3, Send, ReceiptText, ClipboardCheck, Loader2,
-  Printer, Trash2, Lock, Save, Sparkles,
+  Printer, Trash2, Lock, Save, Sparkles, Receipt, Copy, Check,
 } from 'lucide-react';
 import { PaymentVoucherModal } from '../components/PaymentVoucherModal';
 import {
@@ -267,6 +267,14 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [isVoucherOpen, setIsVoucherOpen] = useState(false);
   const [selectedPaymentForVoucher, setSelectedPaymentForVoucher] = useState<any>(null);
+  const [copiedVoucher, setCopiedVoucher] = useState(false);
+
+  const handleCopyVoucher = (voucherNo: string) => {
+    if (!voucherNo) return;
+    navigator.clipboard.writeText(voucherNo);
+    setCopiedVoucher(true);
+    setTimeout(() => setCopiedVoucher(false), 2000);
+  };
 
   // Action states
   const [actionComments, setActionComments] = useState('');
@@ -665,7 +673,10 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
           Back to Requests
         </Button>
         <div className="flex items-center gap-2">
-          {(request.status === 'PAID' || request.status === 'COMPLETED') && (
+          {Boolean(
+            request.voucherNumber ||
+            ['ACCOUNTANT_REVIEW', 'APPROVED', 'PAYMENT_PROCESSING', 'PAID', 'COMPLETED'].includes(request.status)
+          ) && (
             <Button
               id="btn-print-voucher-top"
               variant="success"
@@ -675,7 +686,7 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
                 setIsVoucherOpen(true);
               }}
               className="gap-1.5 shadow-sm"
-              title="Print Historical Payment Voucher"
+              title="Print Payment Voucher"
             >
               <Printer className="h-3.5 w-3.5" />
               <span>Print Payment Voucher</span>
@@ -738,6 +749,29 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
                   Request #{request.requestNumber}
                 </h1>
                 <StatusBadge status={request.status} />
+                {request.voucherNumber && (
+                  <div
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-mono text-xs font-bold shadow-xs"
+                    title="Payment Voucher Number"
+                  >
+                    <Receipt className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>PV #{request.voucherNumber}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyVoucher(request.voucherNumber)}
+                      title="Copy Payment Voucher Number"
+                      className="p-1 hover:bg-emerald-500/20 rounded transition-colors text-emerald-700 dark:text-emerald-300 ml-0.5 inline-flex items-center"
+                    >
+                      {copiedVoucher ? (
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-300">
+                          <Check className="h-3 w-3" /> Copied
+                        </span>
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
+                  </div>
+                )}
                 {request.priority && (
                   <Badge
                     variant={
@@ -1180,10 +1214,17 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Disbursement Notes</Label>
+              <div className="flex items-center justify-between">
+                <Label>Disbursement Notes</Label>
+                {request.voucherNumber && (
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    Assigned Voucher: <strong className="text-foreground">#{request.voucherNumber}</strong>
+                  </span>
+                )}
+              </div>
               <Input
                 type="text"
-                placeholder="Payment voucher or disbursement note"
+                placeholder={request.voucherNumber ? `Voucher #${request.voucherNumber}` : "Payment voucher or disbursement note"}
                 value={paymentNotes}
                 onChange={(e) => setPaymentNotes(e.target.value)}
               />

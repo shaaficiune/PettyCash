@@ -160,6 +160,11 @@ export class RequestsService {
       initialStatus = isAccountantRequester ? RequestStatus.ACCOUNTANT_REVIEW : RequestStatus.PENDING_APPROVAL;
     }
 
+    let initialVoucherNumber: string | null = null;
+    if (initialStatus === RequestStatus.ACCOUNTANT_REVIEW && companyId) {
+      initialVoucherNumber = await this.generateNextVoucherNumber(companyId);
+    }
+
     let costCenter = dto.costCenter || null;
     if (!costCenter && dto.regionId) {
       const region = await this.prisma.region.findUnique({
@@ -191,6 +196,7 @@ export class RequestsService {
         currency: dto.currency || 'USD',
         priority: dto.priority || Priority.NORMAL,
         status: initialStatus,
+        voucherNumber: initialVoucherNumber,
         requiredDate: new Date(),
         requestDate: new Date(),
         attachments: dto.attachments
@@ -356,72 +362,94 @@ export class RequestsService {
     }
 
     // Monthly Company-scoped sequential voucher number: YYYYMM### (e.g. 202611001)
-    let voucherNumber: string | null = null;
+    let voucherNumber: string | null = (request as any).voucherNumber || null;
     let paymentsWithVoucher: any[] = request.payments;
 
-    if (request.companyId) {
-      if (request.payments && request.payments.length > 0) {
-        paymentsWithVoucher = await Promise.all(
-          request.payments.map(async (pm) => {
-            const pDate = pm.paymentDate || pm.createdAt || new Date();
-            const d = new Date(pDate);
-            const year = d.getFullYear();
-            const month = d.getMonth();
-            const startOfMonth = new Date(year, month, 1, 0, 0, 0, 0);
+    // Backward-compatibility: if request has reached Approval 1 or higher but has no stored voucherNumber,
+    // compute the historical fallback sequence
+    if (!voucherNumber && request.companyId) {
+      const isPostApprovalOne = (
+        [
+          RequestStatus.ACCOUNTANT_REVIEW,
+          RequestStatus.APPROVED,
+          RequestStatus.PAYMENT_PROCESSING,
+          RequestStatus.PAID,
+          RequestStatus.COMPLETED,
+        ] as RequestStatus[]
+      ).includes(request.status);
 
-            const seq = await this.prisma.payment.count({
-              where: {
-                companyId: request.companyId,
-                paymentDate: {
-                  gte: startOfMonth,
-                },
-                OR: [
-                  { paymentDate: { lt: pDate } },
-                  {
-                    paymentDate: pDate,
-                    id: { lte: pm.id },
+      if (isPostApprovalOne) {
+        if (request.payments && request.payments.length > 0) {
+          paymentsWithVoucher = await Promise.all(
+            request.payments.map(async (pm) => {
+              const pDate = pm.paymentDate || pm.createdAt || new Date();
+              const d = new Date(pDate);
+              const year = d.getFullYear();
+              const month = d.getMonth();
+              const startOfMonth = new Date(year, month, 1, 0, 0, 0, 0);
+
+              const seq = await this.prisma.payment.count({
+                where: {
+                  companyId: request.companyId,
+                  paymentDate: {
+                    gte: startOfMonth,
                   },
-                ],
+                  OR: [
+                    { paymentDate: { lt: pDate } },
+                    {
+                      paymentDate: pDate,
+                      id: { lte: pm.id },
+                    },
+                  ],
+                },
+              });
+
+              const yyyy = String(year);
+              const mm = String(month + 1).padStart(2, '0');
+              const seqStr = String(Math.max(seq, 1)).padStart(3, '0');
+              return {
+                ...pm,
+                voucherNumber: `${yyyy}${mm}${seqStr}`,
+              };
+            })
+          );
+          voucherNumber = paymentsWithVoucher[0]?.voucherNumber || null;
+        } else {
+          const d = new Date(request.createdAt);
+          const year = d.getFullYear();
+          const month = d.getMonth();
+          const startOfMonth = new Date(year, month, 1, 0, 0, 0, 0);
+
+          const seq = await this.prisma.pettyCashRequest.count({
+            where: {
+              companyId: request.companyId,
+              createdAt: {
+                gte: startOfMonth,
               },
-            });
-
-            const yyyy = String(year);
-            const mm = String(month + 1).padStart(2, '0');
-            const seqStr = String(Math.max(seq, 1)).padStart(3, '0');
-            return {
-              ...pm,
-              voucherNumber: `${yyyy}${mm}${seqStr}`,
-            };
-          })
-        );
-        voucherNumber = paymentsWithVoucher[0]?.voucherNumber || null;
-      } else {
-        const d = new Date(request.createdAt);
-        const year = d.getFullYear();
-        const month = d.getMonth();
-        const startOfMonth = new Date(year, month, 1, 0, 0, 0, 0);
-
-        const seq = await this.prisma.pettyCashRequest.count({
-          where: {
-            companyId: request.companyId,
-            createdAt: {
-              gte: startOfMonth,
+              OR: [
+                { createdAt: { lt: request.createdAt } },
+                {
+                  createdAt: request.createdAt,
+                  id: { lte: request.id },
+                },
+              ],
             },
-            OR: [
-              { createdAt: { lt: request.createdAt } },
-              {
-                createdAt: request.createdAt,
-                id: { lte: request.id },
-              },
-            ],
-          },
-        });
+          });
 
-        const yyyy = String(year);
-        const mm = String(month + 1).padStart(2, '0');
-        const seqStr = String(Math.max(seq, 1)).padStart(3, '0');
-        voucherNumber = `${yyyy}${mm}${seqStr}`;
+          const yyyy = String(year);
+          const mm = String(month + 1).padStart(2, '0');
+          const seqStr = String(Math.max(seq, 1)).padStart(3, '0');
+          voucherNumber = `${yyyy}${mm}${seqStr}`;
+        }
       }
+    }
+
+    // Ensure all payments inherit the canonical voucher number if not individually set
+    if (voucherNumber && paymentsWithVoucher && paymentsWithVoucher.length > 0) {
+      paymentsWithVoucher = paymentsWithVoucher.map((pm) => ({
+        ...pm,
+        voucherNumber: pm.voucherNumber || voucherNumber,
+      }));
     }
 
     return {
@@ -763,10 +791,19 @@ export class RequestsService {
           throw new BadRequestException('Approved amount must be greater than zero and cannot exceed $50.');
         }
 
+        let voucherNumber = latestRequest.voucherNumber;
+        if (!voucherNumber && latestRequest.companyId) {
+          voucherNumber = await this.generateNextVoucherNumber(latestRequest.companyId, tx);
+        }
+
         await this.fundsService.recordApprovalInTransaction(tx, fund.id, approvedAmount);
         return (tx as any).pettyCashRequest.update({
           where: { id: targetId },
-          data: { status: RequestStatus.APPROVED, approvedAmount },
+          data: {
+            status: RequestStatus.APPROVED,
+            approvedAmount,
+            ...(voucherNumber ? { voucherNumber } : {}),
+          },
         });
       });
 
@@ -793,6 +830,9 @@ export class RequestsService {
       }
       if (newStatus === 'ACCOUNTANT_REVIEW' && latestRequest.status !== RequestStatus.PENDING_APPROVAL) {
         throw new BadRequestException('Request must be in Pending Approval to forward to Approval Two review.');
+      }
+      if (newStatus === 'ACCOUNTANT_REVIEW' && !latestRequest.voucherNumber && latestRequest.companyId) {
+        data.voucherNumber = await this.generateNextVoucherNumber(latestRequest.companyId, tx);
       }
       return (tx as any).pettyCashRequest.update({ where: { id: targetId }, data });
     });
@@ -920,5 +960,63 @@ export class RequestsService {
         await this.notifications.create(approver.id, title, message);
       }
     }
+  }
+
+  /**
+   * Generates next sequential voucherNumber formatted strictly as YYYYMM### (e.g. 202611001)
+   * Scoped by company and calendar month.
+   */
+  async generateNextVoucherNumber(companyId: string, tx?: any): Promise<string> {
+    const client = tx || this.prisma;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const yyyy = String(year);
+    const mm = String(month + 1).padStart(2, '0');
+    const prefix = `${yyyy}${mm}`;
+
+    const startOfMonth = new Date(year, month, 1, 0, 0, 0, 0);
+    const startOfNextMonth = new Date(year, month + 1, 1, 0, 0, 0, 0);
+
+    // 1. Find highest existing voucherNumber starting with this month's prefix for this company
+    const lastVoucherRequest = await client.pettyCashRequest.findFirst({
+      where: {
+        companyId,
+        voucherNumber: {
+          startsWith: prefix,
+        },
+      },
+      orderBy: {
+        voucherNumber: 'desc',
+      },
+      select: {
+        voucherNumber: true,
+      },
+    });
+
+    let maxSeq = 0;
+    if (lastVoucherRequest?.voucherNumber) {
+      const seqPart = lastVoucherRequest.voucherNumber.slice(prefix.length);
+      const parsed = parseInt(seqPart, 10);
+      if (!isNaN(parsed)) {
+        maxSeq = parsed;
+      }
+    }
+
+    // 2. Also check payment count for this company this month as a safety baseline
+    // so we never collide with previously issued payment vouchers
+    const paymentCount = await client.payment.count({
+      where: {
+        companyId,
+        paymentDate: {
+          gte: startOfMonth,
+          lt: startOfNextMonth,
+        },
+      },
+    });
+
+    const nextSeq = Math.max(maxSeq, paymentCount) + 1;
+    const seqStr = String(nextSeq).padStart(3, '0');
+    return `${prefix}${seqStr}`;
   }
 }

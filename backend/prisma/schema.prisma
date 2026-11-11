@@ -223,6 +223,7 @@ model RefreshToken {
 model PettyCashRequest {
   id              String        @id @default(uuid())
   requestNumber   String        @unique // PC-YYYYMMDD-XXXX
+  voucherNumber   String?       // Payment voucher sequence: YYYYMM### (generated at Approval 1)
   requestDate     DateTime      @default(now())
   userId          String
   companyId       String
@@ -261,6 +262,8 @@ model PettyCashRequest {
   payments        Payment[]
   settlements     ExpenseSettlement[]
   ledgers         PettyCashLedger[]
+
+  @@index([companyId, voucherNumber])
 }
 
 model PettyCashAttachment {
