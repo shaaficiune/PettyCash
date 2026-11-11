@@ -215,8 +215,8 @@ export class PaymentsService {
 
     const itemsWithVoucher = await Promise.all(
       items.map(async (pm) => {
-        let voucherNumber: string | null = (pm.request as any)?.voucherNumber || null;
-        if (!voucherNumber && pm.companyId) {
+        let voucherNumber: string | null = null;
+        if (pm.companyId) {
           voucherNumber = await this.calculatePaymentVoucherNumber(pm.companyId, pm.paymentDate, pm.id);
         }
         return {
@@ -234,23 +234,17 @@ export class PaymentsService {
   }
 
   async findPaymentsForRequest(requestId: string) {
-    const [request, payments] = await Promise.all([
-      this.prisma.pettyCashRequest.findUnique({
-        where: { id: requestId },
-        select: { voucherNumber: true },
-      }),
-      this.prisma.payment.findMany({
-        where: { requestId },
-        include: {
-          paidBy: { select: { fullName: true, username: true } },
-        },
-      }),
-    ]);
+    const payments = await this.prisma.payment.findMany({
+      where: { requestId },
+      include: {
+        paidBy: { select: { fullName: true, username: true } },
+      },
+    });
 
     return Promise.all(
       payments.map(async (pm) => {
-        let voucherNumber: string | null = request?.voucherNumber || null;
-        if (!voucherNumber && pm.companyId) {
+        let voucherNumber: string | null = null;
+        if (pm.companyId) {
           voucherNumber = await this.calculatePaymentVoucherNumber(pm.companyId, pm.paymentDate, pm.id);
         }
         return {
