@@ -12,7 +12,6 @@ import {
 import {
   BarChart3,
   Users,
-  Download,
   RefreshCw,
   Search,
   ChevronDown,
@@ -28,8 +27,6 @@ import {
   Calendar,
   Building2,
   MapPin,
-  Filter,
-  ArrowRight,
   FileSpreadsheet,
 } from 'lucide-react';
 
@@ -272,7 +269,7 @@ export const ReportsPage: React.FC = () => {
 
   // Dropdown options
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
-  const [regions, setRegions] = useState<{ id: string; name: string; companyId?: string; company?: { id: string } }[]>([]);
+  const [regions, setRegions] = useState<{ id: string; name: string; companyId?: string; company?: { id: string; name: string } }[]>([]);
 
   // Data states
   const [regionData, setRegionData] = useState<RegionData | null>(null);
@@ -411,6 +408,7 @@ export const ReportsPage: React.FC = () => {
   const totalRegionSpent = regionRows.reduce((acc, r) => acc + (Number(r.totalSpent) || 0), 0);
   const totalRegionRemaining = regionRows.reduce((acc, r) => acc + (Number(r.remainingBudget) || 0), 0);
   const totalRegionsCount = regionRows.length;
+  const overallUtilizationPct = totalRegionBudget > 0 ? Number(((totalRegionSpent / totalRegionBudget) * 100).toFixed(1)) : 0;
 
   // Filtered employees by search
   const filteredEmployees = useMemo(() => {
@@ -446,7 +444,7 @@ export const ReportsPage: React.FC = () => {
             Budget &amp; User Reports
           </h2>
           <p className="text-xs text-muted-foreground">
-            Regional budget remaining balances and per-employee cash advance &amp; spending summary
+            Regional budget monthly limits, actual disbursed spend, and per-employee request ledger
           </p>
         </div>
 
@@ -484,126 +482,67 @@ export const ReportsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ─── 2. EXECUTIVE FILTER HUB ─── */}
+      {/* ─── 2. PROFESSIONAL CONSOLIDATED FILTER TOOLBAR ─── */}
       <Card className="shadow-xs border-border/80">
-        <CardContent className="p-3.5 space-y-3">
-          {/* Row 1: Period presets & date picker */}
+        <CardContent className="p-3 space-y-2.5">
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Quick Segmented Period Controls */}
-            <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/40 shrink-0">
-              <button
-                type="button"
-                onClick={() => handlePresetChange('THIS_MONTH')}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-                  periodPreset === 'THIS_MONTH'
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                This Month
-              </button>
-              <button
-                type="button"
-                onClick={() => handlePresetChange('LAST_MONTH')}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-                  periodPreset === 'LAST_MONTH'
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Last Month
-              </button>
-              <button
-                type="button"
-                onClick={() => setPeriodPreset('CUSTOM')}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-                  periodPreset === 'CUSTOM'
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Custom Range
-              </button>
-            </div>
-
-            {/* Unified Date Range Capsule */}
-            <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-1.5 text-xs shrink-0 shadow-2xs">
+            {/* Period Dropdown Preset */}
+            <div className="flex items-center gap-1.5 min-w-[130px] shrink-0">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  setPeriodPreset('CUSTOM');
-                }}
-                className="bg-transparent text-xs font-medium focus:outline-none text-foreground cursor-pointer"
-                title="Start Date"
-              />
-              <span className="text-muted-foreground text-xs font-bold px-0.5">→</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
-                  setPeriodPreset('CUSTOM');
-                }}
-                className="bg-transparent text-xs font-medium focus:outline-none text-foreground cursor-pointer"
-                title="End Date"
-              />
+              <Select
+                value={periodPreset}
+                onChange={(e) => handlePresetChange(e.target.value as any)}
+                className="text-xs h-8.5 font-medium"
+              >
+                <option value="THIS_MONTH">This Month</option>
+                <option value="LAST_MONTH">Last Month</option>
+                <option value="CUSTOM">Custom Range...</option>
+              </Select>
             </div>
 
-            {/* Company Filter & Quick Toggle (Super Admin, Accountant, Approval Two) */}
-            {(user?.role === 'SUPER_ADMIN' || user?.role === 'ACCOUNTANT' || user?.role === 'APPROVAL_TWO') && (
-              <>
-                <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/40 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => { setCompanyId(''); setRegionId(''); }}
-                    className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-                      companyId === ''
-                        ? 'bg-primary text-primary-foreground shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Both Companies
-                  </button>
-                  {companies.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => { setCompanyId(c.id); setRegionId(''); }}
-                      className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-                        companyId === c.id
-                          ? 'bg-primary text-primary-foreground shadow-xs'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-1.5 min-w-[140px] flex-1">
-                  <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <Select
-                    value={companyId}
-                    onChange={(e) => {
-                      setCompanyId(e.target.value);
-                      setRegionId('');
-                    }}
-                    className="text-xs h-8.5 font-medium"
-                  >
-                    <option value="">All Companies</option>
-                    {companies.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </Select>
-                </div>
-              </>
+            {/* Custom Date Capsule (Only appears when Custom Range is active) */}
+            {periodPreset === 'CUSTOM' && (
+              <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-2.5 py-1 text-xs shrink-0 shadow-2xs animate-in fade-in-0 duration-150">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-transparent text-xs font-medium focus:outline-none text-foreground cursor-pointer"
+                  title="Start Date"
+                />
+                <span className="text-muted-foreground text-xs font-bold px-0.5">→</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-transparent text-xs font-medium focus:outline-none text-foreground cursor-pointer"
+                  title="End Date"
+                />
+              </div>
             )}
 
-            {/* Region Filter — Grouped by Company when All Companies chosen */}
-            <div className="flex items-center gap-1.5 min-w-[160px] flex-1">
+            {/* Single Unified Company Dropdown */}
+            {(user?.role === 'SUPER_ADMIN' || user?.role === 'ACCOUNTANT' || user?.role === 'APPROVAL_TWO') && (
+              <div className="flex items-center gap-1.5 min-w-[150px] flex-1">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Select
+                  value={companyId}
+                  onChange={(e) => {
+                    setCompanyId(e.target.value);
+                    setRegionId('');
+                  }}
+                  className="text-xs h-8.5 font-medium"
+                >
+                  <option value="">All Companies (Both)</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </Select>
+              </div>
+            )}
+
+            {/* Region Dropdown — Grouped by Company when All Companies chosen */}
+            <div className="flex items-center gap-1.5 min-w-[150px] flex-1">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Select
                 value={regionId}
@@ -620,7 +559,7 @@ export const ReportsPage: React.FC = () => {
                   // Group by Company
                   const groups: Record<string, typeof regions> = {};
                   regions.forEach((r) => {
-                    const cName = companies.find((c) => c.id === (r.companyId || r.company?.id))?.name || 'Other';
+                    const cName = r.company?.name || companies.find((c) => c.id === r.companyId)?.name || 'Other';
                     if (!groups[cName]) groups[cName] = [];
                     groups[cName].push(r);
                   });
@@ -635,7 +574,7 @@ export const ReportsPage: React.FC = () => {
               </Select>
             </div>
 
-            {/* Status Scope Toggle: Paid vs Approved (Only 2 Clean Choices) */}
+            {/* Status Scope Segmented Toggle: Paid vs Approved */}
             <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/40 shrink-0">
               <button
                 type="button"
@@ -645,9 +584,9 @@ export const ReportsPage: React.FC = () => {
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
-                title="Lacagta dhabta ah ee khasnadda ka baxday kaliya (Paid)"
+                title="Wixii la bixiyay ee khasnadda ka baxay oo kaliya (Actual Disbursed)"
               >
-                Paid (Actual)
+                ✓ Paid (Actual)
               </button>
               <button
                 type="button"
@@ -726,9 +665,9 @@ export const ReportsPage: React.FC = () => {
       {activeTab === 'region' ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricCard
-            title="Total Monthly Budget"
+            title="Total Monthly Limit"
             value={`$${fmt(totalRegionBudget)}`}
-            subtitle={companyId ? `${companies.find((c) => c.id === companyId)?.name || 'Company'} limit` : 'Combined regional caps'}
+            subtitle={companyId ? `${companies.find((c) => c.id === companyId)?.name || 'Company'} monthly cap` : 'Combined regional caps'}
             icon={DollarSign}
             variant="blue"
           />
@@ -744,16 +683,16 @@ export const ReportsPage: React.FC = () => {
             variant="amber"
           />
           <MetricCard
-            title="Remaining Balance"
+            title="Available Limit"
             value={`$${fmt(totalRegionRemaining)}`}
-            subtitle="Available uncommitted limit"
+            subtitle="Remaining spending room this month"
             icon={TrendingDown}
             variant="emerald"
           />
           <MetricCard
-            title="Active Regions"
+            title="Territories"
             value={String(totalRegionsCount)}
-            subtitle="Configured territories"
+            subtitle="Configured regional zones"
             icon={MapPin}
             variant="purple"
           />
@@ -775,7 +714,7 @@ export const ReportsPage: React.FC = () => {
             variant="emerald"
           />
           <MetricCard
-            title="Total Paid"
+            title="Total Paid Out"
             value={`$${fmt(empSummary.totalPaid)}`}
             subtitle="Disbursed petty cash"
             icon={DollarSign}
@@ -810,10 +749,12 @@ export const ReportsPage: React.FC = () => {
                   <tr className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
                     <th className="text-left px-4 py-3">Region</th>
                     <th className="text-left px-4 py-3">Company</th>
-                    <th className="text-right px-4 py-3 font-mono">Monthly Budget</th>
-                    <th className="text-right px-4 py-3 font-mono">Total Spent</th>
-                    <th className="text-right px-4 py-3 font-mono">Remaining Balance</th>
-                    <th className="px-4 py-3 min-w-[160px]">Budget Utilization</th>
+                    <th className="text-right px-4 py-3 font-mono">Monthly Limit</th>
+                    <th className="text-right px-4 py-3 font-mono">
+                      {statusScope === 'PAID' ? 'Paid Out (Actual)' : 'Approved & Paid'}
+                    </th>
+                    <th className="text-right px-4 py-3 font-mono">Available Limit</th>
+                    <th className="px-4 py-3 min-w-[160px]">Limit Utilization</th>
                     <th className="text-center px-4 py-3">Status</th>
                     <th className="px-3 py-3 w-10"></th>
                   </tr>
@@ -925,6 +866,61 @@ export const ReportsPage: React.FC = () => {
                     );
                   })}
                 </tbody>
+
+                {/* ─── GRAND TOTAL FOOTER ROW ─── */}
+                <tfoot>
+                  <tr className="bg-muted/70 border-t-2 border-border font-bold text-foreground">
+                    <td className="px-4 py-3 uppercase tracking-wider text-[11px] text-foreground">
+                      Grand Total ({totalRegionsCount} Regions)
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-[11px]">
+                      {companyId ? companies.find((c) => c.id === companyId)?.name : 'All Companies'}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-foreground font-extrabold">
+                      ${fmt(totalRegionBudget)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-amber-600 dark:text-amber-400 font-extrabold">
+                      ${fmt(totalRegionSpent)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">
+                      ${fmt(totalRegionRemaining)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden border border-border/40">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              overallUtilizationPct >= 100
+                                ? 'bg-rose-500'
+                                : overallUtilizationPct >= 80
+                                ? 'bg-amber-500'
+                                : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${Math.min(overallUtilizationPct, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] font-mono font-bold text-foreground w-10 text-right">
+                          {overallUtilizationPct}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-bold ${
+                          overallUtilizationPct >= 100
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : overallUtilizationPct >= 80
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}
+                      >
+                        {overallUtilizationPct >= 100 ? 'Exceeded' : overallUtilizationPct >= 80 ? 'Warning' : 'Healthy'}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-3"></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           )}
@@ -953,7 +949,7 @@ export const ReportsPage: React.FC = () => {
                     <th className="text-center px-4 py-3">Requests</th>
                     <th className="text-right px-4 py-3 font-mono">Requested</th>
                     <th className="text-right px-4 py-3 font-mono">Approved</th>
-                    <th className="text-right px-4 py-3 font-mono">Paid</th>
+                    <th className="text-right px-4 py-3 font-mono">Paid Out</th>
                     <th className="text-right px-4 py-3 font-mono">Pending Settlement</th>
                     <th className="text-center px-4 py-3">Action</th>
                   </tr>
@@ -1013,6 +1009,32 @@ export const ReportsPage: React.FC = () => {
                     </tr>
                   ))}
                 </tbody>
+
+                {/* ─── EMPLOYEE GRAND TOTAL FOOTER ─── */}
+                <tfoot>
+                  <tr className="bg-muted/70 border-t-2 border-border font-bold text-foreground">
+                    <td className="px-4 py-3 uppercase tracking-wider text-[11px]">
+                      Grand Total ({filteredEmployees.length} Employees)
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-[11px]">—</td>
+                    <td className="px-4 py-3 text-center font-mono">
+                      {filteredEmployees.reduce((acc, e) => acc + e.totalRequests, 0)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-muted-foreground">
+                      ${fmt(filteredEmployees.reduce((acc, e) => acc + e.totalRequested, 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-blue-600 dark:text-blue-400">
+                      ${fmt(filteredEmployees.reduce((acc, e) => acc + e.totalApproved, 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                      ${fmt(filteredEmployees.reduce((acc, e) => acc + e.totalPaid, 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-amber-600 dark:text-amber-400">
+                      ${fmt(filteredEmployees.reduce((acc, e) => acc + e.pendingSettlementAmount, 0))}
+                    </td>
+                    <td className="px-4 py-3"></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           )}
