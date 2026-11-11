@@ -441,7 +441,7 @@ export const ReportsPage: React.FC = () => {
         <div>
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2 font-display">
             <BarChart3 className="h-5 w-5 text-[#F5B700]" />
-            Budget &amp; User Reports
+            Reports
           </h2>
           <p className="text-xs text-muted-foreground">
             Regional budget monthly limits, actual disbursed spend, and per-employee request ledger
