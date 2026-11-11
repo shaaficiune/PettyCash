@@ -279,6 +279,7 @@ export const ReportsPage: React.FC = () => {
   const [regionLoading, setRegionLoading] = useState(false);
   const [empData, setEmpData] = useState<EmployeeData | null>(null);
   const [empLoading, setEmpLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Expanded region category breakdowns
   const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
@@ -288,7 +289,7 @@ export const ReportsPage: React.FC = () => {
 
   useEffect(() => {
     api.get('/companies').then((r) => setCompanies(r.data)).catch(() => {});
-    api.get('/regions').then((r) => setRegions(r.data)).catch(() => {});
+    api.get('/companies/regions').then((r) => setRegions(r.data)).catch(() => {});
   }, []);
 
   // Filter visible regions based on selected company
@@ -350,18 +351,40 @@ export const ReportsPage: React.FC = () => {
     }
   };
 
-  const handleExportCurrent = () => {
-    const params = new URLSearchParams({ statusScope });
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-    if (companyId) params.append('companyId', companyId);
-    if (regionId) params.append('regionId', regionId);
-    const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '');
+  const handleExportCurrent = async () => {
+    setExporting(true);
+    try {
+      const params: any = { statusScope };
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (companyId) params.companyId = companyId;
+      if (regionId) params.regionId = regionId;
 
-    if (activeTab === 'region') {
-      window.open(`${baseUrl}/reports/export-region-budget-excel?${params.toString()}`, '_blank');
-    } else {
-      window.open(`${baseUrl}/reports/export-employee-spending-excel?${params.toString()}`, '_blank');
+      const endpoint =
+        activeTab === 'region'
+          ? '/reports/export-region-budget-excel'
+          : '/reports/export-employee-spending-excel';
+
+      const filename =
+        activeTab === 'region'
+          ? `regional_budget_report_${new Date().toISOString().slice(0, 10)}.xls`
+          : `employee_spending_report_${new Date().toISOString().slice(0, 10)}.xls`;
+
+      const res = await api.get(endpoint, { params, responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'application/vnd.ms-excel' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Failed to export report to Excel', err);
+      alert('Failed to export Excel report. Please ensure you have permission and try again.');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -443,10 +466,20 @@ export const ReportsPage: React.FC = () => {
             variant="default"
             size="sm"
             onClick={handleExportCurrent}
+            disabled={exporting}
             className="gap-1.5 text-xs h-8.5 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs"
           >
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-            <span>Export Excel</span>
+            {exporting ? (
+              <>
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                <span>Exporting...</span>
+              </>
+            ) : (
+              <>
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span>Export Excel</span>
+              </>
+            )}
           </Button>
         </div>
       </div>
