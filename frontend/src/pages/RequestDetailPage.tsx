@@ -285,28 +285,6 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
   const [paymentNotes, setPaymentNotes] = useState('');
   const [isRejectPaymentModalOpen, setIsRejectPaymentModalOpen] = useState(false);
   const [rejectPaymentReason, setRejectPaymentReason] = useState('');
-
-  const handleRejectApprovedPayment = async () => {
-    if (!rejectPaymentReason.trim()) {
-      setError('Please provide a reason for rejecting this approved request.');
-      return;
-    }
-    setActionLoading(true);
-    setError(null);
-    try {
-      await api.patch(`/requests/${request.id}/review`, {
-        status: 'REJECTED',
-        comments: rejectPaymentReason.trim(),
-      });
-      setIsRejectPaymentModalOpen(false);
-      setRejectPaymentReason('');
-      await loadRequest();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to reject request');
-    } finally {
-      setActionLoading(false);
-    }
-  };
   const [actualSpent, setActualSpent] = useState('');
   const [remainingBalance, setRemainingBalance] = useState('');
   const [settlementNotes, setSettlementNotes] = useState('');
@@ -636,6 +614,29 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
       await loadRequestDetails();
       onActionCompleted?.();
     });
+
+  const handleRejectApprovedPayment = async () => {
+    if (!rejectPaymentReason.trim()) {
+      setError('Please provide a reason for rejecting this approved request.');
+      return;
+    }
+    setActionLoading(true);
+    setError(null);
+    try {
+      await api.post(`/requests/${request?.id || id}/review`, {
+        status: 'REJECTED',
+        comments: rejectPaymentReason.trim(),
+      });
+      setIsRejectPaymentModalOpen(false);
+      setRejectPaymentReason('');
+      await loadRequestDetails();
+      onActionCompleted?.();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to reject request');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleSubmitSettlement = () =>
     withLoading(async () => {
