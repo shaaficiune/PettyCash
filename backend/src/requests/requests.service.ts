@@ -260,13 +260,17 @@ export class RequestsService {
         where.companyId = companyId;
       }
       // APPROVAL_TWO cannot view unreviewed Stage 1 requests (DRAFT, PENDING_APPROVAL).
-      // They can view all post-Approval 1 requests (ACCOUNTANT_REVIEW, APPROVED, PAYMENT_PROCESSING, PAID, COMPLETED, REJECTED).
+      // If requested, short-circuit and return empty results safely without querying DB.
       if (status) {
         if (status === RequestStatus.DRAFT || status === RequestStatus.PENDING_APPROVAL) {
-          where.status = '__DISALLOWED__' as any;
-        } else {
-          where.status = status;
+          return {
+            total: 0,
+            page,
+            pageSize,
+            items: [],
+          };
         }
+        where.status = status;
       } else {
         where.status = {
           notIn: [RequestStatus.DRAFT, RequestStatus.PENDING_APPROVAL],
