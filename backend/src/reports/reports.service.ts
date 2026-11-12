@@ -348,16 +348,37 @@ export class ReportsService {
     }
 
     if (startDate || endDate) {
-      where.requestDate = {};
-      if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        where.requestDate.gte = start;
-      }
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        where.requestDate.lte = end;
+      const s = startDate ? (() => { const d = new Date(startDate); d.setHours(0, 0, 0, 0); return d; })() : undefined;
+      const e = endDate ? (() => { const d = new Date(endDate); d.setHours(23, 59, 59, 999); return d; })() : undefined;
+
+      if (status === 'PAID' || status === 'PAID_ONLY') {
+        where.payments = {
+          some: {
+            paymentDate: {
+              ...(s ? { gte: s } : {}),
+              ...(e ? { lte: e } : {}),
+            },
+          },
+        };
+      } else {
+        where.OR = [
+          {
+            payments: {
+              some: {
+                paymentDate: {
+                  ...(s ? { gte: s } : {}),
+                  ...(e ? { lte: e } : {}),
+                },
+              },
+            },
+          },
+          {
+            requestDate: {
+              ...(s ? { gte: s } : {}),
+              ...(e ? { lte: e } : {}),
+            },
+          },
+        ];
       }
     }
 
@@ -719,16 +740,37 @@ export class ReportsService {
     }
 
     if (startDate || endDate) {
-      where.requestDate = {};
-      if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        where.requestDate.gte = start;
-      }
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        where.requestDate.lte = end;
+      const s = startDate ? (() => { const d = new Date(startDate); d.setHours(0, 0, 0, 0); return d; })() : undefined;
+      const e = endDate ? (() => { const d = new Date(endDate); d.setHours(23, 59, 59, 999); return d; })() : undefined;
+
+      if (status === 'PAID' || status === 'PAID_ONLY') {
+        where.payments = {
+          some: {
+            paymentDate: {
+              ...(s ? { gte: s } : {}),
+              ...(e ? { lte: e } : {}),
+            },
+          },
+        };
+      } else {
+        where.OR = [
+          {
+            payments: {
+              some: {
+                paymentDate: {
+                  ...(s ? { gte: s } : {}),
+                  ...(e ? { lte: e } : {}),
+                },
+              },
+            },
+          },
+          {
+            requestDate: {
+              ...(s ? { gte: s } : {}),
+              ...(e ? { lte: e } : {}),
+            },
+          },
+        ];
       }
     }
 
@@ -1034,31 +1076,43 @@ export class ReportsService {
     }
 
     // For PAID_ONLY (Cash Basis): filter by paymentDate so it matches the Dashboard vault figures.
-    // For APPROVED / APPROVED_AND_PAID (Policy Basis): filter by requestDate (when request was submitted).
+    // For APPROVED / APPROVED_AND_PAID (Policy Basis): filter by payments in period OR requestDate in period.
     const isPaidBasis = !(statusScope === 'APPROVED' || statusScope === 'APPROVED_AND_PAID');
 
     if (startDate || endDate) {
+      const s = startDate ? (() => { const d = new Date(startDate); d.setHours(0, 0, 0, 0); return d; })() : undefined;
+      const e = endDate ? (() => { const d = new Date(endDate); d.setHours(23, 59, 59, 999); return d; })() : undefined;
+
       if (isPaidBasis) {
         // Cash Basis — join through payments table using paymentDate
         reqWhere.payments = {
           some: {
             paymentDate: {
-              ...(startDate ? { gte: (() => { const s = new Date(startDate); s.setHours(0, 0, 0, 0); return s; })() } : {}),
-              ...(endDate ? { lte: (() => { const e = new Date(endDate); e.setHours(23, 59, 59, 999); return e; })() } : {}),
+              ...(s ? { gte: s } : {}),
+              ...(e ? { lte: e } : {}),
             },
           },
         };
       } else {
-        // Policy Basis — filter by requestDate (when employee submitted the request)
-        reqWhere.requestDate = {};
-        if (startDate) {
-          const s = new Date(startDate); s.setHours(0, 0, 0, 0);
-          reqWhere.requestDate.gte = s;
-        }
-        if (endDate) {
-          const e = new Date(endDate); e.setHours(23, 59, 59, 999);
-          reqWhere.requestDate.lte = e;
-        }
+        // Policy / Approved Basis — includes any request paid in this period OR requested/approved in this period
+        reqWhere.OR = [
+          {
+            payments: {
+              some: {
+                paymentDate: {
+                  ...(s ? { gte: s } : {}),
+                  ...(e ? { lte: e } : {}),
+                },
+              },
+            },
+          },
+          {
+            requestDate: {
+              ...(s ? { gte: s } : {}),
+              ...(e ? { lte: e } : {}),
+            },
+          },
+        ];
       }
     }
 
@@ -1475,33 +1529,43 @@ export class ReportsService {
     }
 
     // For PAID / PAID_ONLY (Cash Basis): filter by paymentDate so it matches the Dashboard vault figures.
-    // For APPROVED / ALL (Policy Basis): filter by requestDate.
+    // For APPROVED / ALL (Policy Basis): filter by payments in period OR requestDate in period.
     const isPaidBasisEmp = statusScope === 'PAID' || statusScope === 'PAID_ONLY';
 
     if (startDate || endDate) {
+      const s = startDate ? (() => { const d = new Date(startDate); d.setHours(0, 0, 0, 0); return d; })() : undefined;
+      const e = endDate ? (() => { const d = new Date(endDate); d.setHours(23, 59, 59, 999); return d; })() : undefined;
+
       if (isPaidBasisEmp) {
         // Cash Basis — filter via payments.paymentDate
         reqWhere.payments = {
           some: {
             paymentDate: {
-              ...(startDate ? { gte: (() => { const s = new Date(startDate); s.setHours(0, 0, 0, 0); return s; })() } : {}),
-              ...(endDate ? { lte: (() => { const e = new Date(endDate); e.setHours(23, 59, 59, 999); return e; })() } : {}),
+              ...(s ? { gte: s } : {}),
+              ...(e ? { lte: e } : {}),
             },
           },
         };
       } else {
-        // Policy Basis — filter by requestDate
-        reqWhere.requestDate = {};
-        if (startDate) {
-          const s = new Date(startDate);
-          s.setHours(0, 0, 0, 0);
-          reqWhere.requestDate.gte = s;
-        }
-        if (endDate) {
-          const e = new Date(endDate);
-          e.setHours(23, 59, 59, 999);
-          reqWhere.requestDate.lte = e;
-        }
+        // Policy Basis — filter via payments in period OR requestDate in period
+        reqWhere.OR = [
+          {
+            payments: {
+              some: {
+                paymentDate: {
+                  ...(s ? { gte: s } : {}),
+                  ...(e ? { lte: e } : {}),
+                },
+              },
+            },
+          },
+          {
+            requestDate: {
+              ...(s ? { gte: s } : {}),
+              ...(e ? { lte: e } : {}),
+            },
+          },
+        ];
       }
     }
 

@@ -14,7 +14,8 @@ echo "=============================================="
 # 1. Pull latest code from GitHub
 echo "📥 [1/9] Pulling latest code from GitHub..."
 git stash || true
-git pull origin main
+git fetch origin main
+git reset --hard origin/main
 
 # 2. Check and upgrade Node.js to v24 LTS if needed
 CURRENT_NODE_MAJOR=$(node -v 2>/dev/null | cut -d'.' -f1 | sed 's/v//' || echo "0")

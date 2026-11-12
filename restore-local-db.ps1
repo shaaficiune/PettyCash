@@ -6,7 +6,7 @@ Write-Host "==================================================" -ForegroundColor
 Write-Host ""
 
 $pgBin = "C:\Program Files\PostgreSQL\18\bin"
-$dumpFile = "d:\Petty Cash App\petty_cash_live_20261031_133307.dump"
+$dumpFile = "d:\Petty Cash App\petty_cash_live_20261112_060754.dump"
 $dbName = "petty_cash_db"
 $dbUser = "postgres"
 $env:PGPASSWORD = "Somtel@PL"
