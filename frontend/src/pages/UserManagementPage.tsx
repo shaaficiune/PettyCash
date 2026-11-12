@@ -412,7 +412,9 @@ export const UserManagementPage: React.FC = () => {
     if (userStatusFilter && u.status !== userStatusFilter) {
       return false;
     }
-    if (userRegionFilter && u.region?.id !== userRegionFilter) {
+    if (userRegionFilter === '__UNASSIGNED__') {
+      if (u.regionId || u.region?.id) return false;
+    } else if (userRegionFilter && u.region?.id !== userRegionFilter) {
       return false;
     }
     return true;
@@ -491,7 +493,9 @@ export const UserManagementPage: React.FC = () => {
               {u.region.name}
             </span>
           ) : (
-            <span className="text-slate-400 text-xs">—</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10.5px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60">
+              Unassigned
+            </span>
           );
         },
       },
@@ -876,6 +880,7 @@ export const UserManagementPage: React.FC = () => {
                     className="h-9 text-xs w-full sm:w-36"
                   >
                     <option value="">All Regions</option>
+                    <option value="__UNASSIGNED__">⚠️ Unassigned</option>
                     {(() => {
                       const filtered = regions.filter((r) => !userCompanyFilter || r.companyId === userCompanyFilter);
                       const groups: { [key: string]: any[] } = {};

@@ -2045,6 +2045,40 @@ Iyadoo la adeegsanayo `final pettycash.xlsx`, xogta database-ka waxaa lagu samee
     - Waxaa ku jira badhanka **"Refresh"** oo isla markiiba xogta cusub soo jiidaya.
 * **Git Commit:** `b3387c6`
 
+---
+
+## 37. 📊 NOVEMBER 2026 DISCREPANCY ROOT CAUSE ANALYSIS (LIVE DB REPLICA)
+**Taariikhda:** 2026-11-12  
+**Snapshot:** `petty_cash_live_20261112_051132.dump` (481 KB, 100% restored into local PostgreSQL 18)
+
+### 1. The Exact Root Cause of Dashboard vs Reports Discrepancy
+Comparing live server Dashboard values with Reports page values revealed the exact breakdown down to the cent:
+
+1. **Bluekom Gap (-$60.00):**
+   - **Dashboard Paid:** `$489.50` | **Reports Paid:** `$429.50`
+   - **Root Cause:** Two requests totaling `$60.00` were submitted for HQ with `regionId = NULL`:
+     * `PCR-BK-HQ-0001` ($10.00, Transportation, 2026-11-03, PAID)
+     * `PCR-BK-HQ-0002` ($50.00, Repair of Vehicles, 2026-11-09, PAID)
+   - In `backend/src/reports/reports.service.ts` (`getRegionBudgetHeadReport`):
+     `if (!req.regionId || !rowMap[req.regionId]) return;`
+     Because Bluekom has no region configured for "HQ" (only Nugaal $400, Mudug $250, Bari $350 = $1,000), any request with `regionId = null` is dropped from the report!
+     Calculation: `$489.50 - $60.00 = $429.50` (matches screenshot exactly).
+
+2. **Somtel Gap (-$40.00):**
+   - **Dashboard Paid:** `$1,715.35` | **Reports Paid:** `$1,675.35`
+   - **Root Cause:** Cross-month payout.
+     * `PCR-ST-HQ-0003` was submitted on **2026-10-31** ($40.00, Miscellaneous expenses - laptop repair).
+     * It was paid out on **2026-11-08** ($40.00).
+     * Dashboard filters `Payment.paymentDate` in November (includes the $40 payout → `$1,715.35`).
+     * Reports filtered `PettyCashRequest.requestDate` in November (excludes Oct 31 request → `$1,675.35`).
+     Calculation: `$1,715.35 - $40.00 = $1,675.35` (matches screenshot exactly).
+
+3. **Confirmed Petty Cash Vault Balances (November 2026):**
+   - **Somtel:** Opening: `$7.64` | Top-Up: `$3,272.36` | Available: `$3,280.00` | Paid: `$1,715.35` | Remaining: `$1,564.65`
+   - **Bluekom:** Opening: `$121.40` | Top-Up: `$878.60` | Available: `$1,000.00` | Paid: `$489.50` | Remaining: `$510.50`
+   Both company vaults are 100% reconciled and balanced.
+
+
 
 
 

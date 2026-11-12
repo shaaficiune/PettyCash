@@ -1074,6 +1074,7 @@ export class ReportsService {
         requestDate: true,
         regionId: true,
         companyId: true,
+        company: { select: { id: true, name: true } },
         budgetHeadId: true,
         user: { select: { fullName: true } },
         receiverName: true,
@@ -1118,10 +1119,34 @@ export class ReportsService {
     let grandBluekom = 0;
 
     requests.forEach((req) => {
-      if (!req.regionId || !rowMap[req.regionId]) return; // skip if region not in scope
+      let row = req.regionId ? rowMap[req.regionId] : null;
+
+      // If request has no regionId or region not in rowMap, group under "Unassigned (General)" for that company
+      if (!row) {
+        const unassignedId = `unassigned-${req.companyId}`;
+        if (!rowMap[unassignedId]) {
+          const compName = req.company?.name || 'Company';
+          const emptyCategories: Record<string, { spent: number; count: number; requests: any[] }> = {};
+          categoryNames.forEach((cat) => {
+            emptyCategories[cat] = { spent: 0, count: 0, requests: [] };
+          });
+          emptyCategories['Uncategorized'] = { spent: 0, count: 0, requests: [] };
+
+          rowMap[unassignedId] = {
+            regionId: unassignedId,
+            regionName: 'Unassigned (General)',
+            companyId: req.companyId,
+            companyName: compName,
+            regionBudget: 0,
+            totalSpent: 0,
+            byCategory: emptyCategories,
+          };
+        }
+        row = rowMap[unassignedId];
+      }
+
       const amount = Number(req.approvedAmount || req.requestedAmount || 0);
       const catName = req.budgetHeadId && bhById[req.budgetHeadId] ? bhById[req.budgetHeadId] : 'Uncategorized';
-      const row = rowMap[req.regionId];
 
       if (!row.byCategory[catName]) {
         row.byCategory[catName] = { spent: 0, count: 0, requests: [] };
@@ -1146,10 +1171,16 @@ export class ReportsService {
     });
 
     const rows = Object.values(rowMap).map((row) => {
-      const pct = row.regionBudget > 0 ? (row.totalSpent / row.regionBudget) * 100 : 0;
+      const isUnassigned = row.regionId.startsWith('unassigned-');
+      const pct = row.regionBudget > 0 ? (row.totalSpent / row.regionBudget) * 100 : (row.totalSpent > 0 ? 100 : 0);
       let status: 'SAFE' | 'WARNING' | 'EXCEEDED' = 'SAFE';
-      if (pct >= 100) status = 'EXCEEDED';
-      else if (pct >= 80) status = 'WARNING';
+      if (isUnassigned) {
+        status = row.totalSpent > 0 ? 'WARNING' : 'SAFE';
+      } else if (pct >= 100) {
+        status = 'EXCEEDED';
+      } else if (pct >= 80) {
+        status = 'WARNING';
+      }
 
       // Serialize byCategory (drop requests for summary, keep counts)
       const byCategorySummary: Record<string, { spent: number; count: number }> = {};
@@ -1175,6 +1206,17 @@ export class ReportsService {
         status,
         byCategory: byCategoryFull,
       };
+    });
+
+    // Sort: Company name ASC, normal regions first, Unassigned at the end of each company
+    rows.sort((a, b) => {
+      const compCmp = a.companyName.localeCompare(b.companyName);
+      if (compCmp !== 0) return compCmp;
+      const aUn = a.regionId.startsWith('unassigned-');
+      const bUn = b.regionId.startsWith('unassigned-');
+      if (aUn && !bUn) return 1;
+      if (!aUn && bUn) return -1;
+      return a.regionName.localeCompare(b.regionName);
     });
 
     const grandTotal = grandSomtel + grandBluekom;

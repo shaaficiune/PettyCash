@@ -757,10 +757,11 @@ export const ReportsPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {regionRows.map((row) => {
+                    const isUnassigned = row.regionId.startsWith('unassigned-');
                     const cfg = STATUS_CONFIG[row.status] || STATUS_CONFIG.SAFE;
                     const StatusIcon = cfg.icon;
                     const isOpen = expandedRegions.has(row.regionId);
-                    const pct = Math.min(row.percentageUsed, 100);
+                    const pct = isUnassigned ? 0 : Math.min(row.percentageUsed, 100);
 
                     const categoriesList = row.byCategory
                       ? Object.entries(row.byCategory)
@@ -771,9 +772,16 @@ export const ReportsPage: React.FC = () => {
 
                     return (
                       <React.Fragment key={row.regionId}>
-                        <tr className="hover:bg-muted/40 transition-colors">
+                        <tr className={`hover:bg-muted/40 transition-colors ${isUnassigned ? 'bg-amber-50/20 dark:bg-amber-950/10' : ''}`}>
                           <td className="px-4 py-3 font-bold text-foreground">
-                            {row.regionName}
+                            <div className="flex items-center gap-1.5">
+                              <span>{row.regionName}</span>
+                              {isUnassigned && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                  Unassigned
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             <span
@@ -795,25 +803,35 @@ export const ReportsPage: React.FC = () => {
                             ${fmt(row.remainingBudget)}
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden border border-border/40">
-                                <div
-                                  className={`h-full rounded-full transition-all ${cfg.bar}`}
-                                  style={{ width: `${pct}%` }}
-                                />
+                            {isUnassigned ? (
+                              <span className="text-[11px] text-muted-foreground italic">No policy cap</span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden border border-border/40">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${cfg.bar}`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[11px] font-mono font-bold text-foreground w-10 text-right">
+                                  {row.percentageUsed}%
+                                </span>
                               </div>
-                              <span className="text-[11px] font-mono font-bold text-foreground w-10 text-right">
-                                {row.percentageUsed}%
-                              </span>
-                            </div>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold border ${cfg.bg}`}
-                            >
-                              <StatusIcon className="w-3 h-3 shrink-0" />
-                              {cfg.label}
-                            </span>
+                            {isUnassigned ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900">
+                                Unassigned
+                              </span>
+                            ) : (
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold border ${cfg.bg}`}
+                              >
+                                <StatusIcon className="w-3 h-3 shrink-0" />
+                                {cfg.label}
+                              </span>
+                            )}
                           </td>
                           <td className="px-3 py-3 text-right">
                             {hasCategories && (
