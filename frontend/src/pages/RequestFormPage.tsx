@@ -772,10 +772,15 @@ export const RequestFormPage: React.FC = () => {
             <div className="space-y-1.5">
               <Label required className="text-xs font-semibold">Recipient phone</Label>
               <Input
-                type="text"
+                type="tel"
+                inputMode="tel"
                 placeholder="+252 66 xxx xxxx"
                 value={receiverPhone}
-                onChange={e => setReceiverPhone(e.target.value)}
+                onChange={e => {
+                  // Allow only digits, +, -, spaces, and parentheses
+                  const cleaned = e.target.value.replace(/[^0-9+\-\s()]/g, '');
+                  setReceiverPhone(cleaned);
+                }}
                 className="text-xs font-mono"
               />
             </div>

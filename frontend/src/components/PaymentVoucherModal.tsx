@@ -49,8 +49,6 @@ export const PaymentVoucherModal: React.FC<PaymentVoucherModalProps> = ({
     ? rawVoucherNo
     : `${formattedYear}${formattedMonth}${String(rawVoucherNo).replace(/\D/g, '').padStart(3, '0')}`;
 
-  const displayVoucherNo = serializedVoucherNo;
-
   const handlePrint = () => {
     const printContent = document.getElementById('printable-payment-voucher');
     if (!printContent) return;

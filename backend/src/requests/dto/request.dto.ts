@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsNumber, IsEnum, IsDateString, IsArray, ValidateNested, IsPositive, Min, Max } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsNumber, IsEnum, IsDateString, IsArray, ValidateNested, IsPositive, Min, Max, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Priority, RequestStatus } from '@prisma/client';
 
@@ -65,6 +65,7 @@ export class CreateRequestDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^[0-9+\-\s()]+$/, { message: 'receiverPhone must contain only digits, +, -, spaces, or parentheses' })
   receiverPhone?: string;
 
   @IsOptional()
@@ -148,6 +149,7 @@ export class UpdateRequestDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^[0-9+\-\s()]+$/, { message: 'receiverPhone must contain only digits, +, -, spaces, or parentheses' })
   receiverPhone?: string;
 
   @IsOptional()

@@ -1571,10 +1571,14 @@ export const RequestDetailPage: React.FC<RequestDetailPageProps> = ({
               <div className="space-y-1.5">
                 <Label required>Recipient Phone / Account</Label>
                 <Input
-                  type="text"
+                  type="tel"
+                  inputMode="tel"
                   placeholder="e.g. 667xxxxxx"
                   value={editReceiverPhone}
-                  onChange={(e) => setEditReceiverPhone(e.target.value)}
+                  onChange={(e) => {
+                    const cleaned = e.target.value.replace(/[^0-9+\-\s()]/g, '');
+                    setEditReceiverPhone(cleaned);
+                  }}
                   required
                 />
               </div>
