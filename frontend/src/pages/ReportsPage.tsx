@@ -406,7 +406,7 @@ export const ReportsPage: React.FC = () => {
 
   const totalRegionBudget = regionRows.reduce((acc, r) => acc + (Number(r.regionBudget) || 0), 0);
   const totalRegionSpent = regionRows.reduce((acc, r) => acc + (Number(r.totalSpent) || 0), 0);
-  const totalRegionRemaining = regionRows.reduce((acc, r) => acc + (Number(r.remainingBudget) || 0), 0);
+  const totalRegionRemaining = Math.max(0, totalRegionBudget - totalRegionSpent);
   const totalRegionsCount = regionRows.length;
   const overallUtilizationPct = totalRegionBudget > 0 ? Number(((totalRegionSpent / totalRegionBudget) * 100).toFixed(1)) : 0;
 
@@ -679,9 +679,9 @@ export const ReportsPage: React.FC = () => {
             variant="amber"
           />
           <MetricCard
-            title="Available Limit"
+            title={statusScope === 'PAID' ? 'Available Cash Balance' : 'Available Limit'}
             value={`$${fmt(totalRegionRemaining)}`}
-            subtitle="Remaining spending room this month"
+            subtitle={statusScope === 'PAID' ? 'Matches Dashboard cash vault' : 'Remaining spending room this month'}
             icon={TrendingDown}
             variant="emerald"
           />
