@@ -285,8 +285,8 @@ export const ReportsPage: React.FC = () => {
   const [drillEmployee, setDrillEmployee] = useState<EmployeeRow | null>(null);
 
   useEffect(() => {
-    api.get('/companies').then((r) => setCompanies(r.data)).catch(() => {});
-    api.get('/companies/regions').then((r) => setRegions(r.data)).catch(() => {});
+    api.get('/companies').then((r) => setCompanies(r.data)).catch(() => { });
+    api.get('/companies/regions').then((r) => setRegions(r.data)).catch(() => { });
   }, []);
 
   // Filter visible regions based on selected company
@@ -579,11 +579,10 @@ export const ReportsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusScope('PAID')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  statusScope === 'PAID'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${statusScope === 'PAID'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 title="Wixii la bixiyay ee khasnadda ka baxay oo kaliya (Actual Disbursed)"
               >
                 ✓ Paid (Actual)
@@ -591,11 +590,10 @@ export const ReportsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusScope('APPROVED')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  statusScope === 'APPROVED'
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${statusScope === 'APPROVED'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 title="Wixii maamulku ansixiyay oo dhan (Approved + Paid)"
               >
                 Approved (Total)
@@ -610,11 +608,10 @@ export const ReportsPage: React.FC = () => {
         <div className="inline-flex p-1 bg-muted/60 dark:bg-slate-900 rounded-xl border border-border gap-1">
           <button
             onClick={() => setActiveTab('region')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'region'
-                ? 'bg-background text-foreground shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === 'region'
+              ? 'bg-background text-foreground shadow-xs'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             <BarChart3 className="w-4 h-4 text-primary" />
             <span>Regional Budget Limits</span>
@@ -625,11 +622,10 @@ export const ReportsPage: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('employee')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'employee'
-                ? 'bg-background text-foreground shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === 'employee'
+              ? 'bg-background text-foreground shadow-xs'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             <Users className="w-4 h-4 text-primary" />
             <span>Employee Spending</span>
@@ -768,8 +764,8 @@ export const ReportsPage: React.FC = () => {
 
                     const categoriesList = row.byCategory
                       ? Object.entries(row.byCategory)
-                          .filter(([_, cat]) => cat.spent > 0 || cat.count > 0)
-                          .map(([name, cat]) => ({ categoryName: name, total: cat.spent, count: cat.count }))
+                        .filter(([_, cat]) => cat.spent > 0 || cat.count > 0)
+                        .map(([name, cat]) => ({ categoryName: name, total: cat.spent, count: cat.count }))
                       : [];
                     const hasCategories = categoriesList.length > 0;
 
@@ -781,11 +777,10 @@ export const ReportsPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold ${
-                                row.companyName.toLowerCase().includes('somtel')
-                                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
-                                  : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
-                              }`}
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold ${row.companyName.toLowerCase().includes('somtel')
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
+                                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
+                                }`}
                             >
                               {row.companyName}
                             </span>
@@ -889,13 +884,12 @@ export const ReportsPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden border border-border/40">
                           <div
-                            className={`h-full rounded-full transition-all ${
-                              overallUtilizationPct >= 100
-                                ? 'bg-rose-500'
-                                : overallUtilizationPct >= 80
+                            className={`h-full rounded-full transition-all ${overallUtilizationPct >= 100
+                              ? 'bg-rose-500'
+                              : overallUtilizationPct >= 80
                                 ? 'bg-amber-500'
                                 : 'bg-emerald-500'
-                            }`}
+                              }`}
                             style={{ width: `${Math.min(overallUtilizationPct, 100)}%` }}
                           />
                         </div>
@@ -907,13 +901,12 @@ export const ReportsPage: React.FC = () => {
                     <td className="px-4 py-3 text-center">
                       <Badge
                         variant="outline"
-                        className={`text-[10px] font-bold ${
-                          overallUtilizationPct >= 100
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : overallUtilizationPct >= 80
+                        className={`text-[10px] font-bold ${overallUtilizationPct >= 100
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : overallUtilizationPct >= 80
                             ? 'bg-amber-50 text-amber-700 border-amber-200'
                             : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        }`}
+                          }`}
                       >
                         {overallUtilizationPct >= 100 ? 'Exceeded' : overallUtilizationPct >= 80 ? 'Warning' : 'Healthy'}
                       </Badge>
@@ -1112,9 +1105,8 @@ export const ReportsPage: React.FC = () => {
                         <td className="px-3 py-2 text-right font-mono font-bold text-blue-600 dark:text-blue-400">${fmt(r.approvedAmount)}</td>
                         <td className="px-3 py-2 text-center">
                           <span
-                            className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              REQ_STATUS_COLORS[r.status] || 'bg-muted text-muted-foreground'
-                            }`}
+                            className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${REQ_STATUS_COLORS[r.status] || 'bg-muted text-muted-foreground'
+                              }`}
                           >
                             {REQ_STATUS_LABELS[r.status] || r.status}
                           </span>
