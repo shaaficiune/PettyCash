@@ -65,6 +65,7 @@ export class ReportsController {
   async getBudgetHeadReport(
     @Request() req,
     @Query('companyId') companyId?: string,
+    @Query('regionId') regionId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
@@ -75,7 +76,8 @@ export class ReportsController {
       targetCompanyId,
       startDate,
       endDate,
-      statusScope
+      statusScope,
+      regionId
     );
   }
 
@@ -87,6 +89,7 @@ export class ReportsController {
     @Request() req,
     @Response() res,
     @Query('companyId') companyId?: string,
+    @Query('regionId') regionId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('statusScope') statusScope?: string
@@ -97,7 +100,8 @@ export class ReportsController {
       targetCompanyId,
       startDate,
       endDate,
-      statusScope
+      statusScope,
+      regionId
     );
     res.setHeader('Content-Type', 'application/vnd.ms-excel');
     res.setHeader('Content-Disposition', 'attachment; filename="budget_heads_report.xls"');

@@ -703,7 +703,8 @@ export class ReportsService {
     companyId?: string,
     startDate?: string,
     endDate?: string,
-    statusScope: string = 'PAID_ONLY'
+    statusScope: string = 'PAID_ONLY',
+    regionId?: string
   ) {
     const companies = await this.prisma.company.findMany({
       where: companyId ? { id: companyId } : {},
@@ -726,7 +727,15 @@ export class ReportsService {
       where.companyId = companyId;
     }
 
-    if (statusScope === 'APPROVED_AND_PAID') {
+    if (regionId) {
+      if (regionId.startsWith('unassigned-')) {
+        where.regionId = null;
+      } else {
+        where.regionId = regionId;
+      }
+    }
+
+    if (statusScope === 'APPROVED_AND_PAID' || statusScope === 'APPROVED') {
       where.status = {
         in: [
           RequestStatus.APPROVED,
@@ -743,7 +752,7 @@ export class ReportsService {
       const s = startDate ? (() => { const d = new Date(startDate); d.setHours(0, 0, 0, 0); return d; })() : undefined;
       const e = endDate ? (() => { const d = new Date(endDate); d.setHours(23, 59, 59, 999); return d; })() : undefined;
 
-      if (status === 'PAID' || status === 'PAID_ONLY') {
+      if (statusScope === 'PAID' || statusScope === 'PAID_ONLY') {
         where.payments = {
           some: {
             paymentDate: {
@@ -786,6 +795,9 @@ export class ReportsService {
         requestDate: true,
         companyId: true,
         budgetHeadId: true,
+        regionId: true,
+        region: { select: { id: true, name: true } },
+        company: { select: { id: true, name: true } },
         user: { select: { fullName: true } },
         receiverName: true,
         receiverPhone: true,
@@ -796,6 +808,7 @@ export class ReportsService {
       string,
       {
         categoryName: string;
+        categoryCode: string;
         somtelSpent: number;
         somtelCount: number;
         somtelBudget: number;
@@ -806,6 +819,7 @@ export class ReportsService {
         otherBudget: number;
         totalBudget: number;
         requests: any[];
+        byRegion: Record<string, { regionId: string; regionName: string; companyId?: string; companyName?: string; spent: number; count: number; requests: any[] }>;
       }
     > = {};
 
@@ -814,6 +828,7 @@ export class ReportsService {
       if (!categoryMap[cat]) {
         categoryMap[cat] = {
           categoryName: cat,
+          categoryCode: bh.code,
           somtelSpent: 0,
           somtelCount: 0,
           somtelBudget: 0,
@@ -824,6 +839,7 @@ export class ReportsService {
           otherBudget: 0,
           totalBudget: 0,
           requests: [],
+          byRegion: {},
         };
       }
       const limit = Number(bh.monthlyLimit || 0);
@@ -852,6 +868,7 @@ export class ReportsService {
       if (!categoryMap[cat]) {
         categoryMap[cat] = {
           categoryName: cat,
+          categoryCode: bh?.code || 'MISC',
           somtelSpent: 0,
           somtelCount: 0,
           somtelBudget: 0,
@@ -862,13 +879,14 @@ export class ReportsService {
           otherBudget: 0,
           totalBudget: 0,
           requests: [],
+          byRegion: {},
         };
       }
 
       const amount = Number(req.approvedAmount || req.requestedAmount || 0);
-      const comp = companies.find((c) => c.id === req.companyId);
-      const isSomtel = comp?.name.toLowerCase().includes('somtel');
-      const isBluekom = comp?.name.toLowerCase().includes('bluekom');
+      const comp = companies.find((c) => c.id === req.companyId) || req.company;
+      const isSomtel = comp?.name?.toLowerCase().includes('somtel');
+      const isBluekom = comp?.name?.toLowerCase().includes('bluekom');
 
       if (isSomtel) {
         categoryMap[cat].somtelSpent += amount;
@@ -883,7 +901,7 @@ export class ReportsService {
         grandOther += amount;
       }
 
-      categoryMap[cat].requests.push({
+      const reqItem = {
         id: req.id,
         requestNumber: req.requestNumber,
         purpose: req.purpose,
@@ -893,19 +911,56 @@ export class ReportsService {
         employee: req.user?.fullName,
         receiver: req.receiverName || req.receiverPhone,
         companyName: comp?.name || 'N/A',
-      });
+        regionName: req.region?.name || 'Unassigned (General)',
+      };
+
+      categoryMap[cat].requests.push(reqItem);
+
+      // Track by region
+      const rName = req.region?.name || 'Unassigned (General)';
+      const rId = req.regionId || `unassigned-${req.companyId}`;
+      if (!categoryMap[cat].byRegion[rId]) {
+        categoryMap[cat].byRegion[rId] = {
+          regionId: rId,
+          regionName: rName,
+          companyId: req.companyId || '',
+          companyName: comp?.name || 'N/A',
+          spent: 0,
+          count: 0,
+          requests: [],
+        };
+      }
+      categoryMap[cat].byRegion[rId].spent += amount;
+      categoryMap[cat].byRegion[rId].count += 1;
+      categoryMap[cat].byRegion[rId].requests.push(reqItem);
     });
+
+    const grandTotalSpent = grandSomtel + grandBluekom + grandOther;
 
     const categories = Object.values(categoryMap).map((c) => {
       const totalSpent = c.somtelSpent + c.bluekomSpent + c.otherSpent;
       const remaining = Math.max(0, c.totalBudget - totalSpent);
-      const pct = c.totalBudget > 0 ? (totalSpent / c.totalBudget) * 100 : 0;
+      const budgetPct = c.totalBudget > 0 ? (totalSpent / c.totalBudget) * 100 : 0;
+      const shareOfTotal = grandTotalSpent > 0 ? (totalSpent / grandTotalSpent) * 100 : 0;
       let status: 'SAFE' | 'WARNING' | 'EXCEEDED' = 'SAFE';
-      if (pct >= 100) status = 'EXCEEDED';
-      else if (pct >= 80) status = 'WARNING';
+      if (budgetPct >= 100) status = 'EXCEEDED';
+      else if (budgetPct >= 80) status = 'WARNING';
+
+      const byRegion = Object.values(c.byRegion)
+        .map((r: any) => ({
+          regionId: r.regionId,
+          regionName: r.regionName,
+          companyId: r.companyId || '',
+          companyName: r.companyName || 'N/A',
+          spent: Number(r.spent.toFixed(2)),
+          count: r.count,
+          requests: r.requests,
+        }))
+        .sort((a, b) => b.spent - a.spent);
 
       return {
         categoryName: c.categoryName,
+        categoryCode: c.categoryCode,
         somtelSpent: Number(c.somtelSpent.toFixed(2)),
         somtelCount: c.somtelCount,
         somtelBudget: Number(c.somtelBudget.toFixed(2)),
@@ -915,15 +970,19 @@ export class ReportsService {
         totalSpent: Number(totalSpent.toFixed(2)),
         totalBudget: Number(c.totalBudget.toFixed(2)),
         remainingBudget: Number(remaining.toFixed(2)),
-        percentageUsed: Number(pct.toFixed(1)),
+        percentageUsed: Number(budgetPct.toFixed(1)),
+        shareOfTotal: Number(shareOfTotal.toFixed(1)),
         status,
         requestsCount: c.requests.length,
+        byRegion,
         requests: c.requests,
       };
     });
 
+    // Sort categories: Top spending categories first
+    categories.sort((a, b) => b.totalSpent - a.totalSpent);
+
     const totalBudget = categories.reduce((sum, c) => sum + c.totalBudget, 0);
-    const grandTotalSpent = grandSomtel + grandBluekom + grandOther;
     const remainingBudget = Math.max(0, totalBudget - grandTotalSpent);
     const percentageUsed = totalBudget > 0 ? (grandTotalSpent / totalBudget) * 100 : 0;
 
@@ -932,6 +991,7 @@ export class ReportsService {
         startDate: startDate || null,
         endDate: endDate || null,
         statusScope,
+        regionId: regionId || null,
       },
       summary: {
         totalBudget: Number(totalBudget.toFixed(2)),
@@ -940,6 +1000,7 @@ export class ReportsService {
         grandTotalSpent: Number(grandTotalSpent.toFixed(2)),
         remainingBudget: Number(remainingBudget.toFixed(2)),
         percentageUsed: Number(percentageUsed.toFixed(1)),
+        categoriesCount: categories.filter((c) => c.totalSpent > 0).length,
       },
       categories,
     };
@@ -950,24 +1011,29 @@ export class ReportsService {
     companyId?: string,
     startDate?: string,
     endDate?: string,
-    statusScope: string = 'PAID_ONLY'
+    statusScope: string = 'PAID_ONLY',
+    regionId?: string
   ): Promise<string> {
-    const data = await this.getBudgetHeadReport(user, companyId, startDate, endDate, statusScope);
+    const data = await this.getBudgetHeadReport(user, companyId, startDate, endDate, statusScope, regionId);
 
     const rows = data.categories
-      .map(
-        (c) => `
+      .map((c) => {
+        const regionBreakdown = c.byRegion
+          .map((r) => `${r.regionName}: $${r.spent.toFixed(2)} (${r.count})`)
+          .join(' | ') || '-';
+
+        return `
       <tr>
         <td style="font-weight:bold; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(c.categoryName)}</td>
+        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px; color:#64748b;">${escapeHtml(c.categoryCode || '-')}</td>
         <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#c2410c;">$${escapeHtml(c.somtelSpent.toFixed(2))}</td>
         <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#1d4ed8;">$${escapeHtml(c.bluekomSpent.toFixed(2))}</td>
-        <td style="text-align:right; font-weight:bold; border:1px solid #cbd5e1; padding:8px;">$${escapeHtml(c.totalSpent.toFixed(2))}</td>
-        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px; color:#64748b;">$${escapeHtml(c.totalBudget.toFixed(2))}</td>
-        <td style="text-align:right; border:1px solid #cbd5e1; padding:8px;">$${escapeHtml(c.remainingBudget.toFixed(2))}</td>
-        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(String(c.percentageUsed))}%</td>
-        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${escapeHtml(c.status)}</td>
-      </tr>`
-      )
+        <td style="text-align:right; font-weight:bold; border:1px solid #cbd5e1; padding:8px; color:#0f766e;">$${escapeHtml(c.totalSpent.toFixed(2))}</td>
+        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px;">${c.requestsCount}</td>
+        <td style="text-align:center; border:1px solid #cbd5e1; padding:8px; font-weight:bold;">${c.shareOfTotal}%</td>
+        <td style="border:1px solid #cbd5e1; padding:8px; font-size:9pt; color:#475569;">${escapeHtml(regionBreakdown)}</td>
+      </tr>`;
+      })
       .join('');
 
     return `
@@ -983,31 +1049,31 @@ export class ReportsService {
 </head>
 <body>
   <div class="header">Petty Cash Budget Head Expenditure Report</div>
-  <div class="subheader">Somtel &amp; Bluekom Integrated Financial System | Generated: ${new Date().toLocaleString()}</div>
+  <div class="subheader">Somtel &amp; Bluekom Integrated Financial System | Scope: ${escapeHtml(statusScope)} | Generated: ${new Date().toLocaleString()}</div>
   <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%;">
     <thead>
       <tr>
         <th>Budget Head Category</th>
-        <th style="background-color:#c2410c;">Somtel Spent (USD)</th>
-        <th style="background-color:#1d4ed8;">Bluekom Spent (USD)</th>
+        <th>Code</th>
+        <th style="background-color:#c2410c;">Somtel (USD)</th>
+        <th style="background-color:#1d4ed8;">Bluekom (USD)</th>
         <th style="background-color:#0f766e;">Combined Total (USD)</th>
-        <th>Budget Limit (USD)</th>
-        <th>Remaining Budget</th>
-        <th>% Utilized</th>
-        <th>Health</th>
+        <th>Count</th>
+        <th>% of Total</th>
+        <th>Regional Spending Distribution</th>
       </tr>
     </thead>
     <tbody>
       ${rows}
       <tr style="background-color:#f1f5f9; font-weight:bold;">
         <td style="padding:10px;">GRAND TOTAL</td>
+        <td style="text-align:center; padding:10px;">-</td>
         <td style="text-align:right; padding:10px; color:#c2410c;">$${data.summary.somtelSpent.toFixed(2)}</td>
         <td style="text-align:right; padding:10px; color:#1d4ed8;">$${data.summary.bluekomSpent.toFixed(2)}</td>
         <td style="text-align:right; padding:10px; color:#0f766e;">$${data.summary.grandTotalSpent.toFixed(2)}</td>
-        <td style="text-align:right; padding:10px;">$${data.summary.totalBudget.toFixed(2)}</td>
-        <td style="text-align:right; padding:10px;">$${data.summary.remainingBudget.toFixed(2)}</td>
-        <td style="text-align:center; padding:10px;">${data.summary.percentageUsed}%</td>
-        <td style="text-align:center; padding:10px;">-</td>
+        <td style="text-align:center; padding:10px;">${data.categories.reduce((s, c) => s + c.requestsCount, 0)}</td>
+        <td style="text-align:center; padding:10px;">100%</td>
+        <td style="padding:10px;">All regions aggregated</td>
       </tr>
     </tbody>
   </table>

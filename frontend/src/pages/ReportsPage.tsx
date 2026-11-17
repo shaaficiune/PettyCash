@@ -28,9 +28,57 @@ import {
   Building2,
   MapPin,
   FileSpreadsheet,
+  FolderKanban,
+  Tag,
+  Layers,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+interface BudgetHeadRegionShare {
+  regionId: string;
+  regionName: string;
+  companyId?: string;
+  companyName?: string;
+  spent: number;
+  count: number;
+  requests?: any[];
+}
+
+interface BudgetHeadRow {
+  categoryName: string;
+  categoryCode?: string;
+  somtelSpent: number;
+  somtelCount: number;
+  somtelBudget: number;
+  bluekomSpent: number;
+  bluekomCount: number;
+  bluekomBudget: number;
+  totalSpent: number;
+  totalBudget: number;
+  remainingBudget: number;
+  percentageUsed: number;
+  shareOfTotal: number;
+  status: 'SAFE' | 'WARNING' | 'EXCEEDED';
+  requestsCount: number;
+  byRegion: BudgetHeadRegionShare[];
+  requests: any[];
+}
+
+interface BudgetHeadSummary {
+  totalBudget: number;
+  somtelSpent: number;
+  bluekomSpent: number;
+  grandTotalSpent: number;
+  remainingBudget: number;
+  percentageUsed: number;
+  categoriesCount: number;
+}
+
+interface BudgetHeadData {
+  summary: BudgetHeadSummary;
+  categories: BudgetHeadRow[];
+}
 
 interface RegionRow {
   regionId: string;
@@ -53,6 +101,7 @@ interface RegionApiSummary {
 
 interface RegionData {
   summary: RegionApiSummary;
+  categoryNames?: string[];
   rows: RegionRow[];
 }
 
@@ -193,40 +242,45 @@ function MetricCard({
       bg: 'bg-blue-50 dark:bg-blue-950/30',
       text: 'text-blue-600 dark:text-blue-400',
       border: 'border-blue-100 dark:border-blue-900/40',
+      top: 'border-t-[3px] border-t-blue-500',
     },
     amber: {
       bg: 'bg-amber-50 dark:bg-amber-950/30',
       text: 'text-amber-600 dark:text-amber-400',
       border: 'border-amber-100 dark:border-amber-900/40',
+      top: 'border-t-[3px] border-t-amber-500',
     },
     emerald: {
       bg: 'bg-emerald-50 dark:bg-emerald-950/30',
       text: 'text-emerald-600 dark:text-emerald-400',
       border: 'border-emerald-100 dark:border-emerald-900/40',
+      top: 'border-t-[3px] border-t-emerald-500',
     },
     purple: {
       bg: 'bg-purple-50 dark:bg-purple-950/30',
       text: 'text-purple-600 dark:text-purple-400',
       border: 'border-purple-100 dark:border-purple-900/40',
+      top: 'border-t-[3px] border-t-purple-500',
     },
     default: {
       bg: 'bg-slate-100 dark:bg-slate-800',
       text: 'text-slate-600 dark:text-slate-400',
       border: 'border-slate-200 dark:border-slate-700',
+      top: 'border-t-[3px] border-t-slate-400',
     },
   }[variant];
 
   return (
-    <Card className="shadow-xs hover:shadow-sm transition-shadow">
+    <Card className={`shadow-xs hover:shadow-md transition-shadow overflow-hidden ${styles.top}`}>
       <CardContent className="p-4 flex items-center gap-3.5">
-        <div className={`p-3 rounded-xl border ${styles.bg} ${styles.border} ${styles.text} shrink-0`}>
+        <div className={`p-2.5 rounded-xl border ${styles.bg} ${styles.border} ${styles.text} shrink-0`}>
           <Icon className="w-5 h-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+          <p className="text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground truncate">
             {title}
           </p>
-          <p className="text-xl font-bold font-mono tracking-tight text-foreground mt-0.5">
+          <p className="text-xl font-bold font-financial tabular-nums tracking-tight text-foreground mt-0.5">
             {value}
           </p>
           {subtitle && (
@@ -255,7 +309,7 @@ export const ReportsPage: React.FC = () => {
     return <Navigate to="/" replace />;
   }
 
-  const [activeTab, setActiveTab] = useState<'region' | 'employee'>('region');
+  const [activeTab, setActiveTab] = useState<'region' | 'category' | 'employee'>('region');
 
   // Filters
   const { startDate: initialStart, endDate: initialEnd } = getThisMonthRange();
@@ -264,8 +318,10 @@ export const ReportsPage: React.FC = () => {
   const [endDate, setEndDate] = useState(initialEnd);
   const [companyId, setCompanyId] = useState('');
   const [regionId, setRegionId] = useState('');
-  const [statusScope, setStatusScope] = useState<'PAID' | 'APPROVED'>('PAID');
+  const statusScope = 'PAID';
   const [empSearch, setEmpSearch] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [selectedBudgetHead, setSelectedBudgetHead] = useState<string>('');
 
   // Dropdown options
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
@@ -276,10 +332,13 @@ export const ReportsPage: React.FC = () => {
   const [regionLoading, setRegionLoading] = useState(false);
   const [empData, setEmpData] = useState<EmployeeData | null>(null);
   const [empLoading, setEmpLoading] = useState(false);
+  const [budgetData, setBudgetData] = useState<BudgetHeadData | null>(null);
+  const [budgetLoading, setBudgetLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  // Expanded region category breakdowns
+  // Expanded region and category breakdowns
   const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // Drill-down modal for employee
   const [drillEmployee, setDrillEmployee] = useState<EmployeeRow | null>(null);
@@ -294,6 +353,22 @@ export const ReportsPage: React.FC = () => {
     if (!companyId) return regions;
     return regions.filter((r) => (r.companyId || r.company?.id) === companyId);
   }, [regions, companyId]);
+
+  // Available unique budget head names
+  const availableBudgetHeads = useMemo(() => {
+    const set = new Set<string>();
+    if (budgetData?.categories) {
+      budgetData.categories.forEach((c) => {
+        if (c.categoryName) set.add(c.categoryName.trim());
+      });
+    }
+    if (regionData?.categoryNames) {
+      regionData.categoryNames.forEach((name) => {
+        if (name && name !== 'Uncategorized') set.add(name.trim());
+      });
+    }
+    return Array.from(set).sort();
+  }, [budgetData, regionData]);
 
   const fetchRegionData = useCallback(async () => {
     setRegionLoading(true);
@@ -329,11 +404,29 @@ export const ReportsPage: React.FC = () => {
     }
   }, [startDate, endDate, companyId, regionId, statusScope]);
 
+  const fetchBudgetData = useCallback(async () => {
+    setBudgetLoading(true);
+    try {
+      const params: Record<string, string> = { statusScope };
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (companyId) params.companyId = companyId;
+      if (regionId) params.regionId = regionId;
+      const res = await api.get('/reports/budget-heads', { params });
+      setBudgetData(res.data);
+    } catch (err) {
+      console.error('Failed to load budget heads report', err);
+    } finally {
+      setBudgetLoading(false);
+    }
+  }, [startDate, endDate, companyId, regionId, statusScope]);
+
   // Refetch when filters change
   useEffect(() => {
     fetchRegionData();
     fetchEmpData();
-  }, [fetchRegionData, fetchEmpData]);
+    fetchBudgetData();
+  }, [fetchRegionData, fetchEmpData, fetchBudgetData]);
 
   const handlePresetChange = (preset: 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM') => {
     setPeriodPreset(preset);
@@ -360,11 +453,15 @@ export const ReportsPage: React.FC = () => {
       const endpoint =
         activeTab === 'region'
           ? '/reports/export-region-budget-excel'
+          : activeTab === 'category'
+          ? '/reports/export-budget-heads-excel'
           : '/reports/export-employee-spending-excel';
 
       const filename =
         activeTab === 'region'
           ? `regional_budget_report_${new Date().toISOString().slice(0, 10)}.xls`
+          : activeTab === 'category'
+          ? `budget_heads_report_${new Date().toISOString().slice(0, 10)}.xls`
           : `employee_spending_report_${new Date().toISOString().slice(0, 10)}.xls`;
 
       const res = await api.get(endpoint, { params, responseType: 'blob' });
@@ -394,6 +491,31 @@ export const ReportsPage: React.FC = () => {
     });
   };
 
+  const toggleCategoryExpand = (catName: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(catName)) next.delete(catName);
+      else next.add(catName);
+      return next;
+    });
+  };
+
+  // Filtered categories by search and selected budget head
+  const filteredCategories = useMemo(() => {
+    if (!budgetData?.categories) return [];
+    let list = budgetData.categories;
+    if (selectedBudgetHead) {
+      list = list.filter((c) => c.categoryName.toLowerCase() === selectedBudgetHead.toLowerCase());
+    }
+    if (!categorySearch.trim()) return list;
+    const q = categorySearch.toLowerCase().trim();
+    return list.filter(
+      (c) =>
+        c.categoryName.toLowerCase().includes(q) ||
+        (c.categoryCode && c.categoryCode.toLowerCase().includes(q))
+    );
+  }, [budgetData, selectedBudgetHead, categorySearch]);
+
   // Compute live aggregates from region rows
   const rawRegionRows = regionData?.rows || [];
   const regionRows = useMemo(() => {
@@ -409,6 +531,57 @@ export const ReportsPage: React.FC = () => {
   const totalRegionRemaining = Math.max(0, totalRegionBudget - totalRegionSpent);
   const totalRegionsCount = regionRows.length;
   const overallUtilizationPct = totalRegionBudget > 0 ? Number(((totalRegionSpent / totalRegionBudget) * 100).toFixed(1)) : 0;
+
+  // Aggregates for specific selected Budget Head
+  const headTotalSpent = useMemo(() => {
+    if (!selectedBudgetHead) return totalRegionSpent;
+    return regionRows.reduce((acc, r) => acc + (r.byCategory?.[selectedBudgetHead]?.spent || 0), 0);
+  }, [regionRows, selectedBudgetHead, totalRegionSpent]);
+
+  const headTotalCount = useMemo(() => {
+    if (!selectedBudgetHead) return 0;
+    return regionRows.reduce((acc, r) => acc + (r.byCategory?.[selectedBudgetHead]?.count || 0), 0);
+  }, [regionRows, selectedBudgetHead]);
+
+  const headActiveRegionsCount = useMemo(() => {
+    if (!selectedBudgetHead) return totalRegionsCount;
+    return regionRows.filter((r) => (r.byCategory?.[selectedBudgetHead]?.spent || 0) > 0).length;
+  }, [regionRows, selectedBudgetHead, totalRegionsCount]);
+
+  const topHeadRegion = useMemo(() => {
+    if (!selectedBudgetHead) return null;
+    let max = 0;
+    let top: RegionRow | null = null;
+    for (const r of regionRows) {
+      const s = r.byCategory?.[selectedBudgetHead]?.spent || 0;
+      if (s > max) {
+        max = s;
+        top = r;
+      }
+    }
+    return top ? { name: (top as RegionRow).regionName, spent: max } : null;
+  }, [regionRows, selectedBudgetHead]);
+
+  // Helper to determine region company (Somtel vs Bluekom)
+  const getRegionCompany = useCallback(
+    (r: BudgetHeadRegionShare) => {
+      if (r.companyName && r.companyName !== 'N/A') return r.companyName;
+      if (r.requests && r.requests.length > 0 && r.requests[0].companyName) {
+        return r.requests[0].companyName;
+      }
+      if (r.regionId.startsWith('unassigned-')) {
+        const cId = r.regionId.replace('unassigned-', '');
+        return companies.find((c) => c.id === cId)?.name || '';
+      }
+      const reg = regions.find((rg) => rg.id === r.regionId);
+      if (reg?.company?.name) return reg.company.name;
+      if (reg?.companyId) {
+        return companies.find((c) => c.id === reg.companyId)?.name || '';
+      }
+      return '';
+    },
+    [regions, companies]
+  );
 
   // Filtered employees by search
   const filteredEmployees = useMemo(() => {
@@ -452,11 +625,11 @@ export const ReportsPage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { fetchRegionData(); fetchEmpData(); }}
-            disabled={regionLoading || empLoading}
-            className="gap-1.5 text-xs h-8.5 font-medium cursor-pointer"
+            onClick={() => { fetchRegionData(); fetchEmpData(); fetchBudgetData(); }}
+            disabled={regionLoading || empLoading || budgetLoading}
+            className="gap-1.5 text-xs h-8 font-medium cursor-pointer"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${regionLoading || empLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${regionLoading || empLoading || budgetLoading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </Button>
 
@@ -465,7 +638,7 @@ export const ReportsPage: React.FC = () => {
             size="sm"
             onClick={handleExportCurrent}
             disabled={exporting}
-            className="gap-1.5 text-xs h-8.5 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs"
+            className="gap-1.5 text-xs h-8 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs"
           >
             {exporting ? (
               <>
@@ -492,7 +665,7 @@ export const ReportsPage: React.FC = () => {
               <Select
                 value={periodPreset}
                 onChange={(e) => handlePresetChange(e.target.value as any)}
-                className="text-xs h-8.5 font-medium"
+                className="text-xs h-8 font-medium"
               >
                 <option value="THIS_MONTH">This Month</option>
                 <option value="LAST_MONTH">Last Month</option>
@@ -531,7 +704,7 @@ export const ReportsPage: React.FC = () => {
                     setCompanyId(e.target.value);
                     setRegionId('');
                   }}
-                  className="text-xs h-8.5 font-medium"
+                  className="text-xs h-8 font-medium"
                 >
                   <option value="">All Companies (Both)</option>
                   {companies.map((c) => (
@@ -547,7 +720,7 @@ export const ReportsPage: React.FC = () => {
               <Select
                 value={regionId}
                 onChange={(e) => setRegionId(e.target.value)}
-                className="text-xs h-8.5 font-medium"
+                className="text-xs h-8 font-medium"
               >
                 <option value="">All Regions</option>
                 {(() => {
@@ -574,30 +747,29 @@ export const ReportsPage: React.FC = () => {
               </Select>
             </div>
 
-            {/* Status Scope Segmented Toggle: Paid vs Approved */}
-            <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/40 shrink-0">
-              <button
-                type="button"
-                onClick={() => setStatusScope('PAID')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${statusScope === 'PAID'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                title="Wixii la bixiyay ee khasnadda ka baxay oo kaliya (Actual Disbursed)"
+            {/* Budget Head Dropdown Filter */}
+            <div className="flex items-center gap-1.5 min-w-[160px] flex-1">
+              <FolderKanban className="h-3.5 w-3.5 text-[#F5B700] shrink-0" />
+              <Select
+                value={selectedBudgetHead}
+                onChange={(e) => setSelectedBudgetHead(e.target.value)}
+                className="text-xs h-8 font-medium"
               >
-                ✓ Paid (Actual)
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusScope('APPROVED')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${statusScope === 'APPROVED'
-                  ? 'bg-primary text-primary-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                title="Wixii maamulku ansixiyay oo dhan (Approved + Paid)"
-              >
-                Approved (Total)
-              </button>
+                <option value="">All Budget Heads</option>
+                {availableBudgetHeads.map((bh) => (
+                  <option key={bh} value={bh}>{bh}</option>
+                ))}
+              </Select>
+              {selectedBudgetHead && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedBudgetHead('')}
+                  className="p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
+                  title="Clear Budget Head filter"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -621,6 +793,20 @@ export const ReportsPage: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveTab('category')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === 'category'
+              ? 'bg-background text-foreground shadow-xs'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
+          >
+            <FolderKanban className="w-4 h-4 text-[#F5B700]" />
+            <span>Budget Heads</span>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4.5 bg-muted/50">
+              {budgetData?.summary?.categoriesCount || budgetData?.categories?.filter((c) => c.totalSpent > 0).length || 0}
+            </Badge>
+          </button>
+
+          <button
             onClick={() => setActiveTab('employee')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === 'employee'
               ? 'bg-background text-foreground shadow-xs'
@@ -634,6 +820,27 @@ export const ReportsPage: React.FC = () => {
             </Badge>
           </button>
         </div>
+
+        {activeTab === 'category' && (
+          <div className="relative w-64">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              value={categorySearch}
+              onChange={(e) => setCategorySearch(e.target.value)}
+              placeholder="Search category, e.g. Tasliix..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            {categorySearch && (
+              <button
+                onClick={() => setCategorySearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
 
         {activeTab === 'employee' && (
           <div className="relative w-64">
@@ -659,38 +866,118 @@ export const ReportsPage: React.FC = () => {
 
       {/* ─── 4. KPI STAT CARDS ─── */}
       {activeTab === 'region' ? (
+        selectedBudgetHead ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <MetricCard
+              title="Selected Budget Head"
+              value={selectedBudgetHead}
+              subtitle="Filter applied to all regional zones"
+              icon={FolderKanban}
+              variant="blue"
+            />
+            <MetricCard
+              title={`Total Paid (${selectedBudgetHead})`}
+              value={`$${fmt(headTotalSpent)}`}
+              subtitle={
+                companyId
+                  ? `${companies.find((c) => c.id === companyId)?.name || 'Company'} — ${headTotalCount} requests`
+                  : `${headTotalCount} request${headTotalCount !== 1 ? 's' : ''} across all regions`
+              }
+              icon={TrendingUp}
+              variant="amber"
+            />
+            <MetricCard
+              title="Top Spending Region"
+              value={topHeadRegion ? topHeadRegion.name : 'None'}
+              subtitle={topHeadRegion ? `$${fmt(topHeadRegion.spent)} spent on ${selectedBudgetHead}` : 'No regional expenses'}
+              icon={MapPin}
+              variant="emerald"
+            />
+            <MetricCard
+              title="Active Territories"
+              value={`${headActiveRegionsCount} of ${totalRegionsCount}`}
+              subtitle="Territories with recorded spend"
+              icon={Layers}
+              variant="purple"
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <MetricCard
+              title="Total Monthly Limit"
+              value={`$${fmt(totalRegionBudget)}`}
+              subtitle={companyId ? `${companies.find((c) => c.id === companyId)?.name || 'Company'} monthly cap` : 'Combined regional caps'}
+              icon={DollarSign}
+              variant="blue"
+            />
+            <MetricCard
+              title="Total Paid Out"
+              value={`$${fmt(totalRegionSpent)}`}
+              subtitle={
+                companyId
+                  ? `${companies.find((c) => c.id === companyId)?.name || 'Company'} actual spend`
+                  : `Somtel: $${fmt(regionData?.summary?.somtelSpent || 0)} · Bluekom: $${fmt(regionData?.summary?.bluekomSpent || 0)}`
+              }
+              icon={TrendingUp}
+              variant="amber"
+            />
+            <MetricCard
+              title="Available Cash Balance"
+              value={`$${fmt(totalRegionRemaining)}`}
+              subtitle="Matches Dashboard cash vault"
+              icon={TrendingDown}
+              variant="emerald"
+            />
+            <MetricCard
+              title="Territories"
+              value={String(totalRegionsCount)}
+              subtitle="Configured regional zones"
+              icon={MapPin}
+              variant="purple"
+            />
+          </div>
+        )
+      ) : activeTab === 'category' ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricCard
-            title="Total Monthly Limit"
-            value={`$${fmt(totalRegionBudget)}`}
-            subtitle={companyId ? `${companies.find((c) => c.id === companyId)?.name || 'Company'} monthly cap` : 'Combined regional caps'}
-            icon={DollarSign}
-            variant="blue"
-          />
-          <MetricCard
-            title={statusScope === 'PAID' ? 'Total Paid Out (Actual)' : 'Total Approved & Paid'}
-            value={`$${fmt(totalRegionSpent)}`}
+            title="Total Paid Out"
+            value={`$${fmt(budgetData?.summary?.grandTotalSpent || 0)}`}
             subtitle={
               companyId
-                ? `${companies.find((c) => c.id === companyId)?.name || 'Company'} actual spend`
-                : `Somtel: $${fmt(regionData?.summary?.somtelSpent || 0)} · Bluekom: $${fmt(regionData?.summary?.bluekomSpent || 0)}`
+                ? `${companies.find((c) => c.id === companyId)?.name || 'Company'} category spend`
+                : `Somtel: $${fmt(budgetData?.summary?.somtelSpent || 0)} · Bluekom: $${fmt(budgetData?.summary?.bluekomSpent || 0)}`
             }
             icon={TrendingUp}
             variant="amber"
           />
           <MetricCard
-            title={statusScope === 'PAID' ? 'Available Cash Balance' : 'Available Limit'}
-            value={`$${fmt(totalRegionRemaining)}`}
-            subtitle={statusScope === 'PAID' ? 'Matches Dashboard cash vault' : 'Remaining spending room this month'}
-            icon={TrendingDown}
-            variant="emerald"
+            title="Top Spending Category"
+            value={
+              budgetData?.categories && budgetData.categories.length > 0 && budgetData.categories[0].totalSpent > 0
+                ? `$${fmt(budgetData.categories[0].totalSpent)}`
+                : '$0.00'
+            }
+            subtitle={
+              budgetData?.categories && budgetData.categories.length > 0 && budgetData.categories[0].totalSpent > 0
+                ? `${budgetData.categories[0].categoryName} (${budgetData.categories[0].shareOfTotal}% of spend)`
+                : 'No expenses recorded'
+            }
+            icon={DollarSign}
+            variant="blue"
           />
           <MetricCard
-            title="Territories"
-            value={String(totalRegionsCount)}
-            subtitle="Configured regional zones"
-            icon={MapPin}
+            title="Active Budget Heads"
+            value={String(budgetData?.summary?.categoriesCount || budgetData?.categories?.filter((c) => c.totalSpent > 0).length || 0)}
+            subtitle={`Out of ${budgetData?.categories?.length || 0} configured heads`}
+            icon={FolderKanban}
             variant="purple"
+          />
+          <MetricCard
+            title="Available Cash Balance"
+            value={`$${fmt(totalRegionRemaining)}`}
+            subtitle="Matches Dashboard cash vault"
+            icon={TrendingDown}
+            variant="emerald"
           />
         </div>
       ) : (
@@ -740,39 +1027,31 @@ export const ReportsPage: React.FC = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
-                    <th className="text-left px-4 py-3">Region</th>
-                    <th className="text-left px-4 py-3">Company</th>
-                    <th className="text-right px-4 py-3 font-mono">Monthly Limit</th>
-                    <th className="text-right px-4 py-3 font-mono">
-                      {statusScope === 'PAID' ? 'Paid Out (Actual)' : 'Approved & Paid'}
-                    </th>
-                    <th className="text-right px-4 py-3 font-mono">Available Limit</th>
-                    <th className="px-4 py-3 min-w-[160px]">Limit Utilization</th>
-                    <th className="text-center px-4 py-3">Status</th>
-                    <th className="px-3 py-3 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {regionRows.map((row) => {
-                    const isUnassigned = row.regionId.startsWith('unassigned-');
-                    const cfg = STATUS_CONFIG[row.status] || STATUS_CONFIG.SAFE;
-                    const StatusIcon = cfg.icon;
-                    const isOpen = expandedRegions.has(row.regionId);
-                    const pct = isUnassigned ? 0 : Math.min(row.percentageUsed, 100);
+              {selectedBudgetHead ? (
+                /* Focused Budget Head View across Regions */
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-[#0D1C3D] to-[#0A1630] dark:from-[#0B1325] dark:to-[#080D1A] text-white text-[11px] font-bold uppercase tracking-wider">
+                      <th className="text-left px-4 py-3">Region</th>
+                      <th className="text-left px-4 py-3">Company</th>
+                      <th className="text-left px-4 py-3">Budget Head</th>
+                      <th className="text-right px-4 py-3">Paid Spent (USD)</th>
+                      <th className="text-center px-4 py-3">Requests</th>
+                      <th className="text-right px-4 py-3">Region Total Spend</th>
+                      <th className="text-center px-4 py-3 min-w-[120px]">% of Region</th>
+                      <th className="text-center px-4 py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {regionRows.map((row) => {
+                      const isUnassigned = row.regionId.startsWith('unassigned-');
+                      const spentOnHead = row.byCategory?.[selectedBudgetHead]?.spent || 0;
+                      const countOnHead = row.byCategory?.[selectedBudgetHead]?.count || 0;
+                      const shareOfRegion = row.totalSpent > 0 ? Number(((spentOnHead / row.totalSpent) * 100).toFixed(1)) : 0;
+                      const hasSpend = spentOnHead > 0;
 
-                    const categoriesList = row.byCategory
-                      ? Object.entries(row.byCategory)
-                        .filter(([_, cat]) => cat.spent > 0 || cat.count > 0)
-                        .map(([name, cat]) => ({ categoryName: name, total: cat.spent, count: cat.count }))
-                      : [];
-                    const hasCategories = categoriesList.length > 0;
-
-                    return (
-                      <React.Fragment key={row.regionId}>
-                        <tr className={`hover:bg-muted/40 transition-colors ${isUnassigned ? 'bg-amber-50/20 dark:bg-amber-950/10' : ''}`}>
+                      return (
+                        <tr key={row.regionId} className={`hover:bg-muted/40 transition-colors ${hasSpend ? 'bg-primary/5' : ''}`}>
                           <td className="px-4 py-3 font-bold text-foreground">
                             <div className="flex items-center gap-1.5">
                               <span>{row.regionName}</span>
@@ -785,92 +1064,463 @@ export const ReportsPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold ${row.companyName.toLowerCase().includes('somtel')
-                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
-                                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
-                                }`}
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold ${
+                                row.companyName.toLowerCase().includes('somtel')
+                                  ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-900'
+                                  : 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
+                              }`}
                             >
                               {row.companyName}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-muted-foreground font-semibold">
-                            ${fmt(row.regionBudget)}
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                              <Tag className="w-3.5 h-3.5 text-[#F5B700]" />
+                              {selectedBudgetHead}
+                            </span>
                           </td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-amber-600 dark:text-amber-400">
+                          <td className="px-4 py-3 text-right font-financial tabular-nums font-bold text-sm">
+                            <span className={hasSpend ? 'text-primary' : 'text-muted-foreground'}>
+                              ${fmt(spentOnHead)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-mono">
+                            {countOnHead > 0 ? (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-semibold bg-primary/10 text-primary border-primary/30">
+                                {countOnHead} req
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-[11px]">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right font-financial tabular-nums text-muted-foreground">
                             ${fmt(row.totalSpent)}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            ${fmt(row.remainingBudget)}
-                          </td>
-                          <td className="px-4 py-3">
-                            {isUnassigned ? (
-                              <span className="text-[11px] text-muted-foreground italic">No policy cap</span>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden border border-border/40">
+                          <td className="px-4 py-3 text-center">
+                            {hasSpend ? (
+                              <div className="flex items-center justify-center gap-2 max-w-[120px] mx-auto">
+                                <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
                                   <div
-                                    className={`h-full rounded-full transition-all ${cfg.bar}`}
-                                    style={{ width: `${pct}%` }}
+                                    className="h-full bg-emerald-500 rounded-full"
+                                    style={{ width: `${Math.min(100, shareOfRegion)}%` }}
                                   />
                                 </div>
-                                <span className="text-[11px] font-mono font-bold text-foreground w-10 text-right">
-                                  {row.percentageUsed}%
+                                <span className="font-mono text-[10px] text-muted-foreground w-8 text-right">
+                                  {shareOfRegion}%
                                 </span>
                               </div>
+                            ) : (
+                              <span className="text-muted-foreground text-[11px]">0%</span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            {isUnassigned ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900">
-                                Unassigned
-                              </span>
+                            {hasSpend ? (
+                              <Badge className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300">
+                                Active Spend
+                              </Badge>
                             ) : (
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold border ${cfg.bg}`}
-                              >
-                                <StatusIcon className="w-3 h-3 shrink-0" />
-                                {cfg.label}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-3 text-right">
-                            {hasCategories && (
-                              <button
-                                onClick={() => toggleRegionExpand(row.regionId)}
-                                className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                                title="Expand category breakdown"
-                              >
-                                {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                              </button>
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                                No Expense
+                              </Badge>
                             )}
                           </td>
                         </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-muted/80 font-bold border-t-2 border-border">
+                      <td className="px-4 py-3 font-extrabold text-foreground">Total</td>
+                      <td className="px-4 py-3 text-muted-foreground text-[11px]">
+                        {companyId ? companies.find((c) => c.id === companyId)?.name : 'All Companies'}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-foreground">
+                        {selectedBudgetHead}
+                      </td>
+                      <td className="px-4 py-3 text-right font-financial tabular-nums text-primary font-extrabold text-sm">
+                        ${fmt(headTotalSpent)}
+                      </td>
+                      <td className="px-4 py-3 text-center font-financial tabular-nums font-bold text-foreground">
+                        {headTotalCount} req{headTotalCount !== 1 ? 's' : ''}
+                      </td>
+                      <td className="px-4 py-3 text-right font-financial tabular-nums text-muted-foreground font-semibold">
+                        ${fmt(totalRegionSpent)}
+                      </td>
+                      <td className="px-4 py-3 text-center font-mono text-xs text-muted-foreground">
+                        {totalRegionSpent > 0 ? `${((headTotalSpent / totalRegionSpent) * 100).toFixed(1)}%` : '0%'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Badge variant="outline" className="text-[10px] font-bold">
+                          {headActiveRegionsCount} Regions
+                        </Badge>
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              ) : (
+                /* Standard Regional Table with clean category pills on expand */
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-[#0D1C3D] to-[#0A1630] dark:from-[#0B1325] dark:to-[#080D1A] text-white text-[11px] font-bold uppercase tracking-wider">
+                      <th className="text-left px-4 py-3">Region</th>
+                      <th className="text-left px-4 py-3">Company</th>
+                      <th className="text-right px-4 py-3">Monthly Limit</th>
+                      <th className="text-right px-4 py-3">Paid Out (Actual)</th>
+                      <th className="text-right px-4 py-3">Available Limit</th>
+                      <th className="px-4 py-3 min-w-[160px]">Limit Utilization</th>
+                      <th className="text-center px-4 py-3">Status</th>
+                      <th className="px-3 py-3 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {regionRows.map((row) => {
+                      const isUnassigned = row.regionId.startsWith('unassigned-');
+                      const cfg = STATUS_CONFIG[row.status] || STATUS_CONFIG.SAFE;
+                      const StatusIcon = cfg.icon;
+                      const isOpen = expandedRegions.has(row.regionId);
+                      const pct = isUnassigned ? 0 : Math.min(row.percentageUsed, 100);
 
-                        {/* Collapsible Expense Category Details */}
-                        {isOpen && hasCategories && (
-                          <tr className="bg-muted/30">
-                            <td colSpan={8} className="px-6 py-3 border-t border-border/60">
-                              <div className="space-y-1.5 max-w-lg">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                  Expense Category Breakdown ({row.regionName})
-                                </p>
-                                <div className="divide-y divide-border/60 bg-background rounded-lg border border-border p-2">
-                                  {categoriesList.map((cat) => (
-                                    <div key={cat.categoryName} className="flex items-center justify-between py-1 px-1.5 text-xs">
-                                      <span className="text-muted-foreground font-medium">
-                                        {cat.categoryName}{' '}
-                                        {cat.count > 0 && (
-                                          <span className="text-[10px] text-muted-foreground/80">
-                                            ({cat.count} requests)
-                                          </span>
-                                        )}
-                                      </span>
-                                      <span className="font-mono font-bold text-foreground">
-                                        ${fmt(cat.total)}
-                                      </span>
-                                    </div>
-                                  ))}
+                      const categoriesList = row.byCategory
+                        ? Object.entries(row.byCategory)
+                          .filter(([_, cat]) => cat.spent > 0 || cat.count > 0)
+                          .map(([name, cat]) => ({ categoryName: name, total: cat.spent, count: cat.count }))
+                        : [];
+                      const hasCategories = categoriesList.length > 0;
+
+                      return (
+                        <React.Fragment key={row.regionId}>
+                          <tr className={`hover:bg-muted/40 transition-colors ${isUnassigned ? 'bg-amber-50/20 dark:bg-amber-950/10' : ''}`}>
+                            <td className="px-4 py-3 font-bold text-foreground">
+                              <div className="flex items-center gap-1.5">
+                                <span>{row.regionName}</span>
+                                {isUnassigned && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                    Unassigned
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold ${
+                                  row.companyName.toLowerCase().includes('somtel')
+                                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-900'
+                                    : 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
+                                }`}
+                              >
+                                {row.companyName}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right font-financial tabular-nums text-muted-foreground font-semibold">
+                              ${fmt(row.regionBudget)}
+                            </td>
+                            <td className="px-4 py-3 text-right font-financial tabular-nums font-bold text-amber-600 dark:text-amber-400">
+                              ${fmt(row.totalSpent)}
+                            </td>
+                            <td className="px-4 py-3 text-right font-financial tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
+                              ${fmt(row.remainingBudget)}
+                            </td>
+                            <td className="px-4 py-3">
+                              {isUnassigned ? (
+                                <span className="text-[11px] text-muted-foreground italic">No policy cap</span>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden border border-border/40">
+                                    <div
+                                      className={`h-full rounded-full transition-all ${cfg.bar}`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-[11px] font-mono font-bold text-foreground w-10 text-right">
+                                    {row.percentageUsed}%
+                                  </span>
                                 </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {isUnassigned ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900">
+                                  Unassigned
+                                </span>
+                              ) : (
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold border ${cfg.bg}`}
+                                >
+                                  <StatusIcon className="w-3 h-3 shrink-0" />
+                                  {cfg.label}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 text-right">
+                              {hasCategories && (
+                                <button
+                                  onClick={() => toggleRegionExpand(row.regionId)}
+                                  className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                                  title="Expand budget heads breakdown"
+                                >
+                                  {isOpen ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+
+                          {/* Clean Collapsible Expense Category Pills (NO requests list!) */}
+                          {isOpen && hasCategories && (
+                            <tr className="bg-muted/20 border-b border-border">
+                              <td colSpan={8} className="px-6 py-3">
+                                <div className="space-y-2">
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                    <FolderKanban className="w-3.5 h-3.5 text-[#F5B700]" />
+                                    Budget Heads Breakdown — {row.regionName} ({row.companyName})
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {categoriesList.map((cat) => (
+                                      <div
+                                        key={cat.categoryName}
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-background shadow-2xs text-xs"
+                                      >
+                                        <span className="font-semibold text-foreground">{cat.categoryName}:</span>
+                                        <span className="font-financial tabular-nums font-bold text-primary">${fmt(cat.total)}</span>
+                                        <span className="text-[10px] text-muted-foreground">({cat.count} req)</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+
+                  {/* ─── GRAND TOTAL FOOTER ROW ─── */}
+                  <tfoot>
+                    <tr className="bg-muted/70 border-t-2 border-border font-bold text-foreground">
+                      <td className="px-4 py-3 uppercase tracking-wider text-[11px] text-foreground">
+                        Grand Total ({totalRegionsCount} Regions)
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-[11px]">
+                        {companyId ? companies.find((c) => c.id === companyId)?.name : 'All Companies'}
+                      </td>
+                      <td className="px-4 py-3 text-right font-financial tabular-nums text-foreground font-extrabold">
+                        ${fmt(totalRegionBudget)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-financial tabular-nums text-amber-600 dark:text-amber-400 font-extrabold">
+                        ${fmt(totalRegionSpent)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-financial tabular-nums text-emerald-600 dark:text-emerald-400 font-extrabold">
+                        ${fmt(totalRegionRemaining)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden border border-border/40">
+                            <div
+                              className={`h-full rounded-full transition-all ${overallUtilizationPct >= 100
+                                ? 'bg-rose-500'
+                                : overallUtilizationPct >= 80
+                                  ? 'bg-amber-500'
+                                  : 'bg-emerald-500'
+                                }`}
+                              style={{ width: `${Math.min(overallUtilizationPct, 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-[11px] font-mono font-bold text-foreground w-10 text-right">
+                            {overallUtilizationPct}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-bold ${overallUtilizationPct >= 100
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : overallUtilizationPct >= 80
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}
+                        >
+                          {overallUtilizationPct >= 100 ? 'Exceeded' : overallUtilizationPct >= 80 ? 'Warning' : 'Healthy'}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-3"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* ─── 5.5. TAB CONTENT: BUDGET HEADS / CATEGORIES ─── */}
+      {activeTab === 'category' && (
+        <Card className="shadow-xs overflow-hidden">
+          {budgetLoading ? (
+            <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Loading budget head records...</span>
+            </div>
+          ) : filteredCategories.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground text-sm">
+              No budget head records found for the selected period and filters.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gradient-to-r from-[#0D1C3D] to-[#0A1630] dark:from-[#0B1325] dark:to-[#080D1A] text-white text-[11px] font-bold uppercase tracking-wider">
+                    <th className="text-left py-3 px-4">Budget Head Category</th>
+                    <th className="text-left py-3 px-4">Company</th>
+                    <th className="text-right py-3 px-4">Paid Out (USD)</th>
+                    <th className="text-center py-3 px-4">% of Total</th>
+                    <th className="text-center py-3 px-4">Requests</th>
+                    <th className="text-center py-3 px-4 w-12">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredCategories.map((c) => {
+                    const isExpanded = expandedCategories.has(c.categoryName);
+                    const hasRegions = c.byRegion && c.byRegion.length > 0;
+
+                    return (
+                      <React.Fragment key={c.categoryName}>
+                        <tr
+                          onClick={() => toggleCategoryExpand(c.categoryName)}
+                          className={`hover:bg-muted/40 transition-colors cursor-pointer ${
+                            isExpanded ? 'bg-muted/30 font-medium' : ''
+                          }`}
+                        >
+                          <td className="py-3 px-4 font-bold text-foreground">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1 rounded bg-[#F5B700]/15 text-[#B8860B] dark:text-[#F5B700]">
+                                <Tag className="w-3.5 h-3.5" />
+                              </span>
+                              <div>
+                                <span className="font-semibold text-foreground text-xs">{c.categoryName}</span>
+                                {c.categoryCode && (
+                                  <span className="ml-2 font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                    {c.categoryCode}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            {companyId ? (
+                              <Badge variant="outline" className="text-[10px] font-semibold">
+                                {companies.find((co) => co.id === companyId)?.name || 'Company'}
+                              </Badge>
+                            ) : c.somtelSpent > 0 && c.bluekomSpent > 0 ? (
+                              <div className="flex items-center gap-1">
+                                <Badge className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-300">
+                                  Somtel: ${fmt(c.somtelSpent)}
+                                </Badge>
+                                <Badge className="text-[10px] bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-300">
+                                  Bluekom: ${fmt(c.bluekomSpent)}
+                                </Badge>
+                              </div>
+                            ) : c.somtelSpent > 0 ? (
+                              <Badge className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-300">
+                                Somtel
+                              </Badge>
+                            ) : c.bluekomSpent > 0 ? (
+                              <Badge className="text-[10px] bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-300">
+                                Bluekom
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                                Both
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-right font-financial tabular-nums font-bold text-sm text-foreground">
+                            ${fmt(c.totalSpent)}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-2 max-w-[130px] mx-auto">
+                              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-emerald-500 rounded-full transition-all"
+                                  style={{ width: `${Math.min(100, c.shareOfTotal || 0)}%` }}
+                                />
+                              </div>
+                              <span className="font-mono text-[11px] font-semibold text-muted-foreground min-w-[36px] text-right">
+                                {c.shareOfTotal}%
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <Badge variant="outline" className="text-[11px] font-mono px-2 py-0.5">
+                              {c.requestsCount}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <button
+                              type="button"
+                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                              title={isExpanded ? 'Collapse' : 'Expand'}
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4 text-primary" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4" />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+
+                        {/* Expanded Drawer: Clean Regional Breakdown Cards with Company Distinction */}
+                        {isExpanded && (
+                          <tr className="bg-muted/10 border-b border-border">
+                            <td colSpan={6} className="p-4">
+                              <div className="space-y-2.5">
+                                <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                                  Regional Spending Breakdown for {c.categoryName}
+                                </h4>
+                                {hasRegions ? (
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                                    {c.byRegion.map((r) => {
+                                      const compName = getRegionCompany(r);
+                                      const isSomtel = compName.toLowerCase().includes('somtel');
+                                      const isBluekom = compName.toLowerCase().includes('bluekom');
+
+                                      return (
+                                        <div
+                                          key={r.regionId}
+                                          className={`p-3 rounded-lg border shadow-2xs transition-colors ${
+                                            isSomtel
+                                              ? 'border-amber-400/80 dark:border-amber-500/70 bg-amber-50/60 dark:bg-amber-950/20 hover:border-amber-500'
+                                              : isBluekom
+                                              ? 'border-blue-400/80 dark:border-blue-500/70 bg-blue-50/60 dark:bg-blue-950/20 hover:border-blue-500'
+                                              : 'border-border bg-background hover:border-primary/40'
+                                          }`}
+                                        >
+                                          <p className="text-[11px] font-bold text-foreground truncate" title={r.regionName}>
+                                            {r.regionName}
+                                          </p>
+                                          <p
+                                            className={`text-base font-financial tabular-nums font-extrabold mt-1 ${
+                                              isSomtel
+                                                ? 'text-amber-600 dark:text-[#F5B700]'
+                                                : isBluekom
+                                                ? 'text-blue-600 dark:text-blue-400'
+                                                : 'text-primary'
+                                            }`}
+                                          >
+                                            ${fmt(r.spent)}
+                                          </p>
+                                          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
+                                            {r.count} request{r.count !== 1 ? 's' : ''}
+                                          </p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground italic">No regional expenses recorded for this period.</p>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -879,57 +1529,24 @@ export const ReportsPage: React.FC = () => {
                     );
                   })}
                 </tbody>
-
-                {/* ─── GRAND TOTAL FOOTER ROW ─── */}
                 <tfoot>
                   <tr className="bg-muted/70 border-t-2 border-border font-bold text-foreground">
                     <td className="px-4 py-3 uppercase tracking-wider text-[11px] text-foreground">
-                      Grand Total ({totalRegionsCount} Regions)
+                      Grand Total ({filteredCategories.length} Categories)
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-[11px]">
-                      {companyId ? companies.find((c) => c.id === companyId)?.name : 'All Companies'}
+                      {companyId ? companies.find((co) => co.id === companyId)?.name : 'All Companies'}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-foreground font-extrabold">
-                      ${fmt(totalRegionBudget)}
+                    <td className="px-4 py-3 text-right font-financial tabular-nums text-foreground font-extrabold text-sm">
+                      ${fmt(budgetData?.summary?.grandTotalSpent || 0)}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-amber-600 dark:text-amber-400 font-extrabold">
-                      ${fmt(totalRegionSpent)}
+                    <td className="px-4 py-3 text-center font-mono font-bold">100%</td>
+                    <td className="px-4 py-3 text-center font-mono font-bold">
+                      {filteredCategories.reduce((acc, c) => acc + c.requestsCount, 0)}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">
-                      ${fmt(totalRegionRemaining)}
+                    <td className="px-4 py-3 text-muted-foreground text-[11px] text-center">
+                      Aggregated
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden border border-border/40">
-                          <div
-                            className={`h-full rounded-full transition-all ${overallUtilizationPct >= 100
-                              ? 'bg-rose-500'
-                              : overallUtilizationPct >= 80
-                                ? 'bg-amber-500'
-                                : 'bg-emerald-500'
-                              }`}
-                            style={{ width: `${Math.min(overallUtilizationPct, 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] font-mono font-bold text-foreground w-10 text-right">
-                          {overallUtilizationPct}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] font-bold ${overallUtilizationPct >= 100
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : overallUtilizationPct >= 80
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          }`}
-                      >
-                        {overallUtilizationPct >= 100 ? 'Exceeded' : overallUtilizationPct >= 80 ? 'Warning' : 'Healthy'}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-3"></td>
                   </tr>
                 </tfoot>
               </table>
@@ -954,14 +1571,14 @@ export const ReportsPage: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
+                  <tr className="bg-gradient-to-r from-[#0D1C3D] to-[#0A1630] dark:from-[#0B1325] dark:to-[#080D1A] text-white text-[11px] font-bold uppercase tracking-wider">
                     <th className="text-left px-4 py-3">Employee Details</th>
                     <th className="text-left px-4 py-3">Region &amp; Dept</th>
                     <th className="text-center px-4 py-3">Requests</th>
-                    <th className="text-right px-4 py-3 font-mono">Requested</th>
-                    <th className="text-right px-4 py-3 font-mono">Approved</th>
-                    <th className="text-right px-4 py-3 font-mono">Paid Out</th>
-                    <th className="text-right px-4 py-3 font-mono">Pending Settlement</th>
+                    <th className="text-right px-4 py-3">Requested</th>
+                    <th className="text-right px-4 py-3">Approved</th>
+                    <th className="text-right px-4 py-3">Paid Out</th>
+                    <th className="text-right px-4 py-3">Pending Settlement</th>
                     <th className="text-center px-4 py-3">Action</th>
                   </tr>
                 </thead>
@@ -983,19 +1600,19 @@ export const ReportsPage: React.FC = () => {
                           {emp.totalRequests}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-muted-foreground">
+                      <td className="px-4 py-3 text-right font-financial tabular-nums text-muted-foreground">
                         ${fmt(emp.totalRequested)}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono font-bold text-blue-600 dark:text-blue-400">
+                      <td className="px-4 py-3 text-right font-financial tabular-nums font-bold text-blue-600 dark:text-blue-400">
                         ${fmt(emp.totalApproved)}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      <td className="px-4 py-3 text-right font-financial tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
                         ${fmt(emp.totalPaid)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {emp.pendingSettlementCount > 0 ? (
                           <div>
-                            <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                            <span className="font-financial tabular-nums font-bold text-amber-600 dark:text-amber-400">
                               ${fmt(emp.pendingSettlementAmount)}
                             </span>
                             <span className="text-[10px] text-muted-foreground block">
@@ -1031,16 +1648,16 @@ export const ReportsPage: React.FC = () => {
                     <td className="px-4 py-3 text-center font-mono">
                       {filteredEmployees.reduce((acc, e) => acc + e.totalRequests, 0)}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-muted-foreground">
+                    <td className="px-4 py-3 text-right font-financial tabular-nums text-muted-foreground">
                       ${fmt(filteredEmployees.reduce((acc, e) => acc + e.totalRequested, 0))}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-blue-600 dark:text-blue-400">
+                    <td className="px-4 py-3 text-right font-financial tabular-nums text-blue-600 dark:text-blue-400">
                       ${fmt(filteredEmployees.reduce((acc, e) => acc + e.totalApproved, 0))}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                    <td className="px-4 py-3 text-right font-financial tabular-nums text-emerald-600 dark:text-emerald-400">
                       ${fmt(filteredEmployees.reduce((acc, e) => acc + e.totalPaid, 0))}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-amber-600 dark:text-amber-400">
+                    <td className="px-4 py-3 text-right font-financial tabular-nums text-amber-600 dark:text-amber-400">
                       ${fmt(filteredEmployees.reduce((acc, e) => acc + e.pendingSettlementAmount, 0))}
                     </td>
                     <td className="px-4 py-3"></td>
@@ -1086,15 +1703,15 @@ export const ReportsPage: React.FC = () => {
             <div className="grid grid-cols-3 divide-x divide-border bg-muted/20 border-b border-border">
               <div className="p-3 text-center">
                 <span className="text-[10px] uppercase font-bold text-muted-foreground block">Total Requested</span>
-                <span className="font-mono font-bold text-foreground text-sm">${fmt(drillEmployee.totalRequested)}</span>
+                <span className="font-financial tabular-nums font-bold text-foreground text-sm">${fmt(drillEmployee.totalRequested)}</span>
               </div>
               <div className="p-3 text-center">
                 <span className="text-[10px] uppercase font-bold text-muted-foreground block">Total Approved</span>
-                <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">${fmt(drillEmployee.totalApproved)}</span>
+                <span className="font-financial tabular-nums font-bold text-blue-600 dark:text-blue-400 text-sm">${fmt(drillEmployee.totalApproved)}</span>
               </div>
               <div className="p-3 text-center">
                 <span className="text-[10px] uppercase font-bold text-muted-foreground block">Pending Settlement</span>
-                <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-sm">${fmt(drillEmployee.pendingSettlementAmount)}</span>
+                <span className="font-financial tabular-nums font-bold text-amber-600 dark:text-amber-400 text-sm">${fmt(drillEmployee.pendingSettlementAmount)}</span>
               </div>
             </div>
 
@@ -1105,11 +1722,11 @@ export const ReportsPage: React.FC = () => {
               ) : (
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
-                      <th className="text-left px-3 py-2 font-mono">Ref #</th>
+                    <tr className="bg-gradient-to-r from-[#0D1C3D] to-[#0A1630] dark:from-[#0B1325] dark:to-[#080D1A] text-white text-[11px] font-bold uppercase tracking-wider">
+                      <th className="text-left px-3 py-2">Ref #</th>
                       <th className="text-left px-3 py-2">Purpose</th>
-                      <th className="text-right px-3 py-2 font-mono">Requested</th>
-                      <th className="text-right px-3 py-2 font-mono">Approved</th>
+                      <th className="text-right px-3 py-2">Requested</th>
+                      <th className="text-right px-3 py-2">Approved</th>
                       <th className="text-center px-3 py-2">Status</th>
                       <th className="text-right px-3 py-2">Date</th>
                     </tr>
@@ -1119,8 +1736,8 @@ export const ReportsPage: React.FC = () => {
                       <tr key={r.id} className="hover:bg-muted/30">
                         <td className="px-3 py-2 font-mono font-bold text-primary">{r.requestNumber}</td>
                         <td className="px-3 py-2 text-foreground font-medium max-w-[220px] truncate">{r.purpose}</td>
-                        <td className="px-3 py-2 text-right font-mono text-muted-foreground">${fmt(r.requestedAmount)}</td>
-                        <td className="px-3 py-2 text-right font-mono font-bold text-blue-600 dark:text-blue-400">${fmt(r.approvedAmount)}</td>
+                        <td className="px-3 py-2 text-right font-financial tabular-nums text-muted-foreground">${fmt(r.requestedAmount)}</td>
+                        <td className="px-3 py-2 text-right font-financial tabular-nums font-bold text-blue-600 dark:text-blue-400">${fmt(r.approvedAmount)}</td>
                         <td className="px-3 py-2 text-center">
                           <span
                             className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${REQ_STATUS_COLORS[r.status] || 'bg-muted text-muted-foreground'
